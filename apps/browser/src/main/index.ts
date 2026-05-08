@@ -1,0 +1,79 @@
+import { app, BrowserWindow, ipcMain } from "electron"
+import { join } from "node:path"
+import { TabManager } from "./tabs"
+import { listProviders } from "./providers"
+import type { TabId } from "@shared/types"
+
+const isDev = !app.isPackaged
+
+let mainWindow: BrowserWindow | null = null
+let tabs: TabManager | null = null
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 760,
+    minHeight: 480,
+    titleBarStyle: "hiddenInset",
+    backgroundColor: "#0c0c0e",
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  })
+
+  mainWindow.once("ready-to-show", () => mainWindow?.show())
+
+  // Load the renderer (Vite dev server in dev, bundled file in prod).
+  if (isDev && process.env["ELECTRON_RENDERER_URL"]) {
+    void mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
+  } else {
+    void mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
+  }
+
+  tabs = new TabManager(mainWindow)
+  registerIpc()
+
+  // Open one tab on first paint.
+  mainWindow.webContents.once("did-finish-load", () => {
+    tabs?.create("https://www.google.com")
+  })
+}
+
+function registerIpc(): void {
+  if (!tabs) return
+  const t = tabs
+
+  ipcMain.handle("tabs:list",     () => t.getState())
+  ipcMain.handle("tabs:create",   (_e, url?: string) => t.create(url))
+  ipcMain.handle("tabs:close",    (_e, id: TabId) => t.close(id))
+  ipcMain.handle("tabs:activate", (_e, id: TabId) => t.activate(id))
+  ipcMain.handle("tabs:navigate", (_e, id: TabId, url: string) => t.navigate(id, url))
+  ipcMain.handle("tabs:back",     (_e, id: TabId) => t.back(id))
+  ipcMain.handle("tabs:forward",  (_e, id: TabId) => t.forward(id))
+  ipcMain.handle("tabs:reload",   (_e, id: TabId) => t.reload(id))
+
+  ipcMain.handle("layout:setSidebarOpen", (_e, open: boolean) => t.setSidebarOpen(open))
+
+  ipcMain.handle("providers:list",    () => listProviders())
+  ipcMain.handle("providers:refresh", () => listProviders())
+
+  // Push tab state changes to the renderer.
+  t.onUpdate((state) => {
+    mainWindow?.webContents.send("tabs:update", state)
+  })
+}
+
+app.whenReady().then(createWindow)
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit()
+})
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow()
+})

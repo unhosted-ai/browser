@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: hsl(240 4% 5%);
+  color: hsl(240 4% 93%);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+* { -webkit-font-smoothing: antialiased; }
+
+/* Drag region for the chrome top strip on macOS hiddenInset titlebar */
+.drag { -webkit-app-region: drag; }
+.no-drag { -webkit-app-region: no-drag; }

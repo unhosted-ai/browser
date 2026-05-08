@@ -9,5 +9,8 @@
     "browser:dev":     "pnpm --filter browser dev",
     "browser:build":   "pnpm --filter browser build"
   },
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild", "sharp"]
+  }
 }
