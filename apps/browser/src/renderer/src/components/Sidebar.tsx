@@ -219,7 +219,7 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
                     <button
                       type="button"
                       onClick={() => setDraft(s)}
-                      className="w-full text-left px-3 py-2 rounded-md border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3 transition-colors duration-150"
+                      className="w-full text-left px-4 py-2 rounded-full border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3 hover:bg-chrome-surface transition-colors duration-150"
                     >
                       {s}
                     </button>
@@ -256,7 +256,7 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
                 ? "Ask about this page…"
                 : "Ask anything…"
           }
-          className="w-full bg-chrome-surface-2 border border-chrome-border rounded-md text-[13px] text-chrome-text placeholder:text-chrome-text-3 px-3 py-2 resize-none focus:outline-none focus:border-signal/50 transition-colors duration-150 disabled:opacity-50"
+          className="w-full bg-chrome-surface-2 border border-chrome-border rounded-2xl text-[13px] text-chrome-text placeholder:text-chrome-text-3 px-4 py-2.5 resize-none focus:outline-none focus:border-signal/50 transition-colors duration-150 disabled:opacity-50"
           disabled={composerDisabled}
         />
         <div className="mt-2 flex items-center justify-between font-mono text-[10px] tracking-[0.12em] uppercase">

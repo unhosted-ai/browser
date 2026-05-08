@@ -9,6 +9,8 @@ type Props = {
   onReload: () => void
   sidebarOpen: boolean
   onToggleSidebar: () => void
+  theme: "dark" | "light"
+  onToggleTheme: () => void
 }
 
 export type AddressBarHandle = {
@@ -79,10 +81,33 @@ const Icon = {
       />
     </svg>
   ),
+  sun: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2.4" stroke="currentColor" strokeWidth="1.3" />
+      <g stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+        <path d="M7 1.5v1.4" /><path d="M7 11.1v1.4" />
+        <path d="M1.5 7h1.4" /><path d="M11.1 7h1.4" />
+        <path d="M3 3l1 1" /><path d="M10 10l1 1" />
+        <path d="M11 3l-1 1" /><path d="M4 10l-1 1" />
+      </g>
+    </svg>
+  ),
+  moon: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path
+        d="M11.5 8.6A4.6 4.6 0 1 1 5.4 2.5 3.8 3.8 0 0 0 11.5 8.6Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity="0.12"
+      />
+    </svg>
+  ),
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, theme, onToggleTheme },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
@@ -122,7 +147,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
 
       <div
         className={[
-          "flex-1 mx-1 h-7 flex items-center gap-2 px-3 rounded-md",
+          "flex-1 mx-1 h-8 flex items-center gap-2 px-4 rounded-full",
           "bg-chrome-surface border transition-colors duration-150",
           focused ? "border-signal/50" : "border-chrome-border",
         ].join(" ")}
@@ -161,13 +186,24 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         />
       </div>
 
+      {/* Theme toggle — sun in light mode, moon in dark mode */}
+      <button
+        type="button"
+        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        title={theme === "dark" ? "Light mode" : "Dark mode"}
+        onClick={onToggleTheme}
+        className={buttonCls(false)}
+      >
+        {theme === "dark" ? Icon.sun : Icon.moon}
+      </button>
+
       <button
         type="button"
         aria-label="Toggle Delta AI sidebar"
         title="Delta AI sidebar  ⌘J"
         onClick={onToggleSidebar}
         className={[
-          "h-7 px-2.5 ml-1 rounded-md flex items-center gap-1.5",
+          "h-8 px-3 ml-1 rounded-full flex items-center gap-1.5",
           "text-[11px] tracking-[0.08em] uppercase font-mono",
           "border transition-colors duration-150",
           sidebarOpen

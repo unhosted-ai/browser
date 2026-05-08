@@ -1,11 +1,25 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* https://api.anthropic.com https://api.openai.com" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Delta</title>
+    <script>
+      // Theme bootstrap — runs before React mounts so we never paint with the
+      // wrong palette. Reads the user's saved choice; falls back to system.
+      (function () {
+        try {
+          var saved = localStorage.getItem("delta:theme");
+          var sys = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          var theme = saved === "light" || saved === "dark" ? saved : sys;
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

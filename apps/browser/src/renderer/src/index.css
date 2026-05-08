@@ -11,11 +11,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ─────────────────────────────────────────
+   Two themes, both expressed as raw HSL components so Tailwind's
+   <alpha-value> placeholder works (e.g. bg-chrome-border/60).
+   Toggle by swapping `dark` / `light` on <html>. */
+:root.dark {
+  --chrome-bg:        240 4% 5%;
+  --chrome-surface:   240 6% 9%;
+  --chrome-surface-2: 240 7% 11%;
+  --chrome-border:    240 6% 16%;
+  --chrome-text:      240 4% 93%;
+  --chrome-text-2:    240 4% 57%;
+  --chrome-text-3:    240 4% 38%;
+  --signal:           135 55% 66%;
+  --signal-dim:       135 30% 28%;
+  --signal-trace:     240 8% 13%;
+  color-scheme: dark;
+}
+
+:root.light {
+  /* Warm beige canvas, near-black ink — the reference dashboard's register. */
+  --chrome-bg:        40 10% 90%;
+  --chrome-surface:   40 12% 95%;
+  --chrome-surface-2: 0  0% 100%;
+  --chrome-border:    40 8% 80%;
+  --chrome-text:      240 8% 12%;
+  --chrome-text-2:    240 5% 36%;
+  --chrome-text-3:    240 4% 56%;
+  /* Signal goes deeper in light mode for contrast on the cream canvas. */
+  --signal:           135 48% 36%;
+  --signal-dim:       135 25% 78%;
+  --signal-trace:     40 8% 84%;
+  color-scheme: light;
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
-  background: hsl(240 4% 5%);
-  color: hsl(240 4% 93%);
+  background: hsl(var(--chrome-bg));
+  color: hsl(var(--chrome-text));
   font-family: "Geist Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-feature-settings: "ss01", "cv11";  /* Geist's nicer numerals + alternate g */
   overflow: hidden;
@@ -45,7 +79,7 @@ html, body, #root {
   background: linear-gradient(
     90deg,
     transparent,
-    hsl(135 55% 66% / 0.25),
+    hsl(var(--signal) / 0.25),
     transparent
   );
   animation: browser-shine 1.4s ease-out 1 forwards;
@@ -64,8 +98,8 @@ html, body, #root {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(135 55% 66%) 35%,
-    hsl(135 55% 66%) 65%,
+    hsl(var(--signal)) 35%,
+    hsl(var(--signal)) 65%,
     transparent 100%
   );
   animation: loading-bar 1.2s ease-in-out infinite;
@@ -79,8 +113,8 @@ html, body, #root {
 /* ── Scrollbar — minimal, only on scroll ─────────────── */
 ::-webkit-scrollbar          { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: hsl(240 6% 16%); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(240 6% 24%); }
+::-webkit-scrollbar-thumb    { background: hsl(var(--chrome-border)); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--chrome-text-3) / 0.5); }
 
 .scrollbar-none {
   scrollbar-width: none;            /* Firefox */

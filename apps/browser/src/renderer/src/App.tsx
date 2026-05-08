@@ -3,6 +3,7 @@ import type { ProviderInfo, TabsState } from "@shared/types"
 import { TabStrip } from "./components/TabStrip"
 import { AddressBar } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
+import { useTheme } from "./hooks/useTheme"
 
 const SIDEBAR_WIDTH = 360
 
@@ -10,6 +11,7 @@ export function App() {
   const [state, setState] = useState<TabsState>({ tabs: [], activeId: null })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
+  const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
     void window.api.tabs.list().then(setState)
@@ -47,6 +49,8 @@ export function App() {
           onReload={() => active && window.api.tabs.reload(active.id)}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       </header>
 
