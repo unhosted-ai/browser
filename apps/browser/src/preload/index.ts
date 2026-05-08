@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron"
-import type { BrowserApi, TabsState, TabId, ProviderInfo } from "@shared/types"
+import type {
+  AgentEvent,
+  AgentSendInput,
+  BrowserApi,
+  ProviderInfo,
+  TabId,
+  TabsState,
+} from "@shared/types"
 
 const api: BrowserApi = {
   tabs: {
@@ -23,6 +30,15 @@ const api: BrowserApi = {
   providers: {
     list:    () => ipcRenderer.invoke("providers:list") as Promise<ProviderInfo[]>,
     refresh: () => ipcRenderer.invoke("providers:refresh") as Promise<ProviderInfo[]>,
+  },
+  agent: {
+    send:   (input: AgentSendInput) => ipcRenderer.invoke("agent:send", input),
+    cancel: (taskId: string) => ipcRenderer.invoke("agent:cancel", taskId),
+    onEvent: (cb: (e: AgentEvent) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, ev: AgentEvent) => cb(ev)
+      ipcRenderer.on("agent:event", listener)
+      return () => ipcRenderer.removeListener("agent:event", listener)
+    },
   },
 }
 

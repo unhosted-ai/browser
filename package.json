@@ -6,8 +6,9 @@
     "portfolio:dev":   "pnpm --filter portfolio dev",
     "portfolio:build": "pnpm --filter portfolio build",
     "portfolio:lint":  "pnpm --filter portfolio lint",
-    "browser:dev":     "pnpm --filter browser dev",
-    "browser:build":   "pnpm --filter browser build"
+    "delta:dev":       "pnpm --filter delta dev",
+    "delta:build":     "pnpm --filter delta build",
+    "delta:typecheck": "pnpm --filter delta typecheck"
   },
   "packageManager": "pnpm@10.0.0",
   "pnpm": {

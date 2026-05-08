@@ -63,6 +63,7 @@ export function App() {
               providers={providers}
               onRefresh={refreshProviders}
               activeUrl={active?.url ?? null}
+              activeTitle={active?.title ?? null}
             />
           </aside>
         )}

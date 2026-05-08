@@ -14,15 +14,17 @@ const config: Config = {
           "text-2":  "hsl(240 4% 57%)",
           "text-3":  "hsl(240 4% 38%)",
         },
+        // Delta brand — mint green from the org mark
         signal: {
-          DEFAULT: "hsl(47 78% 60%)",
-          dim:     "hsl(45 55% 27%)",
+          DEFAULT: "hsl(135 55% 66%)",
+          dim:     "hsl(135 30% 28%)",
           trace:   "hsl(240 8% 13%)",
         },
       },
       fontFamily: {
-        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['ui-monospace', 'Menlo', 'monospace'],
+        sans:  ['"Geist Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono:  ['"Geist Mono"', 'ui-monospace', 'Menlo', 'monospace'],
+        serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
       },
     },
   },

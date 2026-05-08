@@ -8,46 +8,81 @@ type Props = {
   onCreate: () => void
 }
 
+function favicon(url: string): string | null {
+  try {
+    const u = new URL(url)
+    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`
+  } catch {
+    return null
+  }
+}
+
 export function TabStrip({ tabs, activeId, onActivate, onClose, onCreate }: Props) {
   return (
-    <div className="h-10 flex items-end pl-[80px] pr-2 gap-1 select-none">
-      <ul className="flex flex-1 items-end gap-1 overflow-x-auto">
+    <div className="h-10 flex items-end pl-[80px] pr-2 gap-[2px] select-none">
+      <ul className="flex flex-1 items-end gap-[2px] overflow-x-auto scrollbar-none">
         {tabs.map((t) => {
           const active = t.id === activeId
+          const fav = favicon(t.url)
           return (
             <li
               key={t.id}
               className={[
                 "no-drag group relative flex items-center gap-2",
-                "h-8 max-w-[220px] min-w-[120px] px-3 rounded-t-md text-[12px]",
+                "h-9 max-w-[220px] min-w-[140px] pl-2.5 pr-1.5",
+                "rounded-t-lg text-[12px] cursor-default",
                 "transition-colors duration-150",
                 active
                   ? "bg-chrome-surface-2 text-chrome-text"
-                  : "bg-transparent text-chrome-text-2 hover:bg-chrome-surface/60",
+                  : "bg-transparent text-chrome-text-2 hover:bg-chrome-surface/70 hover:text-chrome-text",
               ].join(" ")}
               onClick={() => onActivate(t.id)}
+              onAuxClick={(e) => {
+                if (e.button === 1) onClose(t.id)
+              }}
             >
-              <span
-                className={[
-                  "h-1.5 w-1.5 rounded-full shrink-0",
-                  t.loading
-                    ? "bg-signal animate-pulse"
-                    : active
-                      ? "bg-signal"
-                      : "bg-chrome-text-3",
-                ].join(" ")}
-              />
-              <span className="truncate flex-1">{t.title || "New tab"}</span>
+              {/* Active accent line at top edge */}
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute left-2.5 right-2.5 top-0 h-[2px] rounded-full bg-signal"
+                />
+              )}
+
+              {/* Favicon */}
+              <span className="grid place-items-center h-4 w-4 shrink-0">
+                {t.loading ? (
+                  <span className="h-2 w-2 rounded-full bg-signal animate-pulse" />
+                ) : fav ? (
+                  <img
+                    src={fav}
+                    alt=""
+                    className="h-4 w-4 rounded-sm"
+                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+                  />
+                ) : (
+                  <span className="h-2 w-2 rounded-full bg-chrome-text-3" />
+                )}
+              </span>
+
+              {/* Title */}
+              <span className="truncate flex-1 leading-none">
+                {t.title || "New tab"}
+              </span>
+
+              {/* Close button */}
               <button
                 type="button"
                 aria-label="Close tab"
-                className="opacity-0 group-hover:opacity-100 h-4 w-4 grid place-items-center rounded text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-border"
+                className="opacity-0 group-hover:opacity-100 h-5 w-5 grid place-items-center rounded text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-border transition-opacity duration-100"
                 onClick={(e) => {
                   e.stopPropagation()
                   onClose(t.id)
                 }}
               >
-                ×
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
               </button>
             </li>
           )
@@ -56,10 +91,12 @@ export function TabStrip({ tabs, activeId, onActivate, onClose, onCreate }: Prop
           <button
             type="button"
             aria-label="New tab"
-            className="no-drag h-8 w-8 grid place-items-center rounded-md text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface/60"
+            className="no-drag h-9 w-9 grid place-items-center rounded-md text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface/70 transition-colors duration-150"
             onClick={onCreate}
           >
-            +
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </li>
       </ul>

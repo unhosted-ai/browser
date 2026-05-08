@@ -153,6 +153,26 @@ export class TabManager {
     this.entries.get(id)?.view.webContents.reload()
   }
 
+  /**
+   * Read the active tab's rendered text (innerText). Used by the agent for
+   * "ask the page" context. Returns null when there's no active tab or the
+   * page can't be read (cross-origin, internal pages, etc.).
+   */
+  async readActivePage(): Promise<{ title: string; url: string; text: string } | null> {
+    if (!this.activeId) return null
+    const entry = this.entries.get(this.activeId)
+    if (!entry) return null
+    try {
+      const text = (await entry.view.webContents.executeJavaScript(
+        "document.body && document.body.innerText || ''",
+        true,
+      )) as string
+      return { title: entry.title, url: entry.url, text }
+    } catch {
+      return null
+    }
+  }
+
   // ── Internal ────────────────────────────────────
   private relayoutActive(): void {
     if (!this.activeId) return

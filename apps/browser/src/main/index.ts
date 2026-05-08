@@ -2,15 +2,18 @@ import { app, BrowserWindow, ipcMain } from "electron"
 import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
-import type { TabId } from "@shared/types"
+import { Agent } from "./agent"
+import type { AgentSendInput, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
 
 let mainWindow: BrowserWindow | null = null
 let tabs: TabManager | null = null
+let agent: Agent | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
+    title: "Delta",
     width: 1280,
     height: 820,
     minWidth: 760,
@@ -36,6 +39,10 @@ function createWindow(): void {
   }
 
   tabs = new TabManager(mainWindow)
+  agent = new Agent({
+    emit: (event) => mainWindow?.webContents.send("agent:event", event),
+    readActivePage: () => tabs!.readActivePage(),
+  })
   registerIpc()
 
   // Open one tab on first paint.
@@ -62,12 +69,17 @@ function registerIpc(): void {
   ipcMain.handle("providers:list",    () => listProviders())
   ipcMain.handle("providers:refresh", () => listProviders())
 
+  // Agent (Phase 1: chat). Streaming events are pushed via "agent:event".
+  ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
+  ipcMain.handle("agent:cancel", (_e, taskId: string) => agent?.cancel(taskId))
+
   // Push tab state changes to the renderer.
   t.onUpdate((state) => {
     mainWindow?.webContents.send("tabs:update", state)
   })
 }
 
+app.setName("Delta")
 app.whenReady().then(createWindow)
 
 app.on("window-all-closed", () => {

@@ -1,8 +1,9 @@
 {
-  "name": "browser",
+  "name": "delta",
+  "productName": "Delta",
   "version": "0.0.1",
   "private": true,
-  "description": "Delta Practice — AI browser (Electron + React/Vite)",
+  "description": "Delta — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -13,6 +14,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "dependencies": {
+    "@fontsource/geist-mono": "^5.1.0",
+    "@fontsource/geist-sans": "^5.1.0",
+    "@fontsource/instrument-serif": "^5.1.0",
     "electron-store": "^10.0.0"
   },
   "devDependencies": {
