@@ -1,0 +1,13 @@
+{
+  "name": "delta-practice-browser",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "portfolio:dev":   "pnpm --filter portfolio dev",
+    "portfolio:build": "pnpm --filter portfolio build",
+    "portfolio:lint":  "pnpm --filter portfolio lint",
+    "browser:dev":     "pnpm --filter browser dev",
+    "browser:build":   "pnpm --filter browser build"
+  },
+  "packageManager": "pnpm@10.0.0"
+}
