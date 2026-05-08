@@ -9,6 +9,10 @@ out/
 # Build outputs
 dist/
 build/
+# …except for electron-builder's source-assets folder, which holds icons
+# and other inputs to the packaged build.
+!apps/browser/build/
+release/
 
 # Environment
 .env

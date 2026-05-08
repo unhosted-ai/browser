@@ -93,6 +93,16 @@ function registerIpc(): void {
 
 app.setName("Delta")
 app.whenReady().then(() => {
+  // macOS dock icon during dev — the packaged app gets its icon from
+  // build/icon.icns via electron-builder, but in dev the binary still ships
+  // with the default Electron mark unless we override here.
+  if (process.platform === "darwin" && isDev && app.dock) {
+    try {
+      app.dock.setIcon(join(__dirname, "../../build/icon.png"))
+    } catch {
+      // Best-effort; if the icon file isn't present, just skip.
+    }
+  }
   registerNewtabProtocol()
   createWindow()
 })

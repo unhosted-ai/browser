@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Delta — application icon</title>
+  <desc>Δ application icon. Mint delta on a dark squircle. 1024×1024 master.</desc>
+
+  <defs>
+    <!-- Squircle background — vertical gradient, picks up the chrome canvas
+         token (240 4% 5%) and a slightly raised top edge for depth. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="hsl(240 6% 12%)"/>
+      <stop offset="0.55" stop-color="hsl(240 5% 7%)"/>
+      <stop offset="1"   stop-color="hsl(240 6% 4%)"/>
+    </linearGradient>
+
+    <!-- Delta gradient — mint, brighter at the apex, deeper at the base.
+         Matches the in-app brand mark while reading well at 16×16. -->
+    <linearGradient id="delta" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0"    stop-color="hsl(135 65% 78%)"/>
+      <stop offset="0.55" stop-color="hsl(135 55% 66%)"/>
+      <stop offset="1"    stop-color="hsl(135 50% 52%)"/>
+    </linearGradient>
+
+    <!-- Soft outer glow on the delta to keep it readable on dark canvas. -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feColorMatrix type="matrix"
+        values="0 0 0 0 0.55
+                0 0 0 0 0.86
+                0 0 0 0 0.62
+                0 0 0 0.55 0"/>
+      <feComposite in2="SourceGraphic" operator="out" result="halo"/>
+      <feMerge>
+        <feMergeNode in="halo"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Top inner highlight to give the squircle a glassy edge. -->
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="hsl(0 0% 100%)" stop-opacity="0.08"/>
+      <stop offset="0.18" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle. macOS Big Sur+ uses a superellipse, but a generous rx is
+       visually identical at 1024 and roundtrips fine through iconutil. -->
+  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#bg)"/>
+
+  <!-- Inner rim highlight -->
+  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#rim)"/>
+
+  <!-- Delta triangle — equilateral, optical-centered. The geometric centre
+       of an equilateral triangle sits ~7% below the bbox centre, so we
+       nudge the path down slightly so the mark feels balanced in the
+       squircle. -->
+  <g filter="url(#glow)">
+    <path
+      d="M 512 244
+         L 836 776
+         L 188 776 Z"
+      fill="url(#delta)"
+      stroke="hsl(135 60% 72%)"
+      stroke-width="6"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- Subtle inner highlight on the delta's left face, suggesting depth. -->
+  <path
+    d="M 512 244 L 360 524 L 188 776 Z"
+    fill="hsl(0 0% 100%)"
+    fill-opacity="0.06"
+  />
+</svg>
