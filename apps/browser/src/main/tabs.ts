@@ -47,7 +47,7 @@ export class TabManager {
     this.relayoutActive()
   }
 
-  create(url = "https://www.google.com"): Tab {
+  create(url = "delta://newtab"): Tab {
     const id = randomUUID()
     const view = new WebContentsView({
       webPreferences: {

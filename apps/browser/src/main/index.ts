@@ -1,11 +1,23 @@
-import { app, BrowserWindow, ipcMain } from "electron"
+import { app, BrowserWindow, ipcMain, protocol } from "electron"
 import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
 import { Agent } from "./agent"
+import { registerNewtabProtocol } from "./newtab"
 import type { AgentSendInput, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
+
+// The custom delta:// scheme must be declared as privileged BEFORE app is
+// ready. Marking it `standard` lets it behave like http:// (relative paths,
+// origin model); `secure` lets fetch + service workers work; `supportFetchAPI`
+// lets `protocol.handle` use Request/Response.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "delta",
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
+])
 
 let mainWindow: BrowserWindow | null = null
 let tabs: TabManager | null = null
@@ -45,9 +57,9 @@ function createWindow(): void {
   })
   registerIpc()
 
-  // Open one tab on first paint.
+  // Open one tab on first paint — defaults to delta://newtab.
   mainWindow.webContents.once("did-finish-load", () => {
-    tabs?.create("https://www.google.com")
+    tabs?.create()
   })
 }
 
@@ -80,7 +92,10 @@ function registerIpc(): void {
 }
 
 app.setName("Delta")
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  registerNewtabProtocol()
+  createWindow()
+})
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit()

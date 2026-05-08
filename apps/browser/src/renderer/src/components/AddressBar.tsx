@@ -25,6 +25,9 @@ function normalizeUrl(input: string): string {
 }
 
 function displayUrl(url: string): string {
+  // Internal pages (delta://newtab, etc.) read as empty so the placeholder
+  // ("Search or enter address") shows — matches the new-tab feel of Chrome.
+  if (url.startsWith("delta:")) return ""
   try {
     const u = new URL(url)
     return u.host + (u.pathname === "/" ? "" : u.pathname) + u.search + u.hash
