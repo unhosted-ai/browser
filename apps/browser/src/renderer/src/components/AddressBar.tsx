@@ -1,5 +1,7 @@
-import { forwardRef, useEffect, useRef, useState, useImperativeHandle } from "react"
+import { forwardRef, useEffect, useMemo, useRef, useState, useImperativeHandle } from "react"
 import type { Tab } from "@shared/types"
+import { classifyUrl } from "../lib/safety"
+import { SafetyBadge } from "./SafetyBadge"
 
 type Props = {
   tab: Tab | null
@@ -128,8 +130,13 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
 
   const isHttps = tab?.url?.startsWith("https://") ?? false
   const isFile  = tab?.url?.startsWith("file://")  ?? false
+  const isInternal = tab?.url?.startsWith("delta:") ?? false
   const showLock = isHttps && !focused && !!tab?.url
-  const showSearch = !showLock && !isFile && !focused
+  const showSearch = !showLock && !isFile && !isInternal && !focused
+  const safety = useMemo(() => classifyUrl(tab?.url), [tab?.url])
+  // Hide the badge when the input is focused (gives the URL room to breathe)
+  // and on plain `file://` paths where category isn't meaningful.
+  const showBadge = !focused && !!tab?.url && !isFile
 
   const buttonCls = (disabled = false) =>
     [
@@ -155,6 +162,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         <span className="text-chrome-text-3 shrink-0">
           {showLock ? Icon.lock : showSearch ? Icon.search : null}
         </span>
+        {showBadge && <SafetyBadge safety={safety} />}
         <input
           ref={inputRef}
           value={focused ? value : (tab ? displayUrl(tab.url) : "")}
