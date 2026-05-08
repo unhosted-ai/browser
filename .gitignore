@@ -22,8 +22,3 @@ build/
 .turbo
 *.tsbuildinfo
 next-env.d.ts
-
-# Pending-decision references — duplicates of references/synecdoche/
-# and apps/portfolio/. Leave on disk for inspection but don't commit.
-references/79rMq2oypjR/
-references/px4FqlmmHHm/
