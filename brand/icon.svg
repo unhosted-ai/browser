@@ -1,75 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <title>Delta — application icon</title>
-  <desc>Δ application icon. Mint delta on a dark squircle. 1024×1024 master.</desc>
+  <desc>Δ on a dark squircle. 1024×1024 master. No filters — clean rasterization at every size from 16 up.</desc>
 
   <defs>
-    <!-- Squircle background — vertical gradient, picks up the chrome canvas
-         token (240 4% 5%) and a slightly raised top edge for depth. -->
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0"   stop-color="hsl(240 6% 12%)"/>
-      <stop offset="0.55" stop-color="hsl(240 5% 7%)"/>
-      <stop offset="1"   stop-color="hsl(240 6% 4%)"/>
+    <!-- Squircle canvas: rich vertical gradient, slightly cooler at the top
+         to suggest light from above. No fancy effects so the rasterization
+         stays crisp at 16px / 32px. -->
+    <linearGradient id="canvas" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0"   stop-color="hsl(225 12% 16%)"/>
+      <stop offset="0.65" stop-color="hsl(230 10% 9%)"/>
+      <stop offset="1"   stop-color="hsl(230 12% 5%)"/>
     </linearGradient>
 
-    <!-- Delta gradient — mint, brighter at the apex, deeper at the base.
-         Matches the in-app brand mark while reading well at 16×16. -->
+    <!-- Δ gradient: brighter mint at the apex, deeper at the base. Three
+         stops give a clean shaded look without banding. -->
     <linearGradient id="delta" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0"    stop-color="hsl(135 65% 78%)"/>
-      <stop offset="0.55" stop-color="hsl(135 55% 66%)"/>
-      <stop offset="1"    stop-color="hsl(135 50% 52%)"/>
+      <stop offset="0"   stop-color="hsl(132 70% 78%)"/>
+      <stop offset="0.55" stop-color="hsl(135 55% 64%)"/>
+      <stop offset="1"   stop-color="hsl(140 55% 48%)"/>
     </linearGradient>
 
-    <!-- Soft outer glow on the delta to keep it readable on dark canvas. -->
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
-      <feColorMatrix type="matrix"
-        values="0 0 0 0 0.55
-                0 0 0 0 0.86
-                0 0 0 0 0.62
-                0 0 0 0.55 0"/>
-      <feComposite in2="SourceGraphic" operator="out" result="halo"/>
-      <feMerge>
-        <feMergeNode in="halo"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <!-- Inner top-of-squircle highlight — gives the canvas a subtle
+         glassy edge without a separate stroke. -->
+    <linearGradient id="rim" x1="0.5" y1="0" x2="0.5" y2="0.18">
+      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
+    </linearGradient>
 
-    <!-- Top inner highlight to give the squircle a glassy edge. -->
-    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0"    stop-color="hsl(0 0% 100%)" stop-opacity="0.08"/>
-      <stop offset="0.18" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
+    <!-- Light source on the Δ — a faint white wash on the upper half so
+         the triangle reads as lit from above, matching the canvas. -->
+    <linearGradient id="lit" x1="0.5" y1="0" x2="0.5" y2="0.55">
+      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <!-- Squircle. macOS Big Sur+ uses a superellipse, but a generous rx is
-       visually identical at 1024 and roundtrips fine through iconutil. -->
-  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#bg)"/>
+  <!-- ─── Squircle canvas ─────────────────────────────────
+       rx=232 lands close enough to Apple's continuous-corner squircle to
+       be visually indistinguishable at 1024 and below. -->
+  <rect width="1024" height="1024" rx="232" ry="232" fill="url(#canvas)"/>
+  <rect width="1024" height="1024" rx="232" ry="232" fill="url(#rim)"/>
 
-  <!-- Inner rim highlight -->
-  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#rim)"/>
+  <!-- ─── Cast shadow under the Δ ─────────────────────────
+       A flattened ellipse with a single gradient fades to nothing at the
+       edges — same cue as a drop-shadow filter, but no feGaussianBlur
+       (blur filters get crunchy when downsampled to the small icon sizes). -->
+  <defs>
+    <radialGradient id="cast" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="hsl(140 60% 30%)" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="hsl(140 60% 30%)" stop-opacity="0.18"/>
+      <stop offset="1"   stop-color="hsl(140 60% 30%)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="512" cy="836" rx="290" ry="22" fill="url(#cast)"/>
 
-  <!-- Delta triangle — equilateral, optical-centered. The geometric centre
-       of an equilateral triangle sits ~7% below the bbox centre, so we
-       nudge the path down slightly so the mark feels balanced in the
-       squircle. -->
-  <g filter="url(#glow)">
-    <path
-      d="M 512 244
-         L 836 776
-         L 188 776 Z"
-      fill="url(#delta)"
-      stroke="hsl(135 60% 72%)"
-      stroke-width="6"
-      stroke-linejoin="round"
-      stroke-linecap="round"
-    />
-  </g>
+  <!-- ─── The Δ ────────────────────────────────────────────
+       Bigger and bolder than v1 — fills ~73% of the canvas width and is
+       optically centered (geometric centroid sits a hair above the canvas
+       midline so an upward triangle reads as balanced).
 
-  <!-- Subtle inner highlight on the delta's left face, suggesting depth. -->
+       NO stroke: a stroke + similar-coloured fill produces a visible
+       double-edge after antialiased downsampling. One filled path only. -->
   <path
-    d="M 512 244 L 360 524 L 188 776 Z"
-    fill="hsl(0 0% 100%)"
-    fill-opacity="0.06"
+    d="M 512 168
+       L 880 800
+       L 144 800 Z"
+    fill="url(#delta)"
+    stroke-linejoin="round"
+  />
+
+  <!-- Light overlay across the top of the Δ. Same shape, slightly
+       inset, with a soft highlight on the upper portion only. -->
+  <path
+    d="M 512 188
+       L 858 788
+       L 166 788 Z"
+    fill="url(#lit)"
+    stroke-linejoin="round"
   />
 </svg>
