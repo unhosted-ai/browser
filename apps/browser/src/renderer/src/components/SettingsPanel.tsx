@@ -69,6 +69,18 @@ function SettingsBody({
   providers: ProviderInfo[]
   onRefreshProviders: () => void
 }) {
+  // Lifted state — Connection's "Add a custom endpoint" button needs to
+  // open the inline adder over in CustomEndpointsSection AND scroll it
+  // into view, even though those are sibling sections. Lifted control
+  // beats event-emitter coordination here.
+  const [adderOpen, setAdderOpen] = useState(false)
+  const openAdderAndScroll = () => {
+    setAdderOpen(true)
+    requestAnimationFrame(() => {
+      document.getElementById("custom-endpoints-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -90,7 +102,11 @@ function SettingsBody({
       {/* Sections — Connection comes first; it owns setup. The Assistant
           sidebar no longer carries setup instructions. */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-        <ConnectionSection providers={providers} onRefresh={onRefreshProviders} />
+        <ConnectionSection
+          providers={providers}
+          onRefresh={onRefreshProviders}
+          onAddCustomEndpoint={openAdderAndScroll}
+        />
         <AppearanceSection />
         <CloudKeySection
           label="OpenAI cloud"
@@ -112,7 +128,14 @@ function SettingsBody({
           onClearKey={() => window.api.settings.update({ kind: "anthropicKey", value: null })}
           onSetEnabled={(v) => window.api.settings.update({ kind: "anthropicEnabled", value: v })}
         />
-        <CustomEndpointsSection settings={settings} />
+        <CustomEndpointsSection
+          settings={settings}
+          providers={providers}
+          adderOpen={adderOpen}
+          onAdderOpen={() => setAdderOpen(true)}
+          onAdderClose={() => setAdderOpen(false)}
+          onRefresh={onRefreshProviders}
+        />
         <DefaultProviderSection settings={settings} />
         <PrivacyNote />
       </div>
@@ -124,10 +147,11 @@ function SettingsBody({
 // One home for "where is the model coming from": current status,
 // install instructions when nothing's online, and a Refresh affordance.
 function ConnectionSection({
-  providers, onRefresh,
+  providers, onRefresh, onAddCustomEndpoint,
 }: {
   providers: ProviderInfo[]
   onRefresh: () => void
+  onAddCustomEndpoint: () => void
 }) {
   const usable = providers.find((p) => p.status === "online" && p.models.length > 0)
   return (
@@ -183,11 +207,21 @@ function ConnectionSection({
               <code className="font-mono text-chrome-text">ollama pull llama3.2</code>
             </li>
           </ol>
-          <p className="text-[11px] text-chrome-text-3 leading-relaxed">
-            Already running LM Studio / llama.cpp / MLX? Make sure their local
-            server is started — Delta auto-detects within a few seconds.
-            Or add a Custom endpoint below.
+          <p className="text-[11px] text-chrome-text-3 leading-relaxed mb-3">
+            Already running LM Studio / llama.cpp / MLX? Start their local
+            server — Delta auto-detects within a few seconds.
           </p>
+          {/* Prominent CTA so users on a non-default IP/port don't have to
+              hunt for the Custom endpoints section below. */}
+          <button
+            type="button"
+            onClick={onAddCustomEndpoint}
+            className="w-full h-9 rounded-full border border-chrome-border bg-chrome-surface-2 hover:border-chrome-text-3 hover:bg-chrome-surface text-[12px] text-chrome-text flex items-center justify-center gap-2 transition-colors"
+          >
+            <span className="text-signal">+</span>
+            <span>Add a custom endpoint</span>
+            <span className="font-mono text-[10px] text-chrome-text-3">homelab · Together · Groq · …</span>
+          </button>
         </div>
       )}
     </section>
@@ -304,19 +338,41 @@ function CloudKeySection({
 }
 
 // ── Custom endpoints ────────────────────────────────────────────────
-function CustomEndpointsSection({ settings }: { settings: UserSettings }) {
-  const [showAdder, setShowAdder] = useState(false)
+function CustomEndpointsSection({
+  settings, providers, adderOpen, onAdderOpen, onAdderClose, onRefresh,
+}: {
+  settings: UserSettings
+  providers: ProviderInfo[]
+  adderOpen: boolean
+  onAdderOpen: () => void
+  onAdderClose: () => void
+  onRefresh: () => void
+}) {
   const [label, setLabel] = useState("")
   const [endpoint, setEndpoint] = useState("")
   const [apiKey, setApiKey] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+  // Per-endpoint live status, looked up from the providers list main pushes.
+  // "online" — green; "offline" — muted with a "Test" affordance that just
+  // re-probes everything; "needs-key" — amber.
+  const statusOf = (id: string): { color: string; label: string } => {
+    const p = providers.find((x) => x.id === id)
+    if (!p) return { color: "bg-chrome-text-3", label: "unknown" }
+    switch (p.status) {
+      case "online":    return { color: "bg-signal", label: `online · ${p.models.length} model${p.models.length === 1 ? "" : "s"}` }
+      case "needs-key": return { color: "bg-[hsl(45_85%_55%)]", label: "needs key" }
+      case "offline":   return { color: "bg-[hsl(0_60%_55%)]", label: "offline · check the URL is reachable" }
+      default:          return { color: "bg-chrome-text-3", label: "unknown" }
+    }
+  }
+
   const add = async () => {
     setErr(null)
     let url: URL
     try { url = new URL(endpoint) } catch {
-      setErr("Endpoint must be a valid URL (e.g. https://api.together.xyz).")
+      setErr("Endpoint must be a valid URL (e.g. https://api.together.xyz or http://192.168.1.50:1234).")
       return
     }
     if (!/^https?:$/.test(url.protocol)) {
@@ -332,7 +388,7 @@ function CustomEndpointsSection({ settings }: { settings: UserSettings }) {
         apiKey: apiKey.trim() || undefined,
       })
       setLabel(""); setEndpoint(""); setApiKey("")
-      setShowAdder(false)
+      onAdderClose()
     } finally { setBusy(false) }
   }
 
@@ -341,41 +397,57 @@ function CustomEndpointsSection({ settings }: { settings: UserSettings }) {
   }
 
   return (
-    <section>
+    <section id="custom-endpoints-section" className="scroll-mt-4">
       <SectionHeader
         label="Custom endpoints"
-        hint="Any OpenAI-compatible URL — local homelab Ollama, Together, Groq, vLLM, etc."
+        hint="Any OpenAI-compatible URL — local homelab Ollama, Together, Groq, vLLM, LM Studio on a non-default IP."
       />
 
       {settings.customEndpoints.length > 0 && (
         <ul className="space-y-2 mb-2">
-          {settings.customEndpoints.map((e) => (
-            <li
-              key={e.id}
-              className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] text-chrome-text truncate">{e.label}</p>
-                <p className="font-mono text-[11px] text-chrome-text-3 truncate">{e.endpoint}</p>
-              </div>
-              {e.hasApiKey && (
-                <span
-                  title="API key configured"
-                  className="font-mono text-[9px] tracking-[0.12em] uppercase text-signal/80"
-                >authed</span>
-              )}
-              <button
-                type="button"
-                onClick={() => remove(e.id)}
-                aria-label="Remove endpoint"
-                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_60%)] transition-colors"
-              >Remove</button>
-            </li>
-          ))}
+          {settings.customEndpoints.map((e) => {
+            const s = statusOf(e.id)
+            return (
+              <li
+                key={e.id}
+                className="rounded-2xl border border-chrome-border bg-chrome-surface p-3"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    title={s.label}
+                    className={["h-1.5 w-1.5 rounded-full shrink-0", s.color].join(" ")}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-chrome-text truncate">{e.label}</p>
+                    <p className="font-mono text-[11px] text-chrome-text-3 truncate">{e.endpoint}</p>
+                  </div>
+                  {e.hasApiKey && (
+                    <span
+                      title="API key configured"
+                      className="font-mono text-[9px] tracking-[0.12em] uppercase text-signal/80 shrink-0"
+                    >authed</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onRefresh}
+                    title="Re-probe this endpoint"
+                    className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors shrink-0"
+                  >Test</button>
+                  <button
+                    type="button"
+                    onClick={() => remove(e.id)}
+                    aria-label="Remove endpoint"
+                    className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_60%)] transition-colors shrink-0"
+                  >Remove</button>
+                </div>
+                <p className="mt-1.5 ml-4 font-mono text-[10px] text-chrome-text-3">{s.label}</p>
+              </li>
+            )
+          })}
         </ul>
       )}
 
-      {showAdder ? (
+      {adderOpen ? (
         <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-2">
           <input
             value={label}
@@ -410,7 +482,7 @@ function CustomEndpointsSection({ settings }: { settings: UserSettings }) {
             >Add</button>
             <button
               type="button"
-              onClick={() => { setShowAdder(false); setErr(null) }}
+              onClick={() => { onAdderClose(); setErr(null) }}
               className="h-8 px-4 rounded-full border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text transition-colors"
             >Cancel</button>
           </div>
@@ -418,7 +490,7 @@ function CustomEndpointsSection({ settings }: { settings: UserSettings }) {
       ) : (
         <button
           type="button"
-          onClick={() => setShowAdder(true)}
+          onClick={onAdderOpen}
           className="h-9 px-4 rounded-full border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3 transition-colors"
         >
           + Add endpoint
