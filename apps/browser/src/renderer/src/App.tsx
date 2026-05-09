@@ -5,6 +5,7 @@ import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { FindBar } from "./components/FindBar"
+import { Onboarding, useOnboardingState } from "./components/Onboarding"
 import {
   LeftNavSidebar,
   LEFT_NAV_WIDTH_FULL,
@@ -25,6 +26,11 @@ export function App() {
   })
   const addressBarRef = useRef<AddressBarHandle>(null)
   const leftNavWidth = leftNavCollapsed ? LEFT_NAV_WIDTH_RAIL : LEFT_NAV_WIDTH_FULL
+  // First-launch welcome card. Reads localStorage synchronously on mount —
+  // we want zero flash before the card paints.
+  const onboarding = useOnboardingState()
+  const [showOnboarding, setShowOnboarding] = useState(onboarding.open)
+  const dismissOnboarding = () => { onboarding.dismiss(); setShowOnboarding(false) }
 
   useEffect(() => {
     void window.api.tabs.list().then(setState)
@@ -176,6 +182,13 @@ export function App() {
             onRefreshProviders={refreshProviders}
           />
           <FindBar open={findOpen} onClose={() => setFindOpen(false)} />
+          {showOnboarding && (
+            <Onboarding
+              onClose={dismissOnboarding}
+              onOpenSettings={() => { setSettingsOpen(true); dismissOnboarding() }}
+              onToggleAssistant={() => { setSidebarOpen(true); dismissOnboarding() }}
+            />
+          )}
         </div>
       </div>
     </div>
