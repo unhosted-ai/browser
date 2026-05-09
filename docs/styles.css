@@ -1,0 +1,297 @@
+/*
+  Delta — GitHub Pages stylesheet.
+
+  Aesthetic register: dark, mono-accented, generous spacing, code-block-
+  friendly. Dev-tool register, not generic SaaS. Geist Sans for body,
+  Geist Mono for technical accents, Instrument Serif italic for editorial
+  emphasis (kicker, "quietly", architecture epigraph). One signal colour
+  (mint) — same as the chrome's `--signal` token.
+*/
+
+:root {
+  --bg:        #0a0c10;
+  --bg-2:      #0f1117;
+  --bg-3:      #161922;
+  --line:      #1f2330;
+  --line-2:    #2a2f3e;
+  --fg:        #ecedef;
+  --fg-2:      #aab0bc;
+  --fg-3:      #6b7280;
+  --signal:    hsl(135 55% 66%);
+  --signal-2:  hsl(135 70% 78%);
+  --signal-dim:hsl(135 30% 28%);
+  --maxw:      1100px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+body { min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
+code { font-family: "Geist Mono", ui-monospace, Menlo, monospace; font-size: 0.92em; color: var(--signal-2); }
+em { font-family: "Instrument Serif", ui-serif, Georgia, serif; font-style: italic; font-weight: 400; color: var(--signal); }
+
+/* ── Nav ───────────────────────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 2rem;
+  background: color-mix(in oklab, var(--bg) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.brand {
+  display: flex; align-items: center; gap: 0.6rem;
+  color: var(--fg);
+}
+.brand-mark { color: var(--signal); display: inline-flex; }
+.brand-word { font-family: "Instrument Serif", ui-serif, Georgia, serif; font-style: italic; font-size: 18px; letter-spacing: 0.005em; }
+.nav-links { display: flex; gap: 1.6rem; align-items: center; color: var(--fg-2); }
+.nav-links a:hover { color: var(--fg); }
+.nav-links .link-ghost { color: var(--signal); }
+.nav-links .link-ghost:hover { color: var(--signal-2); }
+
+/* ── Hero ──────────────────────────────────────────── */
+.hero {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(4rem, 9vw, 8rem) 1.5rem clamp(3rem, 6vw, 5rem);
+}
+.kicker {
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin: 0 0 1.25rem;
+}
+.kicker::before { content: "// "; color: var(--signal); }
+
+.display {
+  font-family: "Geist", inherit;
+  font-weight: 600;
+  font-size: clamp(40px, 7.2vw, 92px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.6rem;
+  text-wrap: balance;
+}
+.display em { font-weight: 400; }
+
+.lede {
+  max-width: 60ch;
+  font-size: clamp(15px, 1.4vw, 18px);
+  color: var(--fg-2);
+  margin: 0 0 2rem;
+  text-wrap: pretty;
+}
+
+.cta-row {
+  display: flex; gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+.btn-primary, .btn-ghost {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: transform .15s ease, background .18s ease, border-color .18s ease;
+}
+.btn-primary {
+  background: var(--signal);
+  color: #0a0a0a;
+  border: 1px solid transparent;
+}
+.btn-primary:hover { background: var(--signal-2); transform: translateY(-1px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line-2);
+}
+.btn-ghost:hover { border-color: var(--fg-2); }
+
+.status-strip {
+  list-style: none; padding: 0;
+  margin: 4rem 0 0;
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--fg-3);
+  letter-spacing: 0.04em;
+}
+.status-strip li { display: flex; align-items: center; gap: 0.5rem; }
+.dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+.dot-on { background: var(--signal); box-shadow: 0 0 0 2px color-mix(in oklab, var(--signal) 28%, transparent); }
+
+/* ── Sections ─────────────────────────────────────── */
+.band {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(3rem, 6vw, 5rem) 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.band-head { max-width: 60ch; margin: 0 0 2rem; }
+.band-head h2 {
+  font-size: clamp(28px, 3.8vw, 44px);
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0 0 1rem;
+  text-wrap: balance;
+}
+.band-head h2 em { color: var(--signal); }
+
+/* Quickstart */
+.install .band-head { max-width: 70ch; }
+.codeblock {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 0 0 1rem;
+  overflow: hidden;
+}
+.code-meta {
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-3);
+}
+.codeblock pre {
+  margin: 0;
+  padding: 1.1rem 1.2rem;
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--fg);
+  overflow-x: auto;
+  white-space: pre;
+}
+.codeblock pre code { color: inherit; font-size: 13px; }
+.cmt { color: var(--fg-3); font-style: italic; }
+.kw  { color: var(--signal); }
+
+.footnote {
+  font-size: 13px;
+  color: var(--fg-3);
+  margin-top: 1.5rem;
+  max-width: 70ch;
+}
+.footnote code { color: var(--fg-2); }
+
+/* Features grid */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.4rem;
+  transition: border-color .18s ease, transform .18s ease;
+}
+.card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.card-tag {
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin: 0 0 0.6rem;
+}
+.card h3 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4rem;
+}
+.card p {
+  font-size: 13.5px;
+  color: var(--fg-2);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Privacy ledger */
+.privacy .band-head h2 { max-width: 14ch; }
+.ledger {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.ledger-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.ledger-row:last-child { border-bottom: 0; }
+.ledger-row .lhs {
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 12.5px;
+  color: var(--fg-2);
+  letter-spacing: 0.01em;
+}
+.ledger-row .rhs { color: var(--fg); }
+.ledger-row .rhs em { color: var(--signal); }
+@media (max-width: 700px) {
+  .ledger-row { grid-template-columns: 1fr; gap: 0.25rem; }
+  .ledger-row .lhs { color: var(--fg-3); }
+}
+
+/* Footer */
+.foot {
+  border-top: 1px solid var(--line);
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  display: flex;
+  align-items: center; justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+.foot-brand { display: flex; align-items: center; gap: 0.6rem; }
+.foot-brand .brand-mark { color: var(--signal); }
+.foot-word { font-family: "Instrument Serif", ui-serif, Georgia, serif; font-style: italic; font-size: 16px; color: var(--fg); }
+.foot-meta {
+  margin-left: 0.5rem;
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
+}
+.foot-links { display: flex; gap: 1.4rem; }
+.foot-links a:hover { color: var(--fg); }

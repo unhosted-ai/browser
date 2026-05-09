@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta wordmark — Δ glyph + "Delta" set in Instrument Serif italic.
+  Delta wordmark — Δ-with-spark glyph + "Delta" set in Instrument Serif italic.
   Use on backgrounds darker than the type, with at least 1× the cap-height
   of clear-space on every side.
-
-  The wordmark is rendered with the actual font hard-coded in the SVG so
-  this file ships as a self-contained asset; if Instrument Serif isn't
-  installed on a viewer's machine the fallback is system serif italic.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
   <title>Delta wordmark</title>
 
-  <!-- Δ mark — equilateral, signal-mint, stroke + fill at 18% to match
-       in-app DeltaLogo.tsx -->
+  <!-- Spark — small mint dot above the apex of the Δ -->
+  <circle cx="80" cy="22" r="6.2" fill="hsl(135 60% 70%)"/>
+
+  <!-- Δ mark — equilateral, signal-mint -->
   <path
-    d="M 80 30 L 138 130 L 22 130 Z"
+    d="M 80 38 L 138 130 L 22 130 Z"
     fill="hsl(135 55% 66%)"
     fill-opacity="0.18"
     stroke="hsl(135 55% 66%)"
@@ -22,8 +20,7 @@
     stroke-linejoin="round"
   />
 
-  <!-- Wordmark in Instrument Serif italic. The bake-fallback to system
-       serif keeps this readable even when the font isn't available. -->
+  <!-- Wordmark in Instrument Serif italic, with system-serif fallback. -->
   <text
     x="170"
     y="118"

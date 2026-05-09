@@ -543,6 +543,51 @@ Recommended order, given the goals:
 Each step ends in a state where the app still works end-to-end. No
 "build for two weeks then integrate."
 
+## 12.1 Patterns to lift from neighbouring projects
+
+These projects solve overlapping problems with different products. We
+read their code so we don't reinvent the parts they got right; we
+don't pull them as dependencies because Delta's architecture
+(Electron main-process runtime, no Playwright, no remote browser)
+is different.
+
+### browser-use ([browser-use/browser-use](https://github.com/browser-use/browser-use))
+
+Python framework for "agents that drive a real browser." Mature
+enough that its API shape is informative. What we lift, conceptually:
+
+- **Accessibility-tree state representation.** Their `state` command
+  returns a numbered list of clickable elements with their text +
+  bounding box. We adopt a variant for Phase 2's `get_page_text`
+  structured path: emit a Readability-style tree with stable element
+  IDs the model can reference (`{ "id": 17, "tag": "button", "text":
+  "Sign in", "bbox": [ ... ] }`). Cheaper for the model than raw HTML
+  and gives the permission card something to render a thumbnail of.
+- **CLI sub-command shape** (`open / state / click / type /
+  screenshot / close`). Maps almost 1:1 to our Phase 3 act-tool
+  surface. We won't ship a Delta CLI in v1, but the CLI verbs are a
+  good starting point for tool names.
+- **Task-graph API** (`Agent(task=..., llm=..., browser=...).run()`).
+  Useful as a renderer-side ergonomics goal — the React surface for
+  Phase 5 (task threads) should make it as easy to start a multi-
+  step task as that one-liner makes it in Python.
+- **Stealth / proxy rotation** — their cloud feature, not ours.
+  Skip.
+
+### onkernel/kernel-images ([onkernel/kernel-images](https://github.com/onkernel/kernel-images))
+
+Sandboxed Chromium images for server-side agent automation. Different
+product entirely, but design-aligned:
+
+- **Browser-as-snapshot.** Their unikernel snapshots a browser's
+  state and restarts in <20ms with cookies / page / zoom restored.
+  Inspires §11 of `identity.md`'s "Spaces" idea: a Space is the
+  closest local-first analogue — a saved set of tabs + state that
+  re-opens cleanly.
+- **Dev-tool register on the public site.** Their site's aesthetic
+  (dark, monospace-accented, code-first, generous spacing) is the
+  reference for `docs/` (Delta's GitHub Pages source).
+
 ## 13. Security posture & threat model
 
 Browsers are high-blast-radius surfaces and an *agentic* browser more
