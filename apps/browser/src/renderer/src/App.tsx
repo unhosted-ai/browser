@@ -79,6 +79,12 @@ export function App() {
     if (sidebarOpen) { setSidebarOpen(false); return }
     setSettingsOpen(false); setSidebarOpen(true)
   }
+  // Cog and Customize toggle (click again to close). Users expect this from
+  // every other app's settings affordance.
+  const toggleSettings = () => {
+    if (settingsOpen) { setSettingsOpen(false); return }
+    setSidebarOpen(false); setSettingsOpen(true)
+  }
 
   // Reserve the left-nav width in the WebContentsView layout, and persist
   // the collapsed state so it survives reloads.
@@ -153,7 +159,7 @@ export function App() {
         collapsed={leftNavCollapsed}
         onToggleCollapsed={() => setLeftNavCollapsed((v) => !v)}
         onNewTab={() => window.api.tabs.create()}
-        onOpenSettings={openSettings}
+        onOpenSettings={toggleSettings}
         onOpenHistory={openHistory}
       />
 
@@ -179,7 +185,8 @@ export function App() {
             onReload={() => active && window.api.tabs.reload(active.id)}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={toggleAssistant}
-            onOpenSettings={openSettings}
+            settingsOpen={settingsOpen}
+            onOpenSettings={toggleSettings}
           />
         </header>
 
@@ -210,15 +217,22 @@ export function App() {
             onRefreshProviders={refreshProviders}
           />
           <FindBar open={findOpen} onClose={() => setFindOpen(false)} />
-          {showOnboarding && (
-            <Onboarding
-              onClose={dismissOnboarding}
-              onOpenSettings={() => { openSettings(); dismissOnboarding() }}
-              onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
-            />
-          )}
         </div>
       </div>
+
+      {/* Onboarding is a TRUE app-level overlay: rendered last in the tree
+          so it's at the top of stacking order, and uses fixed inset-0 so it
+          covers the chrome and the left nav (not just the content area).
+          Earlier rendering inside `relative flex-1` only blocked the page
+          area, which let users click the address-bar cog or LeftNav rows
+          *behind* the welcome card and end up with two overlapping panels. */}
+      {showOnboarding && (
+        <Onboarding
+          onClose={dismissOnboarding}
+          onOpenSettings={() => { openSettings(); dismissOnboarding() }}
+          onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
+        />
+      )}
     </div>
   )
 }

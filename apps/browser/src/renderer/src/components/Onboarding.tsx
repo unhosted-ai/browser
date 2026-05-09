@@ -33,7 +33,11 @@ export function Onboarding({ onClose, onOpenSettings, onToggleAssistant }: Props
 
   return (
     <div
-      className="absolute inset-0 z-[60] no-drag flex items-center justify-center px-6 py-6"
+      // fixed (not absolute) so the overlay covers the entire window —
+      // chrome, left nav, content. Otherwise the address-bar cog and
+      // LeftNav rows stay clickable underneath, which lands users in a
+      // two-panels-overlapping state.
+      className="fixed inset-0 z-[60] no-drag flex items-center justify-center px-6 py-6"
       onClick={onClose}
     >
       {/* Backdrop */}

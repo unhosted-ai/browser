@@ -11,6 +11,7 @@ type Props = {
   onReload: () => void
   sidebarOpen: boolean
   onToggleSidebar: () => void
+  settingsOpen: boolean
   onOpenSettings: () => void
 }
 
@@ -95,7 +96,7 @@ const Icon = {
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, onOpenSettings },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, settingsOpen, onOpenSettings },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
@@ -193,10 +194,16 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
       <div className="flex items-center gap-1">
       <button
         type="button"
-        aria-label="Open settings"
+        aria-label={settingsOpen ? "Close settings" : "Open settings"}
         title="Settings  ⌘,"
+        aria-pressed={settingsOpen}
         onClick={onOpenSettings}
-        className={buttonCls(false)}
+        className={[
+          "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+          settingsOpen
+            ? "text-signal bg-signal/10"
+            : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+        ].join(" ")}
       >
         {Icon.settings}
       </button>
@@ -205,6 +212,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         type="button"
         aria-label="Toggle Assistant"
         title="Assistant  ⌘J"
+        aria-pressed={sidebarOpen}
         onClick={onToggleSidebar}
         className={[
           "h-8 px-3 rounded-full flex items-center gap-1.5",
