@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { ProviderInfo, UserSettings } from "@shared/types"
+import type { PrivacyReport, ProviderInfo, UserSettings } from "@shared/types"
 import { useTheme } from "../hooks/useTheme"
 
 type Props = {
@@ -137,8 +137,145 @@ function SettingsBody({
           onRefresh={onRefreshProviders}
         />
         <DefaultProviderSection settings={settings} />
+        <PrivacySection />
         <PrivacyNote />
       </div>
+    </div>
+  )
+}
+
+// ── Privacy report (last 30 days) ───────────────────────────────────
+function PrivacySection() {
+  const [report, setReport] = useState<PrivacyReport | null>(null)
+  const [showAll, setShowAll] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    const load = () => {
+      void window.api.privacy.getReport().then((r) => { if (alive) setReport(r) })
+    }
+    load()
+    // Refresh every few seconds while open — counts move as the user
+    // browses other tabs in the background.
+    const t = setInterval(load, 4000)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
+
+  const onReset = async () => {
+    if (!confirm("Wipe the last 30 days of privacy stats? Blocking stays on.")) return
+    await window.api.privacy.reset()
+    const r = await window.api.privacy.getReport()
+    setReport(r)
+  }
+
+  return (
+    <section id="privacy-section" className="scroll-mt-4">
+      <SectionHeader
+        label="Privacy report"
+        hint="Trackers that tried to profile you, blocked at the network layer. Last 30 days. Stays on this device."
+      />
+      {!report ? (
+        <p className="text-[12px] text-chrome-text-3 font-mono tracking-[0.04em]">loading…</p>
+      ) : (
+        <PrivacyBody report={report} showAll={showAll} setShowAll={setShowAll} onReset={onReset} />
+      )}
+    </section>
+  )
+}
+
+function PrivacyBody({
+  report, showAll, setShowAll, onReset,
+}: {
+  report: PrivacyReport
+  showAll: boolean
+  setShowAll: (v: boolean) => void
+  onReset: () => void
+}) {
+  // Empty-state copy is honest: blocking is on, but nothing has been seen
+  // yet. Don't fake numbers, don't hide the section.
+  const empty = report.totalBlocked === 0 && report.sitesVisited === 0
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Stat label="Trackers blocked" value={report.totalBlocked.toLocaleString()} />
+        <Stat
+          label="Sites that tracked"
+          value={report.sitesVisited === 0 ? "—" : `${report.percentWithTrackers}%`}
+          sub={report.sitesVisited === 0 ? "no sites visited yet" : `${report.sitesWithTrackers} of ${report.sitesVisited}`}
+        />
+      </div>
+
+      {report.topTracker && (
+        <div className="rounded-[12px] border border-chrome-border bg-chrome-surface px-3 py-2.5">
+          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3 mb-1">
+            Most contacted tracker
+          </p>
+          <p className="text-[13px] text-chrome-text leading-snug">
+            <span className="font-mono text-signal">{report.topTracker.domain}</span>
+            <span className="text-chrome-text-2"> was prevented from profiling you across </span>
+            <span className="text-chrome-text">{report.topTracker.sites}</span>
+            <span className="text-chrome-text-2"> {report.topTracker.sites === 1 ? "site" : "sites"}.</span>
+          </p>
+          {report.topTracker.owner && report.topTracker.owner !== report.topTracker.domain && (
+            <p className="text-[11px] text-chrome-text-3 mt-1">
+              Owner: <span className="text-chrome-text-2">{report.topTracker.owner}</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {report.topTrackers.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="font-mono text-[11px] tracking-[0.06em] text-chrome-text-2 hover:text-signal transition-colors"
+        >
+          {showAll ? "Hide breakdown" : `Show all ${report.topTrackers.length} →`}
+        </button>
+      )}
+
+      {showAll && (
+        <div className="rounded-[12px] border border-chrome-border bg-chrome-surface divide-y divide-chrome-border">
+          {report.topTrackers.map((t) => (
+            <div key={t.domain} className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[12px] text-chrome-text truncate">{t.domain}</p>
+                <p className="text-[10px] text-chrome-text-3">
+                  {t.owner} · {t.sites} {t.sites === 1 ? "site" : "sites"}
+                </p>
+              </div>
+              <span className="font-mono text-[12px] text-signal tabular-nums">{t.count.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-[11px] text-chrome-text-3 leading-relaxed">
+          {empty
+            ? "Blocking is on. Counts will appear as you browse."
+            : `Blocking is ${report.blockingEnabled ? "on" : "off"}. ${report.dailyCounts.length}-day window.`}
+        </p>
+        {!empty && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-[12px] border border-chrome-border bg-chrome-surface px-3 py-2.5">
+      <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">{label}</p>
+      <p className="text-[22px] leading-tight text-chrome-text font-medium tabular-nums mt-0.5">{value}</p>
+      {sub && <p className="text-[10px] text-chrome-text-3 mt-0.5">{sub}</p>}
     </div>
   )
 }

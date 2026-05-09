@@ -113,6 +113,28 @@ export class TabManager {
       return { action: "deny" }
     })
 
+    // Intercept internal control links from delta://newtab (and friends).
+    // Anchor clicks to `delta://settings` or `delta://settings/privacy`
+    // open the Settings panel via the same channel the menu uses, instead
+    // of trying to load a non-existent page in the WebContentsView.
+    wc.on("will-navigate", (e, navUrl) => {
+      try {
+        const u = new URL(navUrl)
+        if (u.protocol !== "delta:") return
+        if (u.hostname === "settings") {
+          e.preventDefault()
+          // delta://settings/privacy deep-links to the Privacy section.
+          // Anything else just opens Settings to the top.
+          const channel = u.pathname.startsWith("/privacy")
+            ? "menu:openPrivacySettings"
+            : "menu:openSettings"
+          this.win.webContents.send(channel)
+        }
+      } catch {
+        /* not a URL — ignore */
+      }
+    })
+
     void wc.loadURL(url)
     this.activate(id)
     return this.toTab(entry)

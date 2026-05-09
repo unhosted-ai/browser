@@ -102,6 +102,17 @@ export function App() {
       switch (kind) {
         case "focusAddressBar":  addressBarRef.current?.selectAll(); break
         case "openSettings":     openSettings();                     break
+        case "openPrivacySettings":
+          openSettings()
+          // Wait one tick for the panel to mount, then scroll the section
+          // into view. The element gets `scroll-mt-4` so it doesn't kiss
+          // the panel header.
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              document.getElementById("privacy-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+            })
+          })
+          break
         case "toggleAssistant":  toggleAssistant();                  break
         case "openFind":         setFindOpen(true);                  break
       }

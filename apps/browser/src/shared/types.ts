@@ -187,6 +187,19 @@ export type AgentSendInput = {
   attachActivePage?: boolean
 }
 
+// ── Privacy report (last 30 days, in-memory aggregate) ─────────
+export type PrivacyReport = {
+  totalBlocked: number
+  sitesVisited: number
+  sitesWithTrackers: number
+  percentWithTrackers: number
+  topTracker: { domain: string; owner: string; count: number; sites: number } | null
+  topTrackers: Array<{ domain: string; owner: string; count: number; sites: number }>
+  dailyCounts: Array<{ date: string; count: number }>
+  generatedAt: string
+  blockingEnabled: boolean
+}
+
 // ── Renderer ↔ Main IPC contract ────────────────────────
 export type BrowserApi = {
   tabs: {
@@ -217,7 +230,7 @@ export type BrowserApi = {
   }
   /** Native menu → renderer callbacks (focus address bar, open settings, etc). */
   menu: {
-    onAction: (cb: (kind: "focusAddressBar" | "openSettings" | "toggleAssistant" | "openFind") => void) => () => void
+    onAction: (cb: (kind: "focusAddressBar" | "openSettings" | "openPrivacySettings" | "toggleAssistant" | "openFind") => void) => () => void
   }
   providers: {
     list: () => Promise<ProviderInfo[]>
@@ -240,6 +253,12 @@ export type BrowserApi = {
     load:   (id: string) => Promise<ConversationRecord | null>
     save:   (id: string, messages: AgentMessage[]) => Promise<void>
     delete: (id: string) => Promise<void>
+  }
+  privacy: {
+    /** Report aggregated over the last 30 days. Cheap (in-memory). */
+    getReport: () => Promise<PrivacyReport>
+    /** Wipe stored stats. Does not affect blocking — that runs from a static list. */
+    reset: () => Promise<void>
   }
 }
 

@@ -8,18 +8,31 @@
 // looks meaningfully different each day but is deterministic — the sky, the
 // aphorism, the manifesto excerpt, the silhouette all rotate together.
 import { protocol } from "electron"
+import type { PrivacyReport } from "@shared/types"
 
-export function registerNewtabProtocol(): void {
+type ReportGetter = () => PrivacyReport | null
+
+export function registerNewtabProtocol(getReport: ReportGetter = () => null): void {
   protocol.handle("delta", (req) => {
     const url = new URL(req.url)
     const path = url.hostname || "newtab"
     if (path === "newtab") {
-      return new Response(HTML, {
+      // Snapshot stats at request time and inline them into the page so
+      // the card paints with real numbers on first frame — no IPC round-
+      // trip from the renderer required.
+      const report = getReport()
+      const stats7d = report ? sumLastNDays(report.dailyCounts, 7) : 0
+      const html = HTML.replace(/__STATS_7D__/g, String(stats7d))
+      return new Response(html, {
         headers: { "content-type": "text/html; charset=utf-8" },
       })
     }
     return new Response("Not found", { status: 404 })
   })
+}
+
+function sumLastNDays(daily: Array<{ date: string; count: number }>, n: number): number {
+  return daily.slice(-n).reduce((a, d) => a + d.count, 0)
 }
 
 // ── Rotating content ─────────────────────────────────────
@@ -328,6 +341,34 @@ const HTML = /* html */ `<!doctype html>
     color: rgba(255,255,255,0.6);
   }
   .stamp .dot { color: var(--signal); }
+  /* ── Privacy chip (top-left). Compact stat — opens full report in
+       Settings on click. Stays visible only when the count is > 0,
+       so the page doesn't carry a "0 trackers blocked" placeholder. */
+  .privacy-chip {
+    position: absolute;
+    top: clamp(1rem, 2.2vh, 1.6rem);
+    left: clamp(1.25rem, 2.6vw, 2rem);
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: rgba(255,255,255,0.86);
+    font: 500 11px/1 ui-monospace, Menlo, monospace;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease;
+  }
+  .privacy-chip:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.30); }
+  .privacy-chip[hidden] { display: none; }
+  .privacy-chip .shield {
+    width: 12px; height: 12px;
+    color: var(--signal);
+  }
+  .privacy-chip .num { color: #fff; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -340,6 +381,17 @@ const HTML = /* html */ `<!doctype html>
     <div class="grain"></div>
 
     <div class="content">
+      <a href="#" id="privacy-chip" class="privacy-chip" hidden title="Open privacy report">
+        <svg class="shield" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1.5l5.5 2v4.2c0 3.6-2.4 6.6-5.5 7.3-3.1-.7-5.5-3.7-5.5-7.3V3.5L8 1.5z"
+                stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"
+                fill="currentColor" fill-opacity="0.18"/>
+          <path d="M5.5 8l1.8 1.8L11 6.6" stroke="currentColor" stroke-width="1.4"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span><span class="num" id="privacy-num">0</span> trackers blocked this week</span>
+      </a>
+
       <div class="stamp">
         <span id="stamp-day"></span>
         <span class="dot">·</span>
@@ -506,6 +558,21 @@ const HTML = /* html */ `<!doctype html>
     e.preventDefault();
     window.location.href = "https://github.com/Delta-Practice";
   });
+
+  // ── Privacy chip — only shows when there's something to show ──
+  // The count is server-injected (templated into the page at protocol-
+  // handler time). Click navigates to delta://settings, which the main
+  // process intercepts and converts into the menu:openSettings IPC.
+  const _stats7d = __STATS_7D__;
+  if (_stats7d > 0) {
+    const chip = document.getElementById("privacy-chip");
+    document.getElementById("privacy-num").textContent = _stats7d.toLocaleString();
+    chip.hidden = false;
+    chip.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = "delta://settings/privacy";
+    });
+  }
 </script>
 </body>
 </html>`

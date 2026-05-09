@@ -7,6 +7,7 @@ import { SettingsStore } from "./settings"
 import { ConversationStore } from "./conversations"
 import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
+import { PrivacyStore, TrackerBlocker } from "./privacy"
 import type { AgentMessage, AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
@@ -27,6 +28,7 @@ let tabs: TabManager | null = null
 let agent: Agent | null = null
 let settings: SettingsStore | null = null
 let conversations: ConversationStore | null = null
+let privacy: PrivacyStore | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -112,6 +114,10 @@ function registerIpc(): void {
   ipcMain.handle("conversations:save",   (_e, id: string, messages: AgentMessage[]) => { conversations?.save(id, messages) })
   ipcMain.handle("conversations:delete", (_e, id: string) => { conversations?.delete(id) })
 
+  // Privacy report — read by Settings → Privacy and the newtab card.
+  ipcMain.handle("privacy:getReport", () => privacy?.getReport())
+  ipcMain.handle("privacy:reset",     () => { privacy?.reset() })
+
   // Agent (Phase 1: chat + Phase 2: read tools + Phase 3: act tools).
   // Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
@@ -136,8 +142,20 @@ app.whenReady().then(() => {
       // Best-effort; if the icon file isn't present, just skip.
     }
   }
-  registerNewtabProtocol()
+  // Privacy: build the store + bind the blocker to the default session
+  // BEFORE any window is created, so the very first request through any
+  // WebContentsView is already filtered. The newtab protocol handler
+  // reads `privacy.getReport()` to render the inline stat card.
+  privacy = new PrivacyStore()
+  new TrackerBlocker(privacy)
+  registerNewtabProtocol(() => privacy?.getReport() ?? null)
   createWindow()
+})
+
+// Flush stats on quit so today's counts survive across sessions. The 5s
+// timer covers steady-state writes; this catches the last few seconds.
+app.on("before-quit", () => {
+  privacy?.flushNow()
 })
 
 app.on("window-all-closed", () => {

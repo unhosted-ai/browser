@@ -6,6 +6,7 @@ import type {
   BrowserApi,
   ConversationRecord,
   ConversationSummary,
+  PrivacyReport,
   ProviderInfo,
   SettingsUpdate,
   TabId,
@@ -40,13 +41,15 @@ const api: BrowserApi = {
   menu: {
     onAction: (cb) => {
       const listener = (_e: Electron.IpcRendererEvent, kind: string) => cb(kind as Parameters<typeof cb>[0])
-      ipcRenderer.on("menu:focusAddressBar", (_e) => listener(_e, "focusAddressBar"))
-      ipcRenderer.on("menu:openSettings",    (_e) => listener(_e, "openSettings"))
-      ipcRenderer.on("menu:toggleAssistant", (_e) => listener(_e, "toggleAssistant"))
-      ipcRenderer.on("menu:openFind",        (_e) => listener(_e, "openFind"))
+      ipcRenderer.on("menu:focusAddressBar",     (_e) => listener(_e, "focusAddressBar"))
+      ipcRenderer.on("menu:openSettings",        (_e) => listener(_e, "openSettings"))
+      ipcRenderer.on("menu:openPrivacySettings", (_e) => listener(_e, "openPrivacySettings"))
+      ipcRenderer.on("menu:toggleAssistant",     (_e) => listener(_e, "toggleAssistant"))
+      ipcRenderer.on("menu:openFind",            (_e) => listener(_e, "openFind"))
       return () => {
         ipcRenderer.removeAllListeners("menu:focusAddressBar")
         ipcRenderer.removeAllListeners("menu:openSettings")
+        ipcRenderer.removeAllListeners("menu:openPrivacySettings")
         ipcRenderer.removeAllListeners("menu:toggleAssistant")
         ipcRenderer.removeAllListeners("menu:openFind")
       }
@@ -81,6 +84,10 @@ const api: BrowserApi = {
     load:   (id: string) => ipcRenderer.invoke("conversations:load", id) as Promise<ConversationRecord | null>,
     save:   (id: string, messages: AgentMessage[]) => ipcRenderer.invoke("conversations:save", id, messages) as Promise<void>,
     delete: (id: string) => ipcRenderer.invoke("conversations:delete", id) as Promise<void>,
+  },
+  privacy: {
+    getReport: () => ipcRenderer.invoke("privacy:getReport") as Promise<PrivacyReport>,
+    reset:     () => ipcRenderer.invoke("privacy:reset") as Promise<void>,
   },
 }
 
