@@ -58,6 +58,7 @@ function createWindow(): void {
     emit: (event) => mainWindow?.webContents.send("agent:event", event),
     readActivePage: () => tabs!.readActivePage(),
     settings,
+    tabs: tabs!,
   })
   // Push settings changes to the renderer so the panel + provider list
   // stay in sync without polling.

@@ -168,7 +168,12 @@ export class TabManager {
    */
   async readActivePage(): Promise<{ title: string; url: string; text: string } | null> {
     if (!this.activeId) return null
-    const entry = this.entries.get(this.activeId)
+    return this.readTabPage(this.activeId)
+  }
+
+  /** Read a specific tab's rendered text by id. */
+  async readTabPage(id: TabId): Promise<{ title: string; url: string; text: string } | null> {
+    const entry = this.entries.get(id)
     if (!entry) return null
     try {
       const text = (await entry.view.webContents.executeJavaScript(

@@ -70,8 +70,30 @@ export type SettingsUpdate =
   | { kind: "removeCustomEndpoint"; id: string }
   | { kind: "defaultProvider"; id: "auto" | ProviderId; model?: string }
 
-// ── Agent (Phase 1: chat) ───────────────────────────────
+// ── Agent (Phase 1: chat + Phase 2: read tools) ─────────
 export type AgentRole = "user" | "assistant" | "system"
+
+// One tool the model can be told it has access to. Schema is JSON-Schema
+// draft-7 style; enough for what the OpenAI / Ollama / LM Studio /
+// llama.cpp / MLX wire format expects.
+export type ToolDef = {
+  name: string
+  description: string
+  schema: { type: "object"; properties?: Record<string, unknown>; required?: string[] }
+  /** Permission tier — see docs/agent-design.md §3. v1 ships only `read`. */
+  side: "read" | "act"
+}
+
+// One observed tool call inside the conversation. Renderer renders a card
+// per call; main is the only side that ever runs the handler.
+export type ToolCallView = {
+  id: string         // provider-issued
+  name: string
+  args: unknown      // parsed JSON, may be {} when the model omitted args
+  result?: unknown   // serialised; truncated for display
+  error?: string
+  durationMs?: number
+}
 
 export type AgentMessage = {
   id: string
@@ -80,6 +102,8 @@ export type AgentMessage = {
   // When true, this message is still streaming (assistant only).
   streaming?: boolean
   error?: string
+  // Tool calls that this assistant message issued. Cards render in-line.
+  toolCalls?: ToolCallView[]
 }
 
 export type AgentStatus = "idle" | "submitting" | "streaming" | "error"
@@ -88,7 +112,8 @@ export type AgentStatus = "idle" | "submitting" | "streaming" | "error"
 export type AgentEvent =
   | { type: "task_start"; taskId: string; assistantId: string }
   | { type: "text_delta"; taskId: string; assistantId: string; delta: string }
-  | { type: "task_done";  taskId: string; assistantId: string; reason: "end" | "cancelled" }
+  | { type: "tool_call";  taskId: string; assistantId: string; call: ToolCallView }
+  | { type: "task_done";  taskId: string; assistantId: string; reason: "end" | "cancelled" | "max_tools" }
   | { type: "task_error"; taskId: string; assistantId: string; error: string }
 
 export type AgentSendInput = {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { AgentEvent, AgentMessage, AgentStatus, ProviderInfo } from "@shared/types"
+import type { AgentEvent, AgentMessage, AgentStatus, ProviderInfo, ToolCallView } from "@shared/types"
 import { DeltaLogo } from "./DeltaLogo"
 
 type Props = {
@@ -10,12 +10,10 @@ type Props = {
   onOpenSettings: () => void
 }
 
-// What the Assistant *can do*. This list is the IA cue: it sets expectations
-// about scope (a chat that reads the page, not a rules engine; agentic
-// abilities like read-tools and act-tools are on the way but gated). It
-// also keeps the empty state from feeling empty.
+// What the Assistant *can do*. Read is fully live: list_tabs, read_active_page,
+// read_tab — the agent calls these autonomously and the cards render below.
 const CAPABILITIES = [
-  { label: "Read", hint: "Sees the active tab's text as untrusted context.", live: true },
+  { label: "Read", hint: "Calls list_tabs, read_active_page, read_tab — sees pages across your tabs as untrusted context.", live: true },
   { label: "Act",  hint: "Click, type, navigate. Coming after the permission gate ships.", live: false },
   { label: "Tasks",hint: "Multi-step background tasks visible here. Coming.", live: false },
 ] as const
@@ -50,6 +48,19 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
         setMessages(prev => prev.map(m =>
           m.id === e.assistantId ? { ...m, text: m.text + e.delta } : m
         ))
+      } else if (e.type === "tool_call") {
+        // A tool call landed — append to the assistant message's toolCalls
+        // array, replacing if a previous in-flight entry with the same id
+        // already exists (defensive; we only emit once per call today).
+        setMessages(prev => prev.map(m => {
+          if (m.id !== e.assistantId) return m
+          const existing = m.toolCalls ?? []
+          const idx = existing.findIndex(c => c.id === e.call.id)
+          const next = idx >= 0
+            ? [...existing.slice(0, idx), e.call, ...existing.slice(idx + 1)]
+            : [...existing, e.call]
+          return { ...m, toolCalls: next }
+        }))
       } else if (e.type === "task_done") {
         setStatus("idle")
         setTaskId(null)
@@ -306,26 +317,113 @@ function EmptyState({ online, hasContext, onPick, onOpenSettings }: {
 
 function MessageBubble({ message }: { message: AgentMessage }) {
   const isUser = message.role === "user"
+  const hasTools = (message.toolCalls?.length ?? 0) > 0
+  const showThinking = message.streaming && !message.text && !hasTools
+
+  if (isUser) {
+    return (
+      <li className="self-end max-w-[90%] text-[13px] leading-[1.6] whitespace-pre-wrap px-3 py-2 rounded-lg bg-chrome-surface-2 text-chrome-text rounded-tr-sm">
+        {message.text}
+      </li>
+    )
+  }
+
+  // Assistant — text + tool-call cards interleave. For v1 we render tool
+  // cards above the text; the agent design will get fancier (cards inline
+  // by ordering events) once we track ordering through the stream.
+  return (
+    <li className="self-start max-w-[95%] flex flex-col gap-2">
+      {hasTools && (
+        <ul className="flex flex-col gap-1.5">
+          {message.toolCalls!.map((c) => <ToolCallCard key={c.id} call={c} />)}
+        </ul>
+      )}
+      {(message.text || showThinking || message.error) && (
+        <div className="text-[13px] leading-[1.6] whitespace-pre-wrap px-3 py-2 rounded-lg bg-chrome-surface text-chrome-text-2 rounded-tl-sm max-w-[90%]">
+          {message.error ? (
+            <span className="text-chrome-text-3 italic">error: {message.error}</span>
+          ) : message.text ? (
+            message.text
+          ) : (
+            <span className="flex items-center gap-1.5 text-chrome-text-3">
+              <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" />
+              thinking…
+            </span>
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+// Tool-call card: shows the tool name, a short args summary, and a
+// collapsed result. Click to expand the full result. Errors render in red.
+function ToolCallCard({ call }: { call: ToolCallView }) {
+  const [expanded, setExpanded] = useState(false)
+  const isError = !!call.error
+  const argsSummary = summariseArgs(call.args)
+  const resultSummary = isError ? call.error! : summariseResult(call.result)
+
   return (
     <li
       className={[
-        "max-w-[90%] text-[13px] leading-[1.6] whitespace-pre-wrap",
-        "px-3 py-2 rounded-lg",
-        isUser
-          ? "self-end bg-chrome-surface-2 text-chrome-text rounded-tr-sm"
-          : "self-start bg-chrome-surface text-chrome-text-2 rounded-tl-sm",
+        "rounded-lg border bg-chrome-surface/60 px-3 py-2 text-[12px]",
+        isError ? "border-[hsl(0_70%_55%/0.35)]" : "border-chrome-border",
       ].join(" ")}
     >
-      {message.error ? (
-        <span className="text-chrome-text-3 italic">error: {message.error}</span>
-      ) : message.text ? (
-        message.text
-      ) : message.streaming ? (
-        <span className="flex items-center gap-1.5 text-chrome-text-3">
-          <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" />
-          thinking…
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-2 text-left"
+      >
+        <span className={["font-mono text-[10px] tracking-[0.08em] uppercase shrink-0",
+          isError ? "text-[hsl(0_70%_70%)]" : "text-signal"].join(" ")}>
+          {isError ? "tool · error" : "tool · ran"}
         </span>
-      ) : null}
+        <span className="font-mono text-chrome-text truncate">{call.name}</span>
+        {argsSummary && (
+          <span className="font-mono text-chrome-text-3 truncate">({argsSummary})</span>
+        )}
+        {typeof call.durationMs === "number" && (
+          <span className="ml-auto font-mono text-[10px] text-chrome-text-3 tabular-nums shrink-0">
+            {call.durationMs}ms
+          </span>
+        )}
+      </button>
+      {expanded && (
+        <pre className="mt-2 font-mono text-[11px] leading-[1.55] text-chrome-text-2 whitespace-pre-wrap break-words max-h-64 overflow-y-auto bg-chrome-surface-2 rounded-md px-2.5 py-2">
+{resultSummary}
+        </pre>
+      )}
     </li>
   )
+}
+
+function summariseArgs(args: unknown): string {
+  if (!args || typeof args !== "object") return ""
+  const obj = args as Record<string, unknown>
+  const keys = Object.keys(obj)
+  if (keys.length === 0) return ""
+  return keys
+    .map((k) => {
+      const v = obj[k]
+      const s =
+        typeof v === "string" ? `"${v.length > 24 ? v.slice(0, 24) + "…" : v}"`
+        : typeof v === "number" ? String(v)
+        : typeof v === "boolean" ? String(v)
+        : "…"
+      return `${k}: ${s}`
+    })
+    .join(", ")
+}
+
+function summariseResult(result: unknown): string {
+  if (result === undefined || result === null) return "(empty)"
+  if (typeof result === "string") return result.length > 4000 ? result.slice(0, 4000) + "\n…(truncated)" : result
+  try {
+    const s = JSON.stringify(result, null, 2)
+    return s.length > 4000 ? s.slice(0, 4000) + "\n…(truncated)" : s
+  } catch {
+    return String(result)
+  }
 }
