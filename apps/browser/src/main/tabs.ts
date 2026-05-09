@@ -22,6 +22,11 @@ export class TabManager {
   private rightReservation = 0
   private leftNavWidth = 0
   private listeners = new Set<(state: TabsState) => void>()
+  // Stack of recently-closed tabs (for ⌘⇧T). Captures URL + title at close
+  // time; we don't keep the WebContentsView (that gets destroyed). 16-deep
+  // ring is plenty for muscle-memory undo.
+  private closedStack: Array<{ url: string; title: string }> = []
+  private static CLOSED_STACK_MAX = 16
 
   constructor(win: BrowserWindow) {
     this.win = win
@@ -107,6 +112,13 @@ export class TabManager {
   close(id: TabId): void {
     const entry = this.entries.get(id)
     if (!entry) return
+    // Remember it for ⌘⇧T — don't push the new-tab page (no point).
+    if (!entry.url.startsWith("delta:")) {
+      this.closedStack.push({ url: entry.url, title: entry.title })
+      if (this.closedStack.length > TabManager.CLOSED_STACK_MAX) {
+        this.closedStack.shift()
+      }
+    }
     this.win.contentView.removeChildView(entry.view)
     entry.view.webContents.close()
     this.entries.delete(id)
@@ -159,6 +171,40 @@ export class TabManager {
 
   reload(id: TabId): void {
     this.entries.get(id)?.view.webContents.reload()
+  }
+
+  /** Re-open the most recently-closed tab. ⌘⇧T. No-op when the stack is empty. */
+  reopenClosed(): Tab | null {
+    const last = this.closedStack.pop()
+    if (!last) return null
+    return this.create(last.url)
+  }
+
+  /** Activate the Nth tab (1-indexed; ⌘1..⌘9). Last tab on ⌘9 by convention. */
+  activateNth(n: number): void {
+    const ids = [...this.entries.keys()]
+    if (ids.length === 0) return
+    const idx = n === 9 ? ids.length - 1 : Math.min(n - 1, ids.length - 1)
+    if (idx < 0) return
+    this.activate(ids[idx]!)
+  }
+
+  // ── Find in page ─────────────────────────────────
+  startFindInActive(query: string, opts?: { forward?: boolean; findNext?: boolean }): void {
+    if (!this.activeId) return
+    const entry = this.entries.get(this.activeId)
+    if (!entry || !query) return
+    entry.view.webContents.findInPage(query, {
+      forward: opts?.forward ?? true,
+      findNext: opts?.findNext ?? false,
+      matchCase: false,
+    })
+  }
+  stopFindInActive(): void {
+    if (!this.activeId) return
+    const entry = this.entries.get(this.activeId)
+    if (!entry) return
+    entry.view.webContents.stopFindInPage("clearSelection")
   }
 
   /**

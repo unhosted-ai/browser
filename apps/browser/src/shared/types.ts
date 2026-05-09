@@ -147,6 +147,14 @@ export type BrowserApi = {
     /** Pixel width reserved on the left for the navigation rail. 0 = hidden. */
     setLeftNavWidth: (px: number) => Promise<void>
   }
+  find: {
+    start: (query: string, opts?: { forward?: boolean; findNext?: boolean }) => Promise<void>
+    stop:  () => Promise<void>
+  }
+  /** Native menu → renderer callbacks (focus address bar, open settings, etc). */
+  menu: {
+    onAction: (cb: (kind: "focusAddressBar" | "openSettings" | "toggleAssistant" | "openFind") => void) => () => void
+  }
   providers: {
     list: () => Promise<ProviderInfo[]>
     refresh: () => Promise<ProviderInfo[]>

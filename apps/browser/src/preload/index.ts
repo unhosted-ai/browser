@@ -30,6 +30,25 @@ const api: BrowserApi = {
     setRightReservation: (px: number) => ipcRenderer.invoke("layout:setRightReservation", px),
     setLeftNavWidth:     (px: number) => ipcRenderer.invoke("layout:setLeftNavWidth", px),
   },
+  find: {
+    start: (query: string, opts?: { forward?: boolean; findNext?: boolean }) => ipcRenderer.invoke("find:start", query, opts),
+    stop:  () => ipcRenderer.invoke("find:stop"),
+  },
+  menu: {
+    onAction: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, kind: string) => cb(kind as Parameters<typeof cb>[0])
+      ipcRenderer.on("menu:focusAddressBar", (_e) => listener(_e, "focusAddressBar"))
+      ipcRenderer.on("menu:openSettings",    (_e) => listener(_e, "openSettings"))
+      ipcRenderer.on("menu:toggleAssistant", (_e) => listener(_e, "toggleAssistant"))
+      ipcRenderer.on("menu:openFind",        (_e) => listener(_e, "openFind"))
+      return () => {
+        ipcRenderer.removeAllListeners("menu:focusAddressBar")
+        ipcRenderer.removeAllListeners("menu:openSettings")
+        ipcRenderer.removeAllListeners("menu:toggleAssistant")
+        ipcRenderer.removeAllListeners("menu:openFind")
+      }
+    },
+  },
   providers: {
     list:    () => ipcRenderer.invoke("providers:list") as Promise<ProviderInfo[]>,
     refresh: () => ipcRenderer.invoke("providers:refresh") as Promise<ProviderInfo[]>,

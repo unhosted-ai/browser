@@ -1,10 +1,11 @@
-import { app, BrowserWindow, ipcMain, protocol } from "electron"
+import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron"
 import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
 import { Agent } from "./agent"
 import { SettingsStore } from "./settings"
 import { registerNewtabProtocol } from "./newtab"
+import { buildMenu } from "./menu"
 import type { AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
@@ -65,6 +66,10 @@ function createWindow(): void {
   settings.onChange((s) => mainWindow?.webContents.send("settings:change", s))
   registerIpc()
 
+  // Native menu — gives us global keyboard accelerators that fire even
+  // when focus is inside a WebContentsView, plus a real macOS menu bar.
+  Menu.setApplicationMenu(buildMenu({ win: mainWindow!, tabs: tabs! }))
+
   // Open one tab on first paint — defaults to delta://newtab.
   mainWindow.webContents.once("did-finish-load", () => {
     tabs?.create()
@@ -92,6 +97,10 @@ function registerIpc(): void {
 
   ipcMain.handle("settings:get",    () => settings?.get())
   ipcMain.handle("settings:update", (_e, update: SettingsUpdate) => settings?.apply(update))
+
+  // Find in page
+  ipcMain.handle("find:start", (_e, query: string, opts?: { findNext?: boolean; forward?: boolean }) => t.startFindInActive(query, opts))
+  ipcMain.handle("find:stop",  () => t.stopFindInActive())
 
   // Agent (Phase 1: chat). Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))

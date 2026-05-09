@@ -4,6 +4,7 @@ import { TabStrip } from "./components/TabStrip"
 import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
 import { SettingsPanel } from "./components/SettingsPanel"
+import { FindBar } from "./components/FindBar"
 import {
   LeftNavSidebar,
   LEFT_NAV_WIDTH_FULL,
@@ -17,6 +18,7 @@ export function App() {
   const [state, setState] = useState<TabsState>({ tabs: [], activeId: null })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(() => {
     try { return localStorage.getItem("delta:leftNavCollapsed") === "1" } catch { return false }
@@ -56,9 +58,22 @@ export function App() {
 
   const active = state.tabs.find((t) => t.id === state.activeId) ?? null
 
-  // Keyboard shortcuts — kept in the renderer (DOM listener) for v1 to avoid
-  // round-tripping through the OS menu bar; can move to Electron Menu later
-  // if we want them to also appear under macOS menus.
+  // Native menu actions — fire even when focus is inside a WebContentsView
+  // (which the renderer-side keydown handler can't see).
+  useEffect(() => {
+    return window.api.menu.onAction((kind) => {
+      switch (kind) {
+        case "focusAddressBar":  addressBarRef.current?.selectAll(); break
+        case "openSettings":     setSettingsOpen(true);              break
+        case "toggleAssistant":  setSidebarOpen((v) => !v);          break
+        case "openFind":         setFindOpen(true);                  break
+      }
+    })
+  }, [])
+
+  // Renderer-side keyboard shortcuts. The menu owns the same accelerators
+  // for parity, but these handle the DOM-only state changes that would
+  // otherwise need a round-trip through main.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey
@@ -160,6 +175,7 @@ export function App() {
             providers={providers}
             onRefreshProviders={refreshProviders}
           />
+          <FindBar open={findOpen} onClose={() => setFindOpen(false)} />
         </div>
       </div>
     </div>
