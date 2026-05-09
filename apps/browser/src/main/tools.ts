@@ -106,13 +106,71 @@ function clampMax(v: unknown): number {
   return Math.max(500, Math.min(64_000, n))
 }
 
+// ── Act tools ──────────────────────────────────────────────────────────
+// All act tools route through the permission gate in agent.ts. They never
+// run from inside this module's handlers without a prior allow decision.
+//
+// Surface area kept tiny on purpose: navigate + open_tab don't poke the
+// page DOM, only the URL bar — much smaller blast radius than click /
+// type which need a content script (Phase 3.1, separate commit).
+const navigate: Tool = {
+  def: {
+    name: "navigate",
+    description:
+      "Load a URL in the user's currently active tab. Use this when the user explicitly asks to go somewhere, or when the answer requires navigating to a specific page first. Permissioned: the user is asked to allow each (origin, navigate) pair the first time.",
+    schema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "Absolute URL to load. Must include scheme (https:// or http://)." },
+      },
+      required: ["url"],
+    },
+    side: "act",
+  },
+  handler: async (args, ctx) => {
+    if (typeof args?.url !== "string") return { error: "invalid_args", message: "url is required" }
+    const state = ctx.tabs.getState()
+    if (!state.activeId) return { error: "no_active_tab" }
+    ctx.tabs.navigate(state.activeId, args.url)
+    return { ok: true, url: args.url, tabId: state.activeId }
+  },
+}
+
+const open_tab: Tool = {
+  def: {
+    name: "open_tab",
+    description:
+      "Open a URL in a new tab. Use this when the user asks for something to be opened alongside their current tabs (e.g. background research) instead of replacing the active tab. Permissioned: same per-(origin, open_tab) gate as navigate.",
+    schema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "Absolute URL. Must include scheme." },
+      },
+      required: ["url"],
+    },
+    side: "act",
+  },
+  handler: async (args, ctx) => {
+    if (typeof args?.url !== "string") return { error: "invalid_args", message: "url is required" }
+    const tab = ctx.tabs.create(args.url)
+    return { ok: true, tabId: tab.id, url: args.url }
+  },
+}
+
 // ── Registry ────────────────────────────────────────────────────────────
-const TOOLS: Tool[] = [list_tabs, read_active_page, read_tab]
+const TOOLS: Tool[] = [list_tabs, read_active_page, read_tab, navigate, open_tab]
 const BY_NAME: Record<string, Tool> = Object.fromEntries(TOOLS.map((t) => [t.def.name, t]))
 
 /** All tool definitions, in the shape providers expect to see. */
 export function toolDefs(): ToolDef[] {
   return TOOLS.map((t) => t.def)
+}
+
+/** Look up a tool's permission tier by name. Defaults to "read" for unknown
+ *  names so we don't block unknown tools from being told they're invalid;
+ *  agent.ts will report `unknown_tool` from runTool() in that case. */
+export function toolSide(name: string): "read" | "act" {
+  return BY_NAME[name]?.def.side ?? "read"
 }
 
 /** Look up + run a tool. Returns the result or an error envelope. */

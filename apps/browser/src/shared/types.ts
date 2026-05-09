@@ -68,6 +68,13 @@ export type UserSettings = {
    * - other    — pin to a specific provider id (and optionally a model)
    */
   defaultProvider: { id: "auto" | ProviderId; model?: string }
+  /**
+   * Per-(origin, tool) "Always allow" entries. Set when the user clicks the
+   * "Always allow on this site" button on a permission card. Cleared when
+   * the user removes the entry from this list (Settings UI: future).
+   * Origin is the active tab's host at the moment of the request.
+   */
+  permissionGrants: Array<{ origin: string; tool: string }>
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -80,6 +87,8 @@ export type SettingsUpdate =
   | { kind: "addCustomEndpoint"; label: string; endpoint: string; apiKey?: string }
   | { kind: "removeCustomEndpoint"; id: string }
   | { kind: "defaultProvider"; id: "auto" | ProviderId; model?: string }
+  | { kind: "grantPermission"; origin: string; tool: string }
+  | { kind: "revokePermission"; origin: string; tool: string }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {
@@ -120,7 +129,29 @@ export type ToolCallView = {
   result?: unknown   // serialised; truncated for display
   error?: string
   durationMs?: number
+  /** "read" tools auto-run; "act" tools route through the permission gate. */
+  side?: "read" | "act"
+  /** When the agent's call was blocked or auto-blocked, the reason. */
+  blocked?: "user_block" | "sensitive_site"
 }
+
+// Permission request that an act-tool has triggered. The renderer renders
+// a card with Allow / Block / Always-allow buttons; the user's decision
+// flows back through window.api.agent.respondToPermission.
+export type PermissionRequest = {
+  permissionId: string
+  callId: string         // matches ToolCallView.id once the tool runs
+  taskId: string
+  assistantId: string
+  toolName: string
+  args: unknown
+  /** Origin (host) of the active tab when the call was issued. */
+  origin: string | null
+  /** Human summary of what's about to happen — we render this as the prompt. */
+  summary: string
+}
+
+export type PermissionDecision = "allow" | "block" | "always_allow"
 
 export type AgentMessage = {
   id: string
@@ -131,6 +162,10 @@ export type AgentMessage = {
   error?: string
   // Tool calls that this assistant message issued. Cards render in-line.
   toolCalls?: ToolCallView[]
+  // Pending permission requests for act-tools waiting on user approval.
+  // Once the user decides, the entry is dropped from this list and the
+  // resulting tool call appears in toolCalls.
+  pendingPermissions?: PermissionRequest[]
 }
 
 export type AgentStatus = "idle" | "submitting" | "streaming" | "error"
@@ -140,6 +175,8 @@ export type AgentEvent =
   | { type: "task_start"; taskId: string; assistantId: string }
   | { type: "text_delta"; taskId: string; assistantId: string; delta: string }
   | { type: "tool_call";  taskId: string; assistantId: string; call: ToolCallView }
+  | { type: "permission_request";  taskId: string; assistantId: string; request: PermissionRequest }
+  | { type: "permission_resolved"; taskId: string; assistantId: string; permissionId: string; decision: PermissionDecision }
   | { type: "task_done";  taskId: string; assistantId: string; reason: "end" | "cancelled" | "max_tools" }
   | { type: "task_error"; taskId: string; assistantId: string; error: string }
 
@@ -190,6 +227,8 @@ export type BrowserApi = {
     send: (input: AgentSendInput) => Promise<{ taskId: string; assistantId: string }>
     cancel: (taskId: string) => Promise<void>
     onEvent: (cb: (e: AgentEvent) => void) => () => void
+    /** Resolve a pending act-tool permission request. */
+    respondToPermission: (permissionId: string, decision: PermissionDecision) => Promise<void>
   }
   settings: {
     get: () => Promise<UserSettings>

@@ -64,6 +64,8 @@ const api: BrowserApi = {
       ipcRenderer.on("agent:event", listener)
       return () => ipcRenderer.removeListener("agent:event", listener)
     },
+    respondToPermission: (permissionId, decision) =>
+      ipcRenderer.invoke("agent:respondToPermission", permissionId, decision),
   },
   settings: {
     get:    () => ipcRenderer.invoke("settings:get") as Promise<UserSettings>,

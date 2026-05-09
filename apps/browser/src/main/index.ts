@@ -112,9 +112,11 @@ function registerIpc(): void {
   ipcMain.handle("conversations:save",   (_e, id: string, messages: AgentMessage[]) => { conversations?.save(id, messages) })
   ipcMain.handle("conversations:delete", (_e, id: string) => { conversations?.delete(id) })
 
-  // Agent (Phase 1: chat). Streaming events are pushed via "agent:event".
+  // Agent (Phase 1: chat + Phase 2: read tools + Phase 3: act tools).
+  // Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
   ipcMain.handle("agent:cancel", (_e, taskId: string) => agent?.cancel(taskId))
+  ipcMain.handle("agent:respondToPermission", (_e, permissionId: string, decision: "allow" | "block" | "always_allow") => agent?.resolvePermission(permissionId, decision))
 
   // Push tab state changes to the renderer.
   t.onUpdate((state) => {

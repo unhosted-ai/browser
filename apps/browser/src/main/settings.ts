@@ -26,6 +26,7 @@ type StoredSettings = Omit<UserSettings, "openaiHasKey" | "anthropicHasKey" | "c
   openaiKeyCipher?: string     // base64 of safeStorage ciphertext
   anthropicKeyCipher?: string
   customEndpoints: StoredEndpoint[]
+  // permissionGrants is in the wire shape too — store it as-is.
 }
 
 const FILE = "settings.json"
@@ -35,6 +36,7 @@ const DEFAULTS: StoredSettings = {
   anthropicEnabled: false,
   customEndpoints: [],
   defaultProvider: { id: "auto" },
+  permissionGrants: [],
 }
 
 function settingsPath(): string {
@@ -89,6 +91,7 @@ function toWire(s: StoredSettings): UserSettings {
       hasApiKey: !!e.apiKeyCipher,
     })),
     defaultProvider: s.defaultProvider,
+    permissionGrants: s.permissionGrants ?? [],
   }
 }
 
@@ -113,6 +116,12 @@ export class SettingsStore {
   resolveAnthropicKey(): string | null {
     if (!this.state.anthropicKeyCipher) return null
     return decrypt(this.state.anthropicKeyCipher)
+  }
+
+  hasPermission(origin: string, tool: string): boolean {
+    return (this.state.permissionGrants ?? []).some(
+      (g) => g.origin === origin && g.tool === tool,
+    )
   }
 
   /** Resolve a custom endpoint's API key for use in main only. */
@@ -168,6 +177,23 @@ export class SettingsStore {
       case "defaultProvider":
         this.state.defaultProvider = { id: update.id, model: update.model }
         break
+      case "grantPermission": {
+        const { origin, tool } = update
+        if (!this.state.permissionGrants) this.state.permissionGrants = []
+        if (!this.state.permissionGrants.some((g) => g.origin === origin && g.tool === tool)) {
+          this.state.permissionGrants.push({ origin, tool })
+        }
+        break
+      }
+      case "revokePermission": {
+        const { origin, tool } = update
+        if (this.state.permissionGrants) {
+          this.state.permissionGrants = this.state.permissionGrants.filter(
+            (g) => !(g.origin === origin && g.tool === tool),
+          )
+        }
+        break
+      }
     }
     persist(this.state)
     this.emit()

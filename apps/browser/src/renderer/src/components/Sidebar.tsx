@@ -4,6 +4,8 @@ import type {
   AgentMessage,
   AgentStatus,
   ConversationSummary,
+  PermissionDecision,
+  PermissionRequest,
   ProviderInfo,
   ToolCallView,
 } from "@shared/types"
@@ -17,11 +19,11 @@ type Props = {
   onOpenSettings: () => void
 }
 
-// What the Assistant *can do*. Read is fully live: list_tabs, read_active_page,
-// read_tab — the agent calls these autonomously and the cards render below.
+// What the Assistant *can do*. Read tools auto-run; act tools route through
+// per-(origin, tool) permission cards rendered inline in the conversation.
 const CAPABILITIES = [
   { label: "Read", hint: "Calls list_tabs, read_active_page, read_tab — sees pages across your tabs as untrusted context.", live: true },
-  { label: "Act",  hint: "Click, type, navigate. Coming after the permission gate ships.", live: false },
+  { label: "Act",  hint: "navigate, open_tab — gated by per-(origin, tool) permission. Sensitive sites (banking, gov) are blocked.", live: true },
   { label: "Tasks",hint: "Multi-step background tasks visible here. Coming.", live: false },
 ] as const
 
@@ -72,6 +74,21 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
             : [...existing, e.call]
           return { ...m, toolCalls: next }
         }))
+      } else if (e.type === "permission_request") {
+        // Park the request on the assistant message; the card renders inline
+        // until the user clicks Allow / Block / Always allow.
+        setMessages(prev => prev.map(m =>
+          m.id === e.assistantId
+            ? { ...m, pendingPermissions: [...(m.pendingPermissions ?? []), e.request] }
+            : m
+        ))
+      } else if (e.type === "permission_resolved") {
+        // Drop the resolved request from the pending list.
+        setMessages(prev => prev.map(m =>
+          m.id === e.assistantId
+            ? { ...m, pendingPermissions: (m.pendingPermissions ?? []).filter(p => p.permissionId !== e.permissionId) }
+            : m
+        ))
       } else if (e.type === "task_done") {
         setStatus("idle")
         setTaskId(null)
@@ -482,7 +499,8 @@ function relativeTime(ts: number): string {
 function MessageBubble({ message }: { message: AgentMessage }) {
   const isUser = message.role === "user"
   const hasTools = (message.toolCalls?.length ?? 0) > 0
-  const showThinking = message.streaming && !message.text && !hasTools
+  const hasPending = (message.pendingPermissions?.length ?? 0) > 0
+  const showThinking = message.streaming && !message.text && !hasTools && !hasPending
 
   if (isUser) {
     return (
@@ -492,14 +510,16 @@ function MessageBubble({ message }: { message: AgentMessage }) {
     )
   }
 
-  // Assistant — text + tool-call cards interleave. For v1 we render tool
-  // cards above the text; the agent design will get fancier (cards inline
-  // by ordering events) once we track ordering through the stream.
   return (
     <li className="self-start max-w-[95%] flex flex-col gap-2">
       {hasTools && (
         <ul className="flex flex-col gap-1.5">
           {message.toolCalls!.map((c) => <ToolCallCard key={c.id} call={c} />)}
+        </ul>
+      )}
+      {hasPending && (
+        <ul className="flex flex-col gap-1.5">
+          {message.pendingPermissions!.map((p) => <PermissionCard key={p.permissionId} request={p} />)}
         </ul>
       )}
       {(message.text || showThinking || message.error) && (
@@ -514,6 +534,59 @@ function MessageBubble({ message }: { message: AgentMessage }) {
               thinking…
             </span>
           )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+// Inline card asking the user to approve an act-tool call. Three buttons:
+// Allow (one-shot), Always allow on this site (persists in settings),
+// Block. The card stays visible until the user picks one — no auto-dismiss.
+function PermissionCard({ request }: { request: PermissionRequest }) {
+  const [decided, setDecided] = useState<PermissionDecision | null>(null)
+  const decide = async (decision: PermissionDecision) => {
+    setDecided(decision)
+    await window.api.agent.respondToPermission(request.permissionId, decision)
+  }
+
+  return (
+    <li className="rounded-lg border border-signal/40 bg-signal/8 px-3 py-2.5">
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="font-mono text-[10px] tracking-[0.08em] uppercase text-signal shrink-0">
+          permission · act
+        </span>
+        <span className="font-mono text-chrome-text text-[12px] truncate">{request.toolName}</span>
+      </div>
+      <p className="text-[13px] text-chrome-text leading-snug mb-1">{request.summary}</p>
+      {request.origin && (
+        <p className="font-mono text-[11px] text-chrome-text-3 mb-2.5">
+          on <span className="text-chrome-text-2">{request.origin}</span>
+        </p>
+      )}
+      {decided ? (
+        <p className="font-mono text-[10px] tracking-[0.08em] uppercase text-chrome-text-3">
+          {decided === "block" ? "blocked" : decided === "always_allow" ? "allowed · saved for this site" : "allowed once"}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => void decide("allow")}
+            className="h-7 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 transition-opacity"
+          >Allow</button>
+          {request.origin && (
+            <button
+              type="button"
+              onClick={() => void decide("always_allow")}
+              className="h-7 px-3 rounded-full border border-signal/50 text-signal text-[12px] hover:bg-signal/10 transition-colors"
+            >Always on {request.origin}</button>
+          )}
+          <button
+            type="button"
+            onClick={() => void decide("block")}
+            className="h-7 px-3 rounded-full border border-chrome-border text-chrome-text-2 text-[12px] hover:text-[hsl(0_70%_70%)] hover:border-[hsl(0_70%_60%/0.4)] transition-colors"
+          >Block</button>
         </div>
       )}
     </li>
