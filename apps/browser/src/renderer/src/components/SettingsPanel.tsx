@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
-import type { UserSettings } from "@shared/types"
+import type { ProviderInfo, UserSettings } from "@shared/types"
 import { useTheme } from "../hooks/useTheme"
 
 type Props = {
   open: boolean
   onClose: () => void
+  providers: ProviderInfo[]
+  onRefreshProviders: () => void
 }
 
-export function SettingsPanel({ open, onClose }: Props) {
+export function SettingsPanel({ open, onClose, providers, onRefreshProviders }: Props) {
   const [settings, setSettings] = useState<UserSettings | null>(null)
 
   useEffect(() => {
@@ -38,7 +40,14 @@ export function SettingsPanel({ open, onClose }: Props) {
       <aside
         className="absolute right-0 top-0 bottom-0 w-[420px] bg-chrome-bg border-l border-chrome-border z-50 no-drag overflow-y-auto"
       >
-        {settings ? <SettingsBody settings={settings} onClose={onClose} /> : <Loading />}
+        {settings
+          ? <SettingsBody
+              settings={settings}
+              onClose={onClose}
+              providers={providers}
+              onRefreshProviders={onRefreshProviders}
+            />
+          : <Loading />}
       </aside>
     </>
   )
@@ -52,7 +61,14 @@ function Loading() {
   )
 }
 
-function SettingsBody({ settings, onClose }: { settings: UserSettings; onClose: () => void }) {
+function SettingsBody({
+  settings, onClose, providers, onRefreshProviders,
+}: {
+  settings: UserSettings
+  onClose: () => void
+  providers: ProviderInfo[]
+  onRefreshProviders: () => void
+}) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -71,8 +87,10 @@ function SettingsBody({ settings, onClose }: { settings: UserSettings; onClose: 
         </button>
       </div>
 
-      {/* Sections */}
+      {/* Sections — Connection comes first; it owns setup. The Assistant
+          sidebar no longer carries setup instructions. */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        <ConnectionSection providers={providers} onRefresh={onRefreshProviders} />
         <AppearanceSection />
         <OpenAISection settings={settings} />
         <CustomEndpointsSection settings={settings} />
@@ -80,6 +98,80 @@ function SettingsBody({ settings, onClose }: { settings: UserSettings; onClose: 
         <PrivacyNote />
       </div>
     </div>
+  )
+}
+
+// ── Connection (was previously split between Sidebar + Settings) ────
+// One home for "where is the model coming from": current status,
+// install instructions when nothing's online, and a Refresh affordance.
+function ConnectionSection({
+  providers, onRefresh,
+}: {
+  providers: ProviderInfo[]
+  onRefresh: () => void
+}) {
+  const usable = providers.find((p) => p.status === "online" && p.models.length > 0)
+  return (
+    <section>
+      <SectionHeader label="Connection" hint="Where the Assistant gets its answers." />
+
+      {usable ? (
+        <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3">
+          <div className="flex items-center gap-2 text-[12px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-signal shrink-0" />
+            <span className="text-chrome-text">{usable.label}</span>
+            <span className="text-chrome-text-3">·</span>
+            <span className="font-mono text-[11px] text-chrome-text-2 truncate">{usable.models[0]}</span>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="ml-auto font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-chrome-text-3 leading-relaxed">
+            Pin a different provider in <span className="text-chrome-text-2">Default provider</span> below.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 text-[12px]">
+              <span className="h-1.5 w-1.5 rounded-full bg-chrome-text-3 animate-pulse shrink-0" />
+              <span className="text-chrome-text">No model online</span>
+            </div>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+          <p className="text-[12px] text-chrome-text-2 leading-relaxed mb-3">
+            Fastest path — Ollama:
+          </p>
+          <ol className="list-decimal pl-5 space-y-1.5 text-[12px] text-chrome-text-2 mb-3">
+            <li>
+              Install from <code className="font-mono text-chrome-text">ollama.com</code>
+            </li>
+            <li>
+              Run <code className="font-mono text-chrome-text">ollama serve</code> in a terminal
+            </li>
+            <li>
+              Pull a model:{" "}
+              <code className="font-mono text-chrome-text">ollama pull llama3.2</code>
+            </li>
+          </ol>
+          <p className="text-[11px] text-chrome-text-3 leading-relaxed">
+            Already running LM Studio / llama.cpp / MLX? Make sure their local
+            server is started — Delta auto-detects within a few seconds.
+            Or add a Custom endpoint below.
+          </p>
+        </div>
+      )}
+    </section>
   )
 }
 

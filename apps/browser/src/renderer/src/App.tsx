@@ -150,10 +150,16 @@ export function App() {
                 onRefresh={refreshProviders}
                 activeUrl={active?.url ?? null}
                 activeTitle={active?.title ?? null}
+                onOpenSettings={() => setSettingsOpen(true)}
               />
             </aside>
           )}
-          <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+          <SettingsPanel
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            providers={providers}
+            onRefreshProviders={refreshProviders}
+          />
         </div>
       </div>
     </div>

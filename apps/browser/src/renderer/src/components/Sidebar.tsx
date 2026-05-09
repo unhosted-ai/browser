@@ -7,7 +7,18 @@ type Props = {
   activeUrl: string | null
   activeTitle: string | null
   onRefresh: () => void
+  onOpenSettings: () => void
 }
+
+// What the Assistant *can do*. This list is the IA cue: it sets expectations
+// about scope (a chat that reads the page, not a rules engine; agentic
+// abilities like read-tools and act-tools are on the way but gated). It
+// also keeps the empty state from feeling empty.
+const CAPABILITIES = [
+  { label: "Read", hint: "Sees the active tab's text as untrusted context.", live: true },
+  { label: "Act",  hint: "Click, type, navigate. Coming after the permission gate ships.", live: false },
+  { label: "Tasks",hint: "Multi-step background tasks visible here. Coming.", live: false },
+] as const
 
 const SUGGESTIONS = [
   "Summarise this page",
@@ -15,23 +26,22 @@ const SUGGESTIONS = [
   "What does this page miss?",
 ] as const
 
-export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props) {
+export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSettings }: Props) {
   const [draft, setDraft] = useState("")
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [status, setStatus] = useState<AgentStatus>("idle")
   const [taskId, setTaskId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // The agent picks the first usable online provider. We surface that one
-  // (and only that one) so the user has a single status line to look at,
-  // not a 5-row debug list.
+  // The agent picks the first usable online provider. We surface that one as
+  // a small footnote — connection state belongs to Settings, not the
+  // conversation. This is just a "you're talking to X" cue.
   const usable = useMemo(
     () => providers.find((p) => p.status === "online" && p.models.length > 0),
     [providers],
   )
   const online = !!usable
 
-  // Subscribe to agent events.
   useEffect(() => {
     return window.api.agent.onEvent((e: AgentEvent) => {
       if (e.type === "task_start") {
@@ -58,9 +68,8 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
     })
   }, [])
 
-  // Auto-poll while offline so the moment a local LLM comes up, Delta
-  // notices without making the user click Refresh. Stops polling once
-  // anything is online.
+  // Quietly poll for providers while we're waiting for one — the Assistant
+  // doesn't need a Refresh button anymore; that's a Settings concern.
   useEffect(() => {
     if (online) return
     const id = setInterval(onRefresh, 4000)
@@ -113,25 +122,41 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="h-12 px-4 flex items-baseline justify-between border-b border-chrome-border">
+      {/* Header — Assistant identity, with capability badges so the user can
+          see at a glance what the agent CAN do without scrolling history. */}
+      <div className="px-4 pt-4 pb-3 border-b border-chrome-border">
         <div className="flex items-baseline gap-2">
           <span className="text-signal" style={{ transform: "translateY(2px)" }}>
             <DeltaLogo size={13} />
           </span>
-          <span className="font-serif italic text-[18px] leading-none text-chrome-text">Delta</span>
-          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">ai</span>
+          <span className="font-serif italic text-[18px] leading-none text-chrome-text">Assistant</span>
         </div>
+        <ul className="mt-2.5 flex gap-1.5 flex-wrap">
+          {CAPABILITIES.map((c) => (
+            <li
+              key={c.label}
+              title={c.hint}
+              className={[
+                "px-2 h-5 rounded-full inline-flex items-center gap-1.5",
+                "font-mono text-[10px] tracking-[0.08em] uppercase",
+                "border",
+                c.live
+                  ? "text-signal border-signal/40 bg-signal/8"
+                  : "text-chrome-text-3 border-chrome-border",
+              ].join(" ")}
+            >
+              <span className={c.live ? "h-1 w-1 rounded-full bg-signal" : "h-1 w-1 rounded-full bg-chrome-text-3"} />
+              {c.label}
+            </li>
+          ))}
+        </ul>
       </div>
-
-      {/* Single status line — replaces the old 5-row provider list */}
-      <ConnectionLine usable={usable} onRefresh={onRefresh} />
 
       {/* Context strip */}
       {activeUrl && (
         <div className="px-4 py-3 border-b border-chrome-border">
           <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3 mb-1.5">
-            Context
+            On this page
           </p>
           <p className="text-[13px] text-chrome-text leading-snug truncate">
             {activeTitle || "Untitled"}
@@ -140,10 +165,10 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
         </div>
       )}
 
-      {/* Chat surface */}
+      {/* Conversation */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <EmptyState online={online} hasContext={!!activeUrl} onPick={setDraft} />
+          <EmptyState online={online} hasContext={!!activeUrl} onPick={setDraft} onOpenSettings={onOpenSettings} />
         ) : (
           <ol className="px-4 py-4 flex flex-col gap-4">
             {messages.map((m) => <MessageBubble key={m.id} message={m} />)}
@@ -165,7 +190,7 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
           rows={3}
           placeholder={
             composerDisabled
-              ? "Start a local LLM to chat"
+              ? "Connect a model in Settings"
               : activeUrl
                 ? "Ask about this page…"
                 : "Ask anything…"
@@ -174,20 +199,35 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
           disabled={composerDisabled}
         />
         <div className="mt-2 flex items-center justify-between font-mono text-[10px] tracking-[0.12em] uppercase">
-          <span className="text-chrome-text-3">
-            {composerDisabled ? (
-              "offline"
-            ) : isStreaming ? (
-              <span className="flex items-center gap-1.5">
+          {/* Footnote: who's answering. Click to jump to Settings → Connection. */}
+          {online ? (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              title={`${usable!.label} · ${usable!.models[0]} — change in Settings`}
+              className="flex items-center gap-1.5 text-chrome-text-3 hover:text-chrome-text-2 transition-colors"
+            >
+              {isStreaming ? (
                 <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" />
-                streaming
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-signal" />
+              )}
+              <span className="text-chrome-text-2 truncate max-w-[180px]">
+                {usable!.label}
+                <span className="text-chrome-text-3 normal-case mx-1">·</span>
+                {usable!.models[0]}
               </span>
-            ) : draft ? (
-              <>draft · <span className="text-chrome-text-2 tabular-nums">{draft.length}</span> chars</>
-            ) : (
-              "ready"
-            )}
-          </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="flex items-center gap-1.5 text-chrome-text-3 hover:text-chrome-text-2 transition-colors"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-chrome-text-3 animate-pulse" />
+              <span>No model · settings</span>
+            </button>
+          )}
           {isStreaming ? (
             <button type="button" onClick={cancel} className="text-chrome-text-2 hover:text-signal flex items-center gap-1.5">
               <span>Stop</span>
@@ -210,83 +250,56 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh }: Props)
   )
 }
 
-// ── Single status line ─────────────────────────────────────────────────
-// On: green dot + "<provider> · <model>"
-// Off: muted "No model online" + Refresh, with a hint that auto-poll is on.
-function ConnectionLine({ usable, onRefresh }: { usable: ProviderInfo | undefined; onRefresh: () => void }) {
-  const online = !!usable
-  return (
-    <div className="px-4 py-2.5 border-b border-chrome-border flex items-center gap-2">
-      <span
-        className={[
-          "h-1.5 w-1.5 rounded-full shrink-0",
-          online ? "bg-signal" : "bg-chrome-text-3 animate-pulse",
-        ].join(" ")}
-        aria-hidden
-      />
-      {online ? (
-        <p className="text-[12px] text-chrome-text-2 truncate flex-1">
-          <span className="text-chrome-text">{usable!.label}</span>
-          <span className="text-chrome-text-3"> · </span>
-          <span className="font-mono text-[11px] text-chrome-text-2 truncate">{usable!.models[0]}</span>
-        </p>
-      ) : (
-        <p className="text-[12px] text-chrome-text-2 flex-1">
-          <span className="text-chrome-text">No model online.</span>{" "}
-          <span className="text-chrome-text-3">Watching for one…</span>
-        </p>
-      )}
-      <button
-        type="button"
-        onClick={onRefresh}
-        title="Refresh providers"
-        className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
-      >
-        Refresh
-      </button>
-    </div>
-  )
-}
-
 // ── Empty state ────────────────────────────────────────────────────────
-function EmptyState({ online, hasContext, onPick }: { online: boolean; hasContext: boolean; onPick: (s: string) => void }) {
+// When online: capabilities + starter prompts (chat-only).
+// When offline: short headline + ONE button → Settings. No setup
+// instructions here — those live in Settings → Connection. This is the
+// IA fix: the Assistant is a conversation surface, not a setup wizard.
+function EmptyState({ online, hasContext, onPick, onOpenSettings }: {
+  online: boolean
+  hasContext: boolean
+  onPick: (s: string) => void
+  onOpenSettings: () => void
+}) {
+  if (!online) {
+    return (
+      <div className="px-4 py-10 flex flex-col items-start gap-4">
+        <p className="font-serif italic text-[22px] leading-[1.3] text-chrome-text max-w-[28ch]">
+          Connect a model.
+        </p>
+        <p className="text-[13px] leading-[1.6] text-chrome-text-2 max-w-[34ch]">
+          The Assistant runs against a model on your machine.
+          Settings has the setup options — Ollama is the fastest path.
+        </p>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="h-9 px-4 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 transition-opacity flex items-center gap-1.5"
+        >
+          Open Settings
+          <span className="font-mono text-[10px] opacity-70">⌘,</span>
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="px-4 py-8 flex flex-col items-start gap-5">
       <p className="font-serif italic text-[22px] leading-[1.3] text-chrome-text max-w-[28ch]">
-        {online ? (hasContext ? "Ask the page." : "Ask anything.") : "Connect a model."}
+        {hasContext ? "Ask the page." : "Ask anything."}
       </p>
-      {online ? (
-        <ul className="flex flex-col gap-1.5 w-full">
-          {SUGGESTIONS.map((s) => (
-            <li key={s}>
-              <button
-                type="button"
-                onClick={() => onPick(s)}
-                className="w-full text-left px-4 py-2 rounded-full border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3 hover:bg-chrome-surface transition-colors duration-150"
-              >
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="text-[13px] leading-[1.65] text-chrome-text-2 max-w-[34ch] space-y-3">
-          <p>The fastest path:</p>
-          <ol className="list-decimal pl-5 space-y-1.5 text-chrome-text-2">
-            <li>
-              Install <span className="font-mono text-chrome-text">Ollama</span> from{" "}
-              <code className="font-mono text-chrome-text">ollama.com</code>
-            </li>
-            <li>
-              Run <code className="font-mono text-chrome-text">ollama pull llama3.2</code> once
-            </li>
-            <li>Delta will auto-detect it within a few seconds</li>
-          </ol>
-          <p className="text-chrome-text-3 text-[12px]">
-            Already running LM Studio or llama.cpp? Make sure their local server is started — Delta will pick it up.
-          </p>
-        </div>
-      )}
+      <ul className="flex flex-col gap-1.5 w-full">
+        {SUGGESTIONS.map((s) => (
+          <li key={s}>
+            <button
+              type="button"
+              onClick={() => onPick(s)}
+              className="w-full text-left px-4 py-2 rounded-full border border-chrome-border text-[12px] text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3 hover:bg-chrome-surface transition-colors duration-150"
+            >
+              {s}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

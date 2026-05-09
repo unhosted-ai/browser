@@ -194,8 +194,8 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
 
       <button
         type="button"
-        aria-label="Toggle Delta AI sidebar"
-        title="Delta AI sidebar  ⌘J"
+        aria-label="Toggle Assistant"
+        title="Assistant  ⌘J"
         onClick={onToggleSidebar}
         className={[
           "h-8 px-3 ml-1 rounded-full flex items-center gap-1.5",
