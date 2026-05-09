@@ -113,6 +113,8 @@ export type BrowserApi = {
   }
   layout: {
     setSidebarOpen: (open: boolean) => Promise<void>
+    /** Pixel width reserved on the left for the navigation rail. 0 = hidden. */
+    setLeftNavWidth: (px: number) => Promise<void>
   }
   providers: {
     list: () => Promise<ProviderInfo[]>

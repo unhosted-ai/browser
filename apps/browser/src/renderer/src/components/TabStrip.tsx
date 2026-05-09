@@ -19,7 +19,7 @@ function favicon(url: string): string | null {
 
 export function TabStrip({ tabs, activeId, onActivate, onClose, onCreate }: Props) {
   return (
-    <div className="h-10 flex items-end pl-[80px] pr-2 gap-[2px] select-none">
+    <div className="h-10 flex items-end pl-3 pr-2 gap-[2px] select-none">
       <ul className="flex flex-1 items-end gap-[2px] overflow-x-auto scrollbar-none">
         {tabs.map((t) => {
           const active = t.id === activeId

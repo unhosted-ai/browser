@@ -27,7 +27,8 @@ const api: BrowserApi = {
     },
   },
   layout: {
-    setSidebarOpen: (open: boolean) => ipcRenderer.invoke("layout:setSidebarOpen", open),
+    setSidebarOpen:  (open: boolean) => ipcRenderer.invoke("layout:setSidebarOpen", open),
+    setLeftNavWidth: (px: number)    => ipcRenderer.invoke("layout:setLeftNavWidth", px),
   },
   providers: {
     list:    () => ipcRenderer.invoke("providers:list") as Promise<ProviderInfo[]>,

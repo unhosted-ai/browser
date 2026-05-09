@@ -21,6 +21,7 @@ export class TabManager {
   private entries = new Map<TabId, Entry>()
   private activeId: TabId | null = null
   private sidebarOpen = false
+  private leftNavWidth = 0
   private listeners = new Set<(state: TabsState) => void>()
 
   constructor(win: BrowserWindow) {
@@ -44,6 +45,13 @@ export class TabManager {
   setSidebarOpen(open: boolean): void {
     if (this.sidebarOpen === open) return
     this.sidebarOpen = open
+    this.relayoutActive()
+  }
+
+  setLeftNavWidth(px: number): void {
+    const w = Math.max(0, Math.floor(px))
+    if (this.leftNavWidth === w) return
+    this.leftNavWidth = w
     this.relayoutActive()
   }
 
@@ -180,10 +188,11 @@ export class TabManager {
     if (!entry) return
     const { width, height } = this.win.getContentBounds()
     const sidebar = this.sidebarOpen ? SIDEBAR_WIDTH : 0
+    const leftNav = this.leftNavWidth
     entry.view.setBounds({
-      x: 0,
+      x: leftNav,
       y: CHROME_TOP,
-      width: Math.max(0, width - sidebar),
+      width: Math.max(0, width - sidebar - leftNav),
       height: Math.max(0, height - CHROME_TOP),
     })
   }

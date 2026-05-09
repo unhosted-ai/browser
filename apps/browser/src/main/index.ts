@@ -83,7 +83,8 @@ function registerIpc(): void {
   ipcMain.handle("tabs:forward",  (_e, id: TabId) => t.forward(id))
   ipcMain.handle("tabs:reload",   (_e, id: TabId) => t.reload(id))
 
-  ipcMain.handle("layout:setSidebarOpen", (_e, open: boolean) => t.setSidebarOpen(open))
+  ipcMain.handle("layout:setSidebarOpen",  (_e, open: boolean) => t.setSidebarOpen(open))
+  ipcMain.handle("layout:setLeftNavWidth", (_e, px: number)    => t.setLeftNavWidth(px))
 
   ipcMain.handle("providers:list",    () => listProviders(settings ?? undefined))
   ipcMain.handle("providers:refresh", () => listProviders(settings ?? undefined))
