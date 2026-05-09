@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ProviderInfo, TabsState } from "@shared/types"
 import { TabStrip } from "./components/TabStrip"
-import { AddressBar } from "./components/AddressBar"
+import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { useTheme } from "./hooks/useTheme"
@@ -14,6 +14,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
   const { theme, toggle: toggleTheme } = useTheme()
+  const addressBarRef = useRef<AddressBarHandle>(null)
 
   useEffect(() => {
     void window.api.tabs.list().then(setState)
@@ -33,6 +34,47 @@ export function App() {
 
   const active = state.tabs.find((t) => t.id === state.activeId) ?? null
 
+  // Keyboard shortcuts — kept in the renderer (DOM listener) for v1 to avoid
+  // round-tripping through the OS menu bar; can move to Electron Menu later
+  // if we want them to also appear under macOS menus.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey
+      if (!meta) return
+      if (e.key === "t" && !e.shiftKey) {
+        e.preventDefault()
+        void window.api.tabs.create()
+      } else if (e.key === "w" && !e.shiftKey) {
+        if (state.activeId) {
+          e.preventDefault()
+          void window.api.tabs.close(state.activeId)
+        }
+      } else if (e.key === "l" || (e.key === "k" && e.shiftKey === false)) {
+        e.preventDefault()
+        addressBarRef.current?.selectAll()
+      } else if (e.key === "r" && !e.shiftKey) {
+        if (state.activeId) {
+          e.preventDefault()
+          void window.api.tabs.reload(state.activeId)
+        }
+      } else if (e.key === "j") {
+        e.preventDefault()
+        setSidebarOpen((v) => !v)
+      } else if (e.key === ",") {
+        e.preventDefault()
+        setSettingsOpen(true)
+      } else if (e.key === "[" && state.activeId) {
+        e.preventDefault()
+        void window.api.tabs.back(state.activeId)
+      } else if (e.key === "]" && state.activeId) {
+        e.preventDefault()
+        void window.api.tabs.forward(state.activeId)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [state.activeId])
+
   const refreshProviders = async () => {
     setProviders(await window.api.providers.refresh())
   }
@@ -49,6 +91,7 @@ export function App() {
           onCreate={() => window.api.tabs.create()}
         />
         <AddressBar
+          ref={addressBarRef}
           tab={active}
           onNavigate={(url) => active && window.api.tabs.navigate(active.id, url)}
           onBack={() => active && window.api.tabs.back(active.id)}

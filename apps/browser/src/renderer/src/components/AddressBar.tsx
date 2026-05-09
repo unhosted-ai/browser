@@ -160,9 +160,9 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
 
   return (
     <div className="relative h-10 flex items-center gap-1 px-3 no-drag">
-      <button type="button" aria-label="Back"    disabled={!tab?.canGoBack}    onClick={onBack}    className={buttonCls(!tab?.canGoBack)}>{Icon.back}</button>
-      <button type="button" aria-label="Forward" disabled={!tab?.canGoForward} onClick={onForward} className={buttonCls(!tab?.canGoForward)}>{Icon.forward}</button>
-      <button type="button" aria-label="Reload"  onClick={onReload}            className={buttonCls(false)}>{Icon.reload}</button>
+      <button type="button" aria-label="Back"    title="Back  ⌘["    disabled={!tab?.canGoBack}    onClick={onBack}    className={buttonCls(!tab?.canGoBack)}>{Icon.back}</button>
+      <button type="button" aria-label="Forward" title="Forward  ⌘]" disabled={!tab?.canGoForward} onClick={onForward} className={buttonCls(!tab?.canGoForward)}>{Icon.forward}</button>
+      <button type="button" aria-label="Reload"  title="Reload  ⌘R"  onClick={onReload}            className={buttonCls(false)}>{Icon.reload}</button>
 
       <div
         className={[
@@ -221,7 +221,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
       <button
         type="button"
         aria-label="Open settings"
-        title="Settings"
+        title="Settings  ⌘,"
         onClick={onOpenSettings}
         className={buttonCls(false)}
       >

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { UserSettings } from "@shared/types"
+import { useTheme } from "../hooks/useTheme"
 
 type Props = {
   open: boolean
@@ -72,12 +73,39 @@ function SettingsBody({ settings, onClose }: { settings: UserSettings; onClose: 
 
       {/* Sections */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        <AppearanceSection />
         <OpenAISection settings={settings} />
         <CustomEndpointsSection settings={settings} />
         <DefaultProviderSection settings={settings} />
         <PrivacyNote />
       </div>
     </div>
+  )
+}
+
+function AppearanceSection() {
+  const { theme, setTheme } = useTheme()
+  return (
+    <section>
+      <SectionHeader label="Appearance" hint="Light or dark — also togglable from the address bar." />
+      <div className="flex gap-2">
+        {(["dark", "light"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTheme(t)}
+            className={[
+              "h-9 px-4 rounded-full border text-[12px] tracking-[0.02em] capitalize transition-colors duration-150",
+              theme === t
+                ? "bg-signal/15 border-signal/60 text-signal"
+                : "border-chrome-border text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3",
+            ].join(" ")}
+          >
+            {t} mode
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 
