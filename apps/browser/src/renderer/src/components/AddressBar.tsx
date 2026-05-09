@@ -11,8 +11,6 @@ type Props = {
   onReload: () => void
   sidebarOpen: boolean
   onToggleSidebar: () => void
-  theme: "dark" | "light"
-  onToggleTheme: () => void
   onOpenSettings: () => void
 }
 
@@ -71,11 +69,12 @@ const Icon = {
       <path d="M7 7l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   ),
-  // Delta brand mark — equilateral triangle, mirrors components/DeltaLogo.tsx
+  // Delta brand mark — Δ with a guiding spark; mirrors components/DeltaLogo.tsx
   delta: (
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="2.4" r="1.1" fill="currentColor" />
       <path
-        d="M7 1.5 L12.5 11.5 L1.5 11.5 Z"
+        d="M8 5 L13 13.5 L3 13.5 Z"
         stroke="currentColor"
         strokeWidth="1.4"
         strokeLinejoin="round"
@@ -84,44 +83,19 @@ const Icon = {
       />
     </svg>
   ),
-  sun: (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="2.4" stroke="currentColor" strokeWidth="1.3" />
-      <g stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-        <path d="M7 1.5v1.4" /><path d="M7 11.1v1.4" />
-        <path d="M1.5 7h1.4" /><path d="M11.1 7h1.4" />
-        <path d="M3 3l1 1" /><path d="M10 10l1 1" />
-        <path d="M11 3l-1 1" /><path d="M4 10l-1 1" />
-      </g>
-    </svg>
-  ),
-  moon: (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path
-        d="M11.5 8.6A4.6 4.6 0 1 1 5.4 2.5 3.8 3.8 0 0 0 11.5 8.6Z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-        fill="currentColor"
-        fillOpacity="0.12"
-      />
-    </svg>
-  ),
+  // Toothed gear — visually distinct from any "sun"-like radial shape.
   settings: (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
       <path
-        d="M7 1.5v1.6 M7 10.9v1.6 M1.5 7h1.6 M10.9 7h1.6
-           M3 3l1.1 1.1 M9.9 9.9l1.1 1.1
-           M11 3l-1.1 1.1 M4.1 9.9L3 11"
-        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"
+        d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.5 7.5 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.42l-.38 2.65c-.61.25-1.17.58-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.14.24.43.34.68.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65a.5.5 0 0 0 .5.42h4a.5.5 0 0 0 .5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.25.12.54.02.68-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+        stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="currentColor" fillOpacity="0.05"
       />
     </svg>
   ),
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, theme, onToggleTheme, onOpenSettings },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, onOpenSettings },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
@@ -206,18 +180,8 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         />
       </div>
 
-      {/* Theme toggle — sun in light mode, moon in dark mode */}
-      <button
-        type="button"
-        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        title={theme === "dark" ? "Light mode" : "Dark mode"}
-        onClick={onToggleTheme}
-        className={buttonCls(false)}
-      >
-        {theme === "dark" ? Icon.sun : Icon.moon}
-      </button>
-
-      {/* Settings */}
+      {/* Settings — also where theme lives. Removed the duplicate sun/moon
+          toggle from here; one home for appearance is less confusing. */}
       <button
         type="button"
         aria-label="Open settings"

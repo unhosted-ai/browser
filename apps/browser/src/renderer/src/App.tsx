@@ -9,7 +9,6 @@ import {
   LEFT_NAV_WIDTH_FULL,
   LEFT_NAV_WIDTH_RAIL,
 } from "./components/LeftNavSidebar"
-import { useTheme } from "./hooks/useTheme"
 
 const SIDEBAR_WIDTH  = 360
 const SETTINGS_WIDTH = 420
@@ -22,7 +21,6 @@ export function App() {
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(() => {
     try { return localStorage.getItem("delta:leftNavCollapsed") === "1" } catch { return false }
   })
-  const { theme, toggle: toggleTheme } = useTheme()
   const addressBarRef = useRef<AddressBarHandle>(null)
   const leftNavWidth = leftNavCollapsed ? LEFT_NAV_WIDTH_RAIL : LEFT_NAV_WIDTH_FULL
 
@@ -134,8 +132,6 @@ export function App() {
             onReload={() => active && window.api.tabs.reload(active.id)}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen((v) => !v)}
-            theme={theme}
-            onToggleTheme={toggleTheme}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </header>
