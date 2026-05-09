@@ -134,13 +134,17 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
 
   return (
     <div className="relative h-10 flex items-center gap-1 px-3 no-drag">
-      <button type="button" aria-label="Back"    title="Back  ⌘["    disabled={!tab?.canGoBack}    onClick={onBack}    className={buttonCls(!tab?.canGoBack)}>{Icon.back}</button>
-      <button type="button" aria-label="Forward" title="Forward  ⌘]" disabled={!tab?.canGoForward} onClick={onForward} className={buttonCls(!tab?.canGoForward)}>{Icon.forward}</button>
-      <button type="button" aria-label="Reload"  title="Reload  ⌘R"  onClick={onReload}            className={buttonCls(false)}>{Icon.reload}</button>
+      {/* Group A: navigation */}
+      <div className="flex items-center gap-0.5">
+        <button type="button" aria-label="Back"    title="Back  ⌘["    disabled={!tab?.canGoBack}    onClick={onBack}    className={buttonCls(!tab?.canGoBack)}>{Icon.back}</button>
+        <button type="button" aria-label="Forward" title="Forward  ⌘]" disabled={!tab?.canGoForward} onClick={onForward} className={buttonCls(!tab?.canGoForward)}>{Icon.forward}</button>
+        <button type="button" aria-label="Reload"  title="Reload  ⌘R"  onClick={onReload}            className={buttonCls(false)}>{Icon.reload}</button>
+      </div>
 
+      {/* Group B: URL pill (primary surface) */}
       <div
         className={[
-          "flex-1 mx-1 h-8 flex items-center gap-2 px-4 rounded-full",
+          "flex-1 mx-2 h-8 flex items-center gap-2 px-4 rounded-full",
           "bg-chrome-surface border transition-colors duration-150",
           focused ? "border-signal/50" : "border-chrome-border",
         ].join(" ")}
@@ -180,8 +184,13 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         />
       </div>
 
-      {/* Settings — also where theme lives. Removed the duplicate sun/moon
-          toggle from here; one home for appearance is less confusing. */}
+      {/* Hairline divider — visually separates the URL pill (primary
+          surface) from the trailing tools cluster (secondary actions). */}
+      <span aria-hidden className="w-px h-5 bg-chrome-border mx-1 shrink-0" />
+
+      {/* Group C: tools cluster (settings + Assistant). Tight gap so they
+          read as one unit, not two unrelated buttons. */}
+      <div className="flex items-center gap-1">
       <button
         type="button"
         aria-label="Open settings"
@@ -198,7 +207,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         title="Assistant  ⌘J"
         onClick={onToggleSidebar}
         className={[
-          "h-8 px-3 ml-1 rounded-full flex items-center gap-1.5",
+          "h-8 px-3 rounded-full flex items-center gap-1.5",
           "text-[11px] tracking-[0.08em] uppercase font-mono",
           "border transition-colors duration-150",
           sidebarOpen
@@ -211,6 +220,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         </span>
         AI
       </button>
+      </div>{/* /Group C */}
 
       {/* Loading progress bar — anchored at the bottom of the chrome */}
       {tab?.loading && (

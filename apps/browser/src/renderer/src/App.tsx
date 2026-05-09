@@ -55,6 +55,25 @@ export function App() {
     void window.api.layout.setRightReservation(right)
   }, [sidebarOpen, settingsOpen])
 
+  // While Settings is open, poll providers every 4s so newly-started local
+  // LLMs (Ollama, LM Studio, llama.cpp, MLX) appear without the user having
+  // to click Refresh. Mirrors the Sidebar's poll, but on a different surface.
+  useEffect(() => {
+    if (!settingsOpen) return
+    const id = setInterval(() => { void window.api.providers.refresh().then(setProviders) }, 4000)
+    return () => clearInterval(id)
+  }, [settingsOpen])
+
+  // Settings + Assistant sidebar are mutually exclusive — they both anchor
+  // right:0 and would otherwise stack invisibly. Opening one closes the
+  // other. ("Chat didn't open when I clicked AI" was this.)
+  const openSettings = () => { setSidebarOpen(false);  openSettings() }
+  const openAssistant = () => { setSettingsOpen(false); setSidebarOpen(true) }
+  const toggleAssistant = () => {
+    if (sidebarOpen) { setSidebarOpen(false); return }
+    setSettingsOpen(false); setSidebarOpen(true)
+  }
+
   // Reserve the left-nav width in the WebContentsView layout, and persist
   // the collapsed state so it survives reloads.
   useEffect(() => {
@@ -70,8 +89,8 @@ export function App() {
     return window.api.menu.onAction((kind) => {
       switch (kind) {
         case "focusAddressBar":  addressBarRef.current?.selectAll(); break
-        case "openSettings":     setSettingsOpen(true);              break
-        case "toggleAssistant":  setSidebarOpen((v) => !v);          break
+        case "openSettings":     openSettings();                     break
+        case "toggleAssistant":  toggleAssistant();                  break
         case "openFind":         setFindOpen(true);                  break
       }
     })
@@ -102,10 +121,10 @@ export function App() {
         }
       } else if (e.key === "j") {
         e.preventDefault()
-        setSidebarOpen((v) => !v)
+        toggleAssistant()
       } else if (e.key === ",") {
         e.preventDefault()
-        setSettingsOpen(true)
+        openSettings()
       } else if (e.key === "[" && state.activeId) {
         e.preventDefault()
         void window.api.tabs.back(state.activeId)
@@ -128,7 +147,7 @@ export function App() {
         collapsed={leftNavCollapsed}
         onToggleCollapsed={() => setLeftNavCollapsed((v) => !v)}
         onNewTab={() => window.api.tabs.create()}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => openSettings()}
       />
 
       {/* Main column — chrome + content area. Sits to the right of the
@@ -152,8 +171,8 @@ export function App() {
             onForward={() => active && window.api.tabs.forward(active.id)}
             onReload={() => active && window.api.tabs.reload(active.id)}
             sidebarOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen((v) => !v)}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onToggleSidebar={toggleAssistant}
+            onOpenSettings={openSettings}
           />
         </header>
 
@@ -171,7 +190,7 @@ export function App() {
                 onRefresh={refreshProviders}
                 activeUrl={active?.url ?? null}
                 activeTitle={active?.title ?? null}
-                onOpenSettings={() => setSettingsOpen(true)}
+                onOpenSettings={openSettings}
               />
             </aside>
           )}
@@ -185,8 +204,8 @@ export function App() {
           {showOnboarding && (
             <Onboarding
               onClose={dismissOnboarding}
-              onOpenSettings={() => { setSettingsOpen(true); dismissOnboarding() }}
-              onToggleAssistant={() => { setSidebarOpen(true); dismissOnboarding() }}
+              onOpenSettings={() => { openSettings(); dismissOnboarding() }}
+              onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
             />
           )}
         </div>

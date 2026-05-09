@@ -419,7 +419,7 @@ function CustomEndpointsSection({
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] text-chrome-text truncate">{e.label}</p>
-                    <p className="font-mono text-[11px] text-chrome-text-3 truncate">{e.endpoint}</p>
+                    <CopyableUrl url={e.endpoint} />
                   </div>
                   {e.hasApiKey && (
                     <span
@@ -584,5 +584,30 @@ function PrivacyNote() {
         it from disk.
       </p>
     </section>
+  )
+}
+
+// Click to copy. Tiny visual feedback ("copied · …") for ~1.4s, then revert.
+// Used on saved custom-endpoint URLs so the user can yank one back into a
+// terminal or another tool without highlighting + ⌘C.
+function CopyableUrl({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+  const onClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1400)
+    } catch { /* permission denied — silent */ }
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Click to copy"
+      className="block w-full text-left font-mono text-[11px] text-chrome-text-3 hover:text-chrome-text-2 truncate transition-colors"
+    >
+      {copied ? <span className="text-signal">copied · {url}</span> : url}
+    </button>
   )
 }
