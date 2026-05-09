@@ -4,8 +4,10 @@ import type {
   AgentSendInput,
   BrowserApi,
   ProviderInfo,
+  SettingsUpdate,
   TabId,
   TabsState,
+  UserSettings,
 } from "@shared/types"
 
 const api: BrowserApi = {
@@ -38,6 +40,15 @@ const api: BrowserApi = {
       const listener = (_e: Electron.IpcRendererEvent, ev: AgentEvent) => cb(ev)
       ipcRenderer.on("agent:event", listener)
       return () => ipcRenderer.removeListener("agent:event", listener)
+    },
+  },
+  settings: {
+    get:    () => ipcRenderer.invoke("settings:get") as Promise<UserSettings>,
+    update: (u: SettingsUpdate) => ipcRenderer.invoke("settings:update", u) as Promise<UserSettings>,
+    onChange: (cb: (s: UserSettings) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, s: UserSettings) => cb(s)
+      ipcRenderer.on("settings:change", listener)
+      return () => ipcRenderer.removeListener("settings:change", listener)
     },
   },
 }

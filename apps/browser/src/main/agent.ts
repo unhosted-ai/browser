@@ -10,7 +10,8 @@
 // designed to absorb that without rewriting.
 import { randomUUID } from "node:crypto"
 import type { AgentEvent, AgentSendInput } from "@shared/types"
-import { pickDefaultLocalProvider } from "./providers"
+import { pickDefaultProvider } from "./providers"
+import type { SettingsStore } from "./settings"
 
 const SYSTEM_PROMPT = [
   "You are a helpful assistant integrated into a privacy-respecting web browser.",
@@ -28,6 +29,7 @@ export type AgentDeps = {
   // Optional — when present, we attach the active tab's rendered text to the
   // user message. Returns null if no active tab.
   readActivePage: () => Promise<{ title: string; url: string; text: string } | null>
+  settings: SettingsStore
 }
 
 type Turn = { role: "user" | "assistant" | "system"; content: string }
@@ -53,13 +55,21 @@ export class Agent {
     // Cancel any in-flight task before starting a new one.
     this.cancel()
 
-    const provider = await pickDefaultLocalProvider()
+    const provider = await pickDefaultProvider(this.deps.settings)
     if (!provider) {
+      const s = this.deps.settings.get()
+      const cloudHint =
+        s.openaiHasKey && !s.openaiEnabled
+          ? " (You have an OpenAI key configured but cloud is disabled — enable it in Settings.)"
+          : ""
       this.deps.emit({
         type: "task_error",
         taskId,
         assistantId,
-        error: "No local provider online. Start Ollama (or LM Studio / llama.cpp / MLX) and refresh.",
+        error:
+          "No provider online. Start a local LLM (Ollama / LM Studio / llama.cpp / MLX), " +
+          "or configure a cloud / custom endpoint in Settings." +
+          cloudHint,
       })
       return { taskId, assistantId }
     }
@@ -101,7 +111,7 @@ export class Agent {
   private async runStream(opts: {
     taskId: string
     assistantId: string
-    provider: { endpoint: string; model: string }
+    provider: { endpoint: string; model: string; apiKey?: string }
   }): Promise<void> {
     const { taskId, assistantId, provider } = opts
     const abort = new AbortController()
@@ -122,9 +132,11 @@ export class Agent {
 
     try {
       const timeout = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS)
+      const headers: Record<string, string> = { "content-type": "application/json" }
+      if (provider.apiKey) headers["authorization"] = `Bearer ${provider.apiKey}`
       const res = await fetch(`${provider.endpoint}/v1/chat/completions`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify(body),
         signal: abort.signal,
       })

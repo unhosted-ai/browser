@@ -13,6 +13,7 @@ type Props = {
   onToggleSidebar: () => void
   theme: "dark" | "light"
   onToggleTheme: () => void
+  onOpenSettings: () => void
 }
 
 export type AddressBarHandle = {
@@ -106,10 +107,21 @@ const Icon = {
       />
     </svg>
   ),
+  settings: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M7 1.5v1.6 M7 10.9v1.6 M1.5 7h1.6 M10.9 7h1.6
+           M3 3l1.1 1.1 M9.9 9.9l1.1 1.1
+           M11 3l-1.1 1.1 M4.1 9.9L3 11"
+        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"
+      />
+    </svg>
+  ),
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, theme, onToggleTheme },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, theme, onToggleTheme, onOpenSettings },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
@@ -203,6 +215,17 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         className={buttonCls(false)}
       >
         {theme === "dark" ? Icon.sun : Icon.moon}
+      </button>
+
+      {/* Settings */}
+      <button
+        type="button"
+        aria-label="Open settings"
+        title="Settings"
+        onClick={onOpenSettings}
+        className={buttonCls(false)}
+      >
+        {Icon.settings}
       </button>
 
       <button

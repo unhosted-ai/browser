@@ -3,6 +3,7 @@ import type { ProviderInfo, TabsState } from "@shared/types"
 import { TabStrip } from "./components/TabStrip"
 import { AddressBar } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
+import { SettingsPanel } from "./components/SettingsPanel"
 import { useTheme } from "./hooks/useTheme"
 
 const SIDEBAR_WIDTH = 360
@@ -10,6 +11,7 @@ const SIDEBAR_WIDTH = 360
 export function App() {
   const [state, setState] = useState<TabsState>({ tabs: [], activeId: null })
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
   const { theme, toggle: toggleTheme } = useTheme()
 
@@ -17,7 +19,12 @@ export function App() {
     void window.api.tabs.list().then(setState)
     const off = window.api.tabs.onUpdate(setState)
     void window.api.providers.list().then(setProviders)
-    return off
+    // Re-probe providers whenever settings change — a new key or endpoint
+    // can flip a provider from offline → online.
+    const offSettings = window.api.settings.onChange(() => {
+      void window.api.providers.refresh().then(setProviders)
+    })
+    return () => { off(); offSettings() }
   }, [])
 
   useEffect(() => {
@@ -51,6 +58,7 @@ export function App() {
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
           theme={theme}
           onToggleTheme={toggleTheme}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       </header>
 
@@ -71,6 +79,7 @@ export function App() {
             />
           </aside>
         )}
+        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </div>
   )

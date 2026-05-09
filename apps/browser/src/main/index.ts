@@ -3,8 +3,9 @@ import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
 import { Agent } from "./agent"
+import { SettingsStore } from "./settings"
 import { registerNewtabProtocol } from "./newtab"
-import type { AgentSendInput, TabId } from "@shared/types"
+import type { AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
 
@@ -22,6 +23,7 @@ protocol.registerSchemesAsPrivileged([
 let mainWindow: BrowserWindow | null = null
 let tabs: TabManager | null = null
 let agent: Agent | null = null
+let settings: SettingsStore | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -51,10 +53,15 @@ function createWindow(): void {
   }
 
   tabs = new TabManager(mainWindow)
+  settings = new SettingsStore()
   agent = new Agent({
     emit: (event) => mainWindow?.webContents.send("agent:event", event),
     readActivePage: () => tabs!.readActivePage(),
+    settings,
   })
+  // Push settings changes to the renderer so the panel + provider list
+  // stay in sync without polling.
+  settings.onChange((s) => mainWindow?.webContents.send("settings:change", s))
   registerIpc()
 
   // Open one tab on first paint — defaults to delta://newtab.
@@ -78,8 +85,11 @@ function registerIpc(): void {
 
   ipcMain.handle("layout:setSidebarOpen", (_e, open: boolean) => t.setSidebarOpen(open))
 
-  ipcMain.handle("providers:list",    () => listProviders())
-  ipcMain.handle("providers:refresh", () => listProviders())
+  ipcMain.handle("providers:list",    () => listProviders(settings ?? undefined))
+  ipcMain.handle("providers:refresh", () => listProviders(settings ?? undefined))
+
+  ipcMain.handle("settings:get",    () => settings?.get())
+  ipcMain.handle("settings:update", (_e, update: SettingsUpdate) => settings?.apply(update))
 
   // Agent (Phase 1: chat). Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
