@@ -30,6 +30,7 @@
     <span class="brand-word">Delta</span>
   </a>
   <nav class="nav-links">
+    <a href="#why">Why Delta?</a>
     <a href="#features">Features</a>
     <a href="#install">Install</a>
     <a href="#architecture">Architecture</a>
@@ -62,6 +63,83 @@
     <li><span class="dot"></span> Phase 3 — act-tools (gated)</li>
     <li><span class="dot"></span> Phase 4 — address-bar AI</li>
   </ul>
+</section>
+
+<!-- ── Why Delta — naming + thesis + open-source rationale ──── -->
+<section class="band" id="why">
+  <div class="band-head">
+    <p class="kicker">About</p>
+    <h2>Why <em>Delta&nbsp;Practice?</em></h2>
+  </div>
+
+  <div class="prose">
+    <h3 class="prose-h">The name</h3>
+    <p>
+      <strong>Δ</strong> is the Greek letter for <em>change</em> — and the
+      shape a river makes where it meets the sea. The agent in this browser
+      exists to manage the delta between what you already know and what's
+      on the page in front of you. Delta is also where things land: in a
+      privacy-respecting browser, your activity is the river, the open web
+      is the sea, and the delta is where attention <em>stays</em> — not
+      where it gets carried out by trackers.
+    </p>
+    <p>
+      <strong>Practice</strong> is the second word, and the deliberate one.
+      Software in practice, not in theory. A discipline of getting the
+      mundane things right — the keyboard shortcuts, the address bar, the
+      way windows manage focus — because an AI browser that treats those
+      as incidental ends up being a chat panel with tabs. And practice as
+      in: <em>we're still figuring it out.</em> The repo is public on day
+      one because the practice happens in the open.
+    </p>
+
+    <h3 class="prose-h">The thesis</h3>
+    <p class="thesis">
+      The next browser is not a Chrome with a chat button. It's a browser
+      that runs the model on your machine, reads pages with permission,
+      acts on your behalf with consent, and forgets when you tell it to.
+    </p>
+    <p>
+      Each clause is load-bearing. Local LLM by default — every other AI
+      browser ships your queries (and often the page) to a cloud. Permission
+      lives in the runtime, not the prompt — a malicious page can't
+      hijack the agent because the gate fires <em>between</em> the model's
+      tool-call and the actual handler. Conversations persist on your disk;
+      delete a thread and it's gone. There is no remote conversation log
+      because there is no remote.
+    </p>
+
+    <h3 class="prose-h">Open source — and why</h3>
+    <p>
+      The repo is public from day one. Three reasons:
+    </p>
+    <ol class="prose-list">
+      <li>
+        <strong>Privacy claims need verification.</strong> "Local-first,
+        no telemetry, keys in the OS keychain" is a line on a landing
+        page until someone can read the code. Closing the source on a
+        privacy-first browser is a contradiction.
+      </li>
+      <li>
+        <strong>Architecture is the moat, not the binary.</strong> The
+        thoughtful parts of this project are the design docs and the
+        discipline of staying true to them — not any clever trick. A team
+        that wants to copy us would spend more time understanding the
+        design than the code.
+      </li>
+      <li>
+        <strong>Contributors over velocity.</strong> A solo project moves
+        fast for two weeks and stops. A small community moves slower per
+        week and doesn't stop. The repo is structured to be readable —
+        you should be productive in a day.
+      </li>
+    </ol>
+    <p class="prose-cta">
+      The full version, including what we're explicitly <em>not</em>
+      building and the constraints we accept, lives in
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">apps/browser/docs/about.md</a>.
+    </p>
+  </div>
 </section>
 
 <!-- ── Install / quickstart ───────────────────────────── -->

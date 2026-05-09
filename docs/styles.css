@@ -161,6 +161,53 @@ em { font-family: "Instrument Serif", ui-serif, Georgia, serif; font-style: ital
 }
 .band-head h2 em { color: var(--signal); }
 
+/* About / Why Delta — long-form prose, single column. */
+.prose {
+  max-width: 68ch;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--fg-2);
+}
+.prose strong { color: var(--fg); font-weight: 500; }
+.prose-h {
+  font-family: "Geist", inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--fg);
+  margin: 1.8rem 0 0.6rem;
+}
+.prose-h:first-child { margin-top: 0; }
+.prose p { margin: 0 0 1rem; text-wrap: pretty; }
+.thesis {
+  font-family: "Instrument Serif", ui-serif, Georgia, serif;
+  font-style: italic;
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.4;
+  color: var(--fg);
+  border-left: 2px solid var(--signal);
+  padding: 0.4rem 0 0.4rem 1.2rem;
+  margin: 0.5rem 0 1.2rem;
+}
+.prose-list {
+  margin: 0.5rem 0 1.2rem;
+  padding-left: 1.4rem;
+}
+.prose-list li { margin-bottom: 0.5rem; }
+.prose-cta {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--fg-3);
+}
+.prose-cta a {
+  color: var(--signal);
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px;
+}
+.prose-cta a:hover { color: var(--signal-2); }
+
 /* Quickstart */
 .install .band-head { max-width: 70ch; }
 .codeblock {

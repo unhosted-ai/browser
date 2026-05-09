@@ -7,6 +7,7 @@
 _Local LLM by default. The agent reads and acts on the active page. Nothing leaves your machine._
 
 [Website](https://delta-practice.github.io/Browser/) ·
+[About](apps/browser/docs/about.md) ·
 [Agent design](apps/browser/docs/agent-design.md) ·
 [Identity model](apps/browser/docs/identity.md) ·
 [Brand](brand/guidelines.md)
@@ -23,6 +24,15 @@ Electron `safeStorage`, and the renderer never sees them.
 
 There is no Delta account. There is no Delta server. The device is the
 identity.
+
+> **Why "Delta Practice"?** Δ is the Greek letter for *change* — and the
+> shape a river makes where it meets the sea. The agent in this browser
+> exists to manage the delta between what you already know and what's on
+> the page. *Practice* is the discipline of getting the mundane things
+> right (the keyboard shortcuts, the address bar, the way windows manage
+> focus) plus the honest read that we're still figuring it out — which is
+> why the repo is public from day one. Full reasoning in
+> [`apps/browser/docs/about.md`](apps/browser/docs/about.md).
 
 ## Quickstart
 
