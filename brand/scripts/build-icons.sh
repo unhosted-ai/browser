@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Render brand/icon.svg → apps/browser/build/{icon.icns, icon.png}.
-# Uses macOS built-ins only (qlmanage, sips, iconutil) — no npm/brew deps.
+#
+# Prefers rsvg-convert (librsvg) when available — it respects SVG alpha so
+# the squircle's outside corners stay transparent. Falls back to qlmanage
+# only when rsvg-convert isn't installed (qlmanage fills transparent areas
+# with white, which produces visible white edges in the dock).
+#
 # Idempotent: rerun any time icon.svg changes.
 
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "This script uses macOS-only tools (qlmanage, sips, iconutil)." >&2
-  echo "Run it on a Mac, or substitute rsvg-convert/imagemagick to port." >&2
+  echo "This script uses macOS-only tools (sips, iconutil)." >&2
+  echo "Substitute imagemagick / inkscape to port to Linux." >&2
   exit 1
 fi
 
@@ -21,12 +26,20 @@ trap 'rm -rf "$work"' EXIT
 
 iconset="$work/delta.iconset"
 mkdir -p "$iconset"
+master="$work/master-1024.png"
 
 # 1. Master 1024px raster from the SVG.
-qlmanage -t -s 1024 -o "$work" "$src" >/dev/null 2>&1
-master="$work/icon.svg.png"
+if command -v rsvg-convert >/dev/null 2>&1; then
+  echo "→ rasterising via rsvg-convert (alpha-preserving)…"
+  rsvg-convert -w 1024 -h 1024 -o "$master" "$src"
+else
+  echo "⚠ rsvg-convert not found; falling back to qlmanage (will produce white corners — install via 'brew install librsvg')"
+  qlmanage -t -s 1024 -o "$work" "$src" >/dev/null 2>&1
+  mv "$work/icon.svg.png" "$master"
+fi
+
 if [[ ! -f "$master" ]]; then
-  echo "qlmanage did not produce a thumbnail for $src" >&2
+  echo "rasterisation failed; no master PNG produced" >&2
   exit 1
 fi
 
@@ -45,8 +58,7 @@ sips -z   16   16 "$master" --out "$iconset/icon_16x16.png"      >/dev/null
 # 3. Pack into .icns.
 iconutil -c icns "$iconset" -o "$out_dir/icon.icns"
 
-# 4. Save the master 1024 PNG (used by app.dock.setIcon during dev, by
-#    electron-builder for win/linux icon, and by the README/og image).
+# 4. Save the master 1024 PNG.
 cp "$master" "$out_dir/icon.png"
 
 echo "wrote: $out_dir/icon.icns ($(du -h "$out_dir/icon.icns" | cut -f1))"

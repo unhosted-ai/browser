@@ -1,82 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Delta — application icon. 1024×1024 master.
+
+  Apple HIG (macOS Big Sur+) calls for ~100pt of breathing room around the
+  artwork inside the squircle. The Δ here lives inside an 824×824 safe area,
+  centred in the 1024 canvas, leaving 100 of margin on every side.
+
+  No SVG filters — only paths, rects, and gradients — so every iconset size
+  from 16 up rasterises edge-clean. Transparency outside the squircle is
+  preserved (relies on a renderer that respects SVG alpha; rsvg-convert
+  does, qlmanage does NOT — see brand/scripts/build-icons.sh).
+-->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <title>Delta — application icon</title>
-  <desc>Δ on a dark squircle. 1024×1024 master. No filters — clean rasterization at every size from 16 up.</desc>
 
   <defs>
-    <!-- Squircle canvas: rich vertical gradient, slightly cooler at the top
-         to suggest light from above. No fancy effects so the rasterization
-         stays crisp at 16px / 32px. -->
+    <!-- Squircle canvas: rich vertical gradient. -->
     <linearGradient id="canvas" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0"   stop-color="hsl(225 12% 16%)"/>
-      <stop offset="0.65" stop-color="hsl(230 10% 9%)"/>
-      <stop offset="1"   stop-color="hsl(230 12% 5%)"/>
+      <stop offset="0"    stop-color="hsl(225 14% 17%)"/>
+      <stop offset="0.65" stop-color="hsl(230 11% 9%)"/>
+      <stop offset="1"    stop-color="hsl(232 13% 5%)"/>
     </linearGradient>
 
-    <!-- Δ gradient: brighter mint at the apex, deeper at the base. Three
-         stops give a clean shaded look without banding. -->
+    <!-- Δ gradient: brighter mint at apex, deeper at base. -->
     <linearGradient id="delta" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0"   stop-color="hsl(132 70% 78%)"/>
+      <stop offset="0"    stop-color="hsl(132 70% 78%)"/>
       <stop offset="0.55" stop-color="hsl(135 55% 64%)"/>
-      <stop offset="1"   stop-color="hsl(140 55% 48%)"/>
+      <stop offset="1"    stop-color="hsl(140 55% 48%)"/>
     </linearGradient>
 
-    <!-- Inner top-of-squircle highlight — gives the canvas a subtle
-         glassy edge without a separate stroke. -->
+    <!-- Top-of-squircle highlight, gives a glassy edge. -->
     <linearGradient id="rim" x1="0.5" y1="0" x2="0.5" y2="0.18">
       <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.06"/>
       <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
     </linearGradient>
 
-    <!-- Light source on the Δ — a faint white wash on the upper half so
-         the triangle reads as lit from above, matching the canvas. -->
+    <!-- Faint white wash on the upper half of the Δ — read as lit from above. -->
     <linearGradient id="lit" x1="0.5" y1="0" x2="0.5" y2="0.55">
-      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.18"/>
+      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.16"/>
       <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
     </linearGradient>
-  </defs>
 
-  <!-- ─── Squircle canvas ─────────────────────────────────
-       rx=232 lands close enough to Apple's continuous-corner squircle to
-       be visually indistinguishable at 1024 and below. -->
-  <rect width="1024" height="1024" rx="232" ry="232" fill="url(#canvas)"/>
-  <rect width="1024" height="1024" rx="232" ry="232" fill="url(#rim)"/>
-
-  <!-- ─── Cast shadow under the Δ ─────────────────────────
-       A flattened ellipse with a single gradient fades to nothing at the
-       edges — same cue as a drop-shadow filter, but no feGaussianBlur
-       (blur filters get crunchy when downsampled to the small icon sizes). -->
-  <defs>
+    <!-- Soft cast shadow under the Δ. -->
     <radialGradient id="cast" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0"   stop-color="hsl(140 60% 30%)" stop-opacity="0.55"/>
-      <stop offset="0.6" stop-color="hsl(140 60% 30%)" stop-opacity="0.18"/>
-      <stop offset="1"   stop-color="hsl(140 60% 30%)" stop-opacity="0"/>
+      <stop offset="0"   stop-color="hsl(140 60% 25%)" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="hsl(140 60% 25%)" stop-opacity="0.18"/>
+      <stop offset="1"   stop-color="hsl(140 60% 25%)" stop-opacity="0"/>
     </radialGradient>
+
+    <!-- Clip everything to the squircle. Stops anti-aliased rendering from
+         leaking 1-pixel artefacts past the rounded corners. -->
+    <clipPath id="squircle-clip">
+      <rect width="1024" height="1024" rx="232" ry="232"/>
+    </clipPath>
   </defs>
-  <ellipse cx="512" cy="836" rx="290" ry="22" fill="url(#cast)"/>
 
-  <!-- ─── The Δ ────────────────────────────────────────────
-       Bigger and bolder than v1 — fills ~73% of the canvas width and is
-       optically centered (geometric centroid sits a hair above the canvas
-       midline so an upward triangle reads as balanced).
+  <!-- All visible artwork lives inside the squircle clip. Anything outside
+       this group renders as fully transparent, no matter what the
+       rasteriser is doing with the SVG bounds. -->
+  <g clip-path="url(#squircle-clip)">
+    <!-- Squircle canvas. -->
+    <rect width="1024" height="1024" fill="url(#canvas)"/>
+    <rect width="1024" height="1024" fill="url(#rim)"/>
 
-       NO stroke: a stroke + similar-coloured fill produces a visible
-       double-edge after antialiased downsampling. One filled path only. -->
-  <path
-    d="M 512 168
-       L 880 800
-       L 144 800 Z"
-    fill="url(#delta)"
-    stroke-linejoin="round"
-  />
+    <!-- Cast shadow, sits below the Δ on the canvas. -->
+    <ellipse cx="512" cy="754" rx="232" ry="18" fill="url(#cast)"/>
 
-  <!-- Light overlay across the top of the Δ. Same shape, slightly
-       inset, with a soft highlight on the upper portion only. -->
-  <path
-    d="M 512 188
-       L 858 788
-       L 166 788 Z"
-    fill="url(#lit)"
-    stroke-linejoin="round"
-  />
+    <!--
+      Δ sized to the HIG safe area:
+      apex (512, 232), base from (220, 712) to (804, 712).
+      Width 584, height 480, well inside 824×824 with the centroid
+      adjusted up so the upward triangle reads as optically balanced.
+    -->
+    <path
+      d="M 512 232
+         L 804 712
+         L 220 712 Z"
+      fill="url(#delta)"
+      stroke-linejoin="round"
+    />
+
+    <!-- Soft directional highlight, slightly inset. -->
+    <path
+      d="M 512 252
+         L 786 700
+         L 238 700 Z"
+      fill="url(#lit)"
+      stroke-linejoin="round"
+    />
+  </g>
 </svg>
