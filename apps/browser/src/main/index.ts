@@ -8,7 +8,13 @@ import { ConversationStore } from "./conversations"
 import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
 import { PrivacyStore, TrackerBlocker } from "./privacy"
-import type { AgentMessage, AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
+import { BookmarkStore } from "./bookmarks"
+import { isReaderActive, toggleReader } from "./reader"
+import { isSpeaking, startSpeaking, stopSpeaking } from "./tts"
+import { HistoryStore } from "./history"
+import { DownloadsManager } from "./downloads"
+import { clearBrowsingData } from "./browsing-data"
+import type { AgentMessage, AgentSendInput, ClearScope, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
 
@@ -29,6 +35,10 @@ let agent: Agent | null = null
 let settings: SettingsStore | null = null
 let conversations: ConversationStore | null = null
 let privacy: PrivacyStore | null = null
+let blocker: TrackerBlocker | null = null
+let bookmarks: BookmarkStore | null = null
+let history: HistoryStore | null = null
+let downloads: DownloadsManager | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -118,6 +128,56 @@ function registerIpc(): void {
   ipcMain.handle("privacy:getReport", () => privacy?.getReport())
   ipcMain.handle("privacy:reset",     () => { privacy?.reset() })
 
+  // Bookmarks — local-only, no sync.
+  ipcMain.handle("bookmarks:list",   () => bookmarks?.list() ?? [])
+  ipcMain.handle("bookmarks:add",    (_e, url: string, title: string) => bookmarks?.add(url, title))
+  ipcMain.handle("bookmarks:remove", (_e, url: string) => bookmarks?.remove(url) ?? false)
+  ipcMain.handle("bookmarks:has",    (_e, url: string) => bookmarks?.has(url) ?? false)
+
+  // Reader mode — Mozilla Readability injected into the active tab.
+  ipcMain.handle("reader:toggle", async (_e, id: TabId) => {
+    const view = t.getView(id)
+    if (!view) return false
+    return toggleReader(view)
+  })
+  ipcMain.handle("reader:isActive", (_e, id: TabId) => {
+    const view = t.getView(id)
+    return view ? isReaderActive(view) : false
+  })
+
+  // Listen / TTS — Web Speech API on the page.
+  ipcMain.handle("tts:start", async (_e, id: TabId) => {
+    const view = t.getView(id)
+    if (!view) return false
+    return startSpeaking(view)
+  })
+  ipcMain.handle("tts:stop", async (_e, id: TabId) => {
+    const view = t.getView(id)
+    if (view) await stopSpeaking(view)
+  })
+  ipcMain.handle("tts:isSpeaking", (_e, id: TabId) => {
+    const view = t.getView(id)
+    return view ? isSpeaking(view) : false
+  })
+
+  // History
+  ipcMain.handle("history:list",      (_e, query?: string, limit?: number) => history?.list({ query, limit }) ?? [])
+  ipcMain.handle("history:removeOne", (_e, id: string) => { history?.removeOne(id) })
+  ipcMain.handle("history:clear",     () => { history?.clear() })
+
+  // Downloads
+  ipcMain.handle("downloads:list",      () => downloads?.list() ?? [])
+  ipcMain.handle("downloads:cancel",    (_e, id: string) => { downloads?.cancel(id) })
+  ipcMain.handle("downloads:pause",     (_e, id: string) => { downloads?.pause(id) })
+  ipcMain.handle("downloads:resume",    (_e, id: string) => { downloads?.resume(id) })
+  ipcMain.handle("downloads:removeOne", (_e, id: string) => { downloads?.removeOne(id) })
+  ipcMain.handle("downloads:clear",     () => { downloads?.clear() })
+
+  // Clear browsing data (cookies / cache / history / downloads).
+  ipcMain.handle("data:clear", async (_e, scope: ClearScope) => {
+    await clearBrowsingData(scope, { history, downloads })
+  })
+
   // Agent (Phase 1: chat + Phase 2: read tools + Phase 3: act tools).
   // Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
@@ -147,15 +207,28 @@ app.whenReady().then(() => {
   // WebContentsView is already filtered. The newtab protocol handler
   // reads `privacy.getReport()` to render the inline stat card.
   privacy = new PrivacyStore()
-  new TrackerBlocker(privacy)
+  blocker = new TrackerBlocker(privacy)
+  bookmarks = new BookmarkStore()
+  history = new HistoryStore()
+  downloads = new DownloadsManager()
   registerNewtabProtocol(() => privacy?.getReport() ?? null)
   createWindow()
+  // Per-tab counters: every block tells the active TabManager which tab
+  // owned the request, so the address-bar shield can show "N blocked here".
+  blocker.onBlock((webContentsId) => tabs?.recordTrackerBlock(webContentsId))
+  // Plumb the history store into TabManager so navigations are recorded.
+  if (tabs && history) tabs.setHistoryStore(history)
+  // Push downloads list updates to the renderer so the tray + menu list
+  // reflect live progress without polling.
+  downloads.onChange((entries) => mainWindow?.webContents.send("downloads:update", entries))
 })
 
-// Flush stats on quit so today's counts survive across sessions. The 5s
-// timer covers steady-state writes; this catches the last few seconds.
+// Flush all rolling stores on quit so the last few seconds of writes
+// survive. The per-store timers cover steady-state.
 app.on("before-quit", () => {
   privacy?.flushNow()
+  history?.flushNow()
+  downloads?.flushNow()
 })
 
 app.on("window-all-closed", () => {

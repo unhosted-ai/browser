@@ -11,6 +11,8 @@ export type Tab = {
   loading: boolean
   canGoBack: boolean
   canGoForward: boolean
+  /** Trackers blocked since the last top-level navigation on this tab. */
+  trackersBlocked: number
 }
 
 export type TabsState = {
@@ -187,6 +189,45 @@ export type AgentSendInput = {
   attachActivePage?: boolean
 }
 
+// ── Bookmarks (local file, no sync) ───────────────────────────
+export type Bookmark = {
+  id: string
+  url: string
+  title: string
+  addedAt: number
+}
+
+// ── History (local file, capped FIFO) ─────────────────────────
+export type HistoryEntry = {
+  id: string
+  url: string
+  title: string
+  visitedAt: number
+}
+
+// ── Downloads ─────────────────────────────────────────────────
+export type DownloadState = "in-progress" | "paused" | "completed" | "cancelled" | "interrupted"
+export type DownloadEntry = {
+  id: string
+  filename: string
+  url: string
+  savePath: string
+  totalBytes: number
+  receivedBytes: number
+  state: DownloadState
+  startedAt: number
+  completedAt?: number
+  mimeType?: string
+}
+
+// ── Clear browsing data ───────────────────────────────────────
+export type ClearScope = {
+  cookies?: boolean
+  cache?: boolean
+  history?: boolean
+  downloads?: boolean
+}
+
 // ── Privacy report (last 30 days, in-memory aggregate) ─────────
 export type PrivacyReport = {
   totalBlocked: number
@@ -259,6 +300,43 @@ export type BrowserApi = {
     getReport: () => Promise<PrivacyReport>
     /** Wipe stored stats. Does not affect blocking — that runs from a static list. */
     reset: () => Promise<void>
+  }
+  bookmarks: {
+    list:   () => Promise<Bookmark[]>
+    add:    (url: string, title: string) => Promise<Bookmark>
+    remove: (url: string) => Promise<boolean>
+    has:    (url: string) => Promise<boolean>
+  }
+  reader: {
+    /** Toggle on the active tab. Returns the new state. */
+    toggle: (tabId: TabId) => Promise<boolean>
+    /** Whether the given tab currently has reader mode applied. */
+    isActive: (tabId: TabId) => Promise<boolean>
+  }
+  tts: {
+    /** Begin reading the visible text. Returns true on success. */
+    start:  (tabId: TabId) => Promise<boolean>
+    /** Cancel any in-flight utterances. */
+    stop:   (tabId: TabId) => Promise<void>
+    /** Whether the given tab is currently speaking. */
+    isSpeaking: (tabId: TabId) => Promise<boolean>
+  }
+  history: {
+    list:      (query?: string, limit?: number) => Promise<HistoryEntry[]>
+    removeOne: (id: string) => Promise<void>
+    clear:     () => Promise<void>
+  }
+  downloads: {
+    list:      () => Promise<DownloadEntry[]>
+    cancel:    (id: string) => Promise<void>
+    pause:     (id: string) => Promise<void>
+    resume:    (id: string) => Promise<void>
+    removeOne: (id: string) => Promise<void>
+    clear:     () => Promise<void>
+    onChange:  (cb: (entries: DownloadEntry[]) => void) => () => void
+  }
+  data: {
+    clear: (scope: ClearScope) => Promise<void>
   }
 }
 

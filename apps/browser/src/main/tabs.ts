@@ -1,6 +1,9 @@
 import { BrowserWindow, WebContentsView } from "electron"
 import { randomUUID } from "node:crypto"
 import type { Tab, TabId, TabsState } from "@shared/types"
+import { clearReaderState } from "./reader"
+import { clearSpeakingState } from "./tts"
+import type { HistoryStore } from "./history"
 
 // Layout constants — kept in sync with renderer chrome.
 const CHROME_TOP = 80          // tab strip + address bar height
@@ -13,6 +16,8 @@ type Entry = {
   loading: boolean
   canGoBack: boolean
   canGoForward: boolean
+  /** Reset to 0 on each top-level navigation; bumped by TrackerBlocker. */
+  trackersBlocked: number
 }
 
 export class TabManager {
@@ -27,10 +32,17 @@ export class TabManager {
   // ring is plenty for muscle-memory undo.
   private closedStack: Array<{ url: string; title: string }> = []
   private static CLOSED_STACK_MAX = 16
+  /** Optional history store — set after construction (history is built in
+   *  app.whenReady alongside the other stores). */
+  private history: HistoryStore | null = null
 
   constructor(win: BrowserWindow) {
     this.win = win
     win.on("resize", () => this.relayoutActive())
+  }
+
+  setHistoryStore(h: HistoryStore): void {
+    this.history = h
   }
 
   // ── Public API ──────────────────────────────────
@@ -76,12 +88,16 @@ export class TabManager {
       loading: true,
       canGoBack: false,
       canGoForward: false,
+      trackersBlocked: 0,
     }
     this.entries.set(id, entry)
 
     const wc = view.webContents
     wc.on("page-title-updated", (_e, title) => {
       entry.title = title
+      // Patch the most recent history entry — page titles often arrive
+      // after did-navigate (slow render).
+      this.history?.updateTitle(entry.url, title)
       this.emit()
     })
     wc.on("did-start-loading", () => {
@@ -97,6 +113,15 @@ export class TabManager {
     })
     wc.on("did-navigate", (_e, navUrl) => {
       entry.url = navUrl
+      // Top-level nav resets the per-tab tracker counter — Comet/Brave
+      // pattern: shield shows what was blocked on *this page*, not lifetime.
+      entry.trackersBlocked = 0
+      // A fresh page has fresh reader/TTS state. Drop any prior tracking
+      // so the address-bar buttons return to their default look.
+      clearReaderState(wc.id)
+      clearSpeakingState(wc.id)
+      // Record the visit for the history list.
+      this.history?.record(navUrl, entry.title)
       this.emit()
     })
     wc.on("did-navigate-in-page", (_e, navUrl) => {
@@ -286,7 +311,40 @@ export class TabManager {
     loading: e.loading,
     canGoBack: e.canGoBack,
     canGoForward: e.canGoForward,
+    trackersBlocked: e.trackersBlocked,
   })
+
+  /**
+   * Called by TrackerBlocker when a sub-resource is cancelled. We look up
+   * the entry by webContents id (cheap; small map) and bump the counter.
+   * Silent no-op if the request didn't originate in any of our tabs.
+   */
+  recordTrackerBlock(webContentsId: number): void {
+    for (const entry of this.entries.values()) {
+      if (entry.view.webContents.id === webContentsId) {
+        entry.trackersBlocked += 1
+        this.emit()
+        return
+      }
+    }
+  }
+
+  /** Used by reader / TTS / bookmark IPC handlers to find the underlying view. */
+  getView(id: TabId): WebContentsView | null {
+    return this.entries.get(id)?.view ?? null
+  }
+
+  /** Used by bookmark logic — best-effort current title for save. */
+  getActiveTitle(): string {
+    const entry = this.activeId ? this.entries.get(this.activeId) : null
+    return entry?.title ?? ""
+  }
+
+  /** Used by bookmark logic — current URL for the active tab. */
+  getActiveUrl(): string {
+    const entry = this.activeId ? this.entries.get(this.activeId) : null
+    return entry?.url ?? ""
+  }
 
   private emit(): void {
     const state = this.getState()

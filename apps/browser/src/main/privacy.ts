@@ -277,10 +277,20 @@ export class PrivacyStore {
 // TrackerBlocker — webRequest hook over the default session.
 // One per app; safe to construct after `app.ready`.
 // ──────────────────────────────────────────────────────────
+export type BlockListener = (webContentsId: number, tracker: string) => void
+
 export class TrackerBlocker {
+  private listeners = new Set<BlockListener>()
+
   constructor(private store: PrivacyStore, private sess: Session = session.defaultSession) {
     this.bind()
     this.store.blockingEnabled = true
+  }
+
+  /** Subscribe to per-block events. Used by TabManager for per-tab counters. */
+  onBlock(cb: BlockListener): () => void {
+    this.listeners.add(cb)
+    return () => this.listeners.delete(cb)
   }
 
   private bind(): void {
@@ -306,6 +316,9 @@ export class TrackerBlocker {
 
         const topOrigin = pickTopOrigin(details)
         this.store.recordBlock(tracker, topOrigin)
+        if (typeof details.webContentsId === "number") {
+          for (const cb of this.listeners) cb(details.webContentsId, tracker)
+        }
         return callback({ cancel: true })
       } catch {
         return callback({ cancel: false })

@@ -5,6 +5,7 @@ import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { FindBar } from "./components/FindBar"
+import { ChromeMenu } from "./components/ChromeMenu"
 import { Onboarding, useOnboardingState } from "./components/Onboarding"
 import {
   LeftNavSidebar,
@@ -21,6 +22,7 @@ export function App() {
   const [sidebarHistoryOpen, setSidebarHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(() => {
     try { return localStorage.getItem("delta:leftNavCollapsed") === "1" } catch { return false }
@@ -70,6 +72,16 @@ export function App() {
   // other. ("Chat didn't open when I clicked AI" was this.)
   const openSettings = () => { setSidebarOpen(false);  setSettingsOpen(true) }
   const openAssistant = () => { setSettingsOpen(false); setSidebarOpen(true) }
+  // Same path as openSettings, plus a deferred scroll to the Privacy
+  // section. Used by the address-bar shield and the newtab chip.
+  const openPrivacySettings = () => {
+    openSettings()
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("privacy-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      })
+    })
+  }
   const openHistory = () => {
     setSettingsOpen(false)
     setSidebarOpen(true)
@@ -102,17 +114,7 @@ export function App() {
       switch (kind) {
         case "focusAddressBar":  addressBarRef.current?.selectAll(); break
         case "openSettings":     openSettings();                     break
-        case "openPrivacySettings":
-          openSettings()
-          // Wait one tick for the panel to mount, then scroll the section
-          // into view. The element gets `scroll-mt-4` so it doesn't kiss
-          // the panel header.
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              document.getElementById("privacy-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
-            })
-          })
-          break
+        case "openPrivacySettings": openPrivacySettings();          break
         case "toggleAssistant":  toggleAssistant();                  break
         case "openFind":         setFindOpen(true);                  break
       }
@@ -198,6 +200,9 @@ export function App() {
             onToggleSidebar={toggleAssistant}
             settingsOpen={settingsOpen}
             onOpenSettings={toggleSettings}
+            onOpenPrivacy={openPrivacySettings}
+            menuOpen={menuOpen}
+            onToggleMenu={() => setMenuOpen((v) => !v)}
           />
         </header>
 
@@ -230,6 +235,15 @@ export function App() {
           <FindBar open={findOpen} onClose={() => setFindOpen(false)} />
         </div>
       </div>
+
+      {/* Chrome menu (☰) — anchored top-right at the chrome strip. Lives
+          at the App root so it overlays the left nav and the WebContentsView. */}
+      <ChromeMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenUrl={(url) => { void window.api.tabs.create(url); setMenuOpen(false) }}
+        onOpenSettings={() => { setMenuOpen(false); openSettings() }}
+      />
 
       {/* Onboarding is a TRUE app-level overlay: rendered last in the tree
           so it's at the top of stacking order, and uses fixed inset-0 so it

@@ -3,9 +3,13 @@ import type {
   AgentEvent,
   AgentMessage,
   AgentSendInput,
+  Bookmark,
   BrowserApi,
+  ClearScope,
   ConversationRecord,
   ConversationSummary,
+  DownloadEntry,
+  HistoryEntry,
   PrivacyReport,
   ProviderInfo,
   SettingsUpdate,
@@ -88,6 +92,42 @@ const api: BrowserApi = {
   privacy: {
     getReport: () => ipcRenderer.invoke("privacy:getReport") as Promise<PrivacyReport>,
     reset:     () => ipcRenderer.invoke("privacy:reset") as Promise<void>,
+  },
+  bookmarks: {
+    list:   () => ipcRenderer.invoke("bookmarks:list") as Promise<Bookmark[]>,
+    add:    (url: string, title: string) => ipcRenderer.invoke("bookmarks:add", url, title) as Promise<Bookmark>,
+    remove: (url: string) => ipcRenderer.invoke("bookmarks:remove", url) as Promise<boolean>,
+    has:    (url: string) => ipcRenderer.invoke("bookmarks:has", url) as Promise<boolean>,
+  },
+  reader: {
+    toggle:   (tabId: TabId) => ipcRenderer.invoke("reader:toggle", tabId) as Promise<boolean>,
+    isActive: (tabId: TabId) => ipcRenderer.invoke("reader:isActive", tabId) as Promise<boolean>,
+  },
+  tts: {
+    start:      (tabId: TabId) => ipcRenderer.invoke("tts:start", tabId) as Promise<boolean>,
+    stop:       (tabId: TabId) => ipcRenderer.invoke("tts:stop", tabId) as Promise<void>,
+    isSpeaking: (tabId: TabId) => ipcRenderer.invoke("tts:isSpeaking", tabId) as Promise<boolean>,
+  },
+  history: {
+    list:      (query?: string, limit?: number) => ipcRenderer.invoke("history:list", query, limit) as Promise<HistoryEntry[]>,
+    removeOne: (id: string) => ipcRenderer.invoke("history:removeOne", id) as Promise<void>,
+    clear:     () => ipcRenderer.invoke("history:clear") as Promise<void>,
+  },
+  downloads: {
+    list:      () => ipcRenderer.invoke("downloads:list") as Promise<DownloadEntry[]>,
+    cancel:    (id: string) => ipcRenderer.invoke("downloads:cancel", id) as Promise<void>,
+    pause:     (id: string) => ipcRenderer.invoke("downloads:pause", id) as Promise<void>,
+    resume:    (id: string) => ipcRenderer.invoke("downloads:resume", id) as Promise<void>,
+    removeOne: (id: string) => ipcRenderer.invoke("downloads:removeOne", id) as Promise<void>,
+    clear:     () => ipcRenderer.invoke("downloads:clear") as Promise<void>,
+    onChange: (cb: (entries: DownloadEntry[]) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, entries: DownloadEntry[]) => cb(entries)
+      ipcRenderer.on("downloads:update", listener)
+      return () => ipcRenderer.removeListener("downloads:update", listener)
+    },
+  },
+  data: {
+    clear: (scope: ClearScope) => ipcRenderer.invoke("data:clear", scope) as Promise<void>,
   },
 }
 

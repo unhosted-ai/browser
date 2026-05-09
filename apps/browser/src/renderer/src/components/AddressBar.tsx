@@ -13,6 +13,11 @@ type Props = {
   onToggleSidebar: () => void
   settingsOpen: boolean
   onOpenSettings: () => void
+  /** Open Settings → Privacy report (deep-link). */
+  onOpenPrivacy: () => void
+  /** Toggle the chrome hamburger menu. */
+  menuOpen: boolean
+  onToggleMenu: () => void
 }
 
 export type AddressBarHandle = {
@@ -93,19 +98,137 @@ const Icon = {
       />
     </svg>
   ),
+  // Shield with check — privacy/tracker-blocker indicator.
+  shield: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5l5.5 2v4.2c0 3.6-2.4 6.6-5.5 7.3-3.1-.7-5.5-3.7-5.5-7.3V3.5L8 1.5z"
+            stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="currentColor" fillOpacity="0.15" />
+      <path d="M5.5 8l1.8 1.8L11 6.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  // Star — outline + fill variants used for bookmark toggle.
+  star: (filled: boolean) => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.8l1.85 4.05 4.4.43-3.32 2.95.99 4.32L8 11.4l-3.92 2.15.99-4.32-3.32-2.95 4.4-.43L8 1.8z"
+            stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"
+            fill={filled ? "currentColor" : "none"} />
+    </svg>
+  ),
+  // Link / chain — copy-link affordance.
+  link: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M6.5 9.5L9.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M6.5 11.5l-1 1a2.83 2.83 0 1 1-4-4l1-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M9.5 4.5l1-1a2.83 2.83 0 1 1 4 4l-1 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  ),
+  // Checkmark used after copy.
+  check: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3.5 8.5l3 3 6-6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  // Reader mode — three-line page-of-text glyph.
+  reader: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M5 6h6M5 8.5h6M5 11h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  // Listen — speaker + waves (matches the Comet waveform mental model).
+  listen: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3.5 6h2L8.5 3v10L5.5 10h-2V6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="currentColor" fillOpacity="0.18"/>
+      <path d="M11 6c.6.6 1 1.4 1 2s-.4 1.4-1 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M12.7 4.5c1 1 1.6 2.3 1.6 3.5s-.6 2.5-1.6 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  // Stop square — used while TTS is speaking.
+  stop: (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+      <rect x="2" y="2" width="8" height="8" rx="1.4"/>
+    </svg>
+  ),
+  // Hamburger — opens the chrome menu (bookmarks/history/downloads).
+  menu: (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 5h10M3 8h10M3 11h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  ),
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, settingsOpen, onOpenSettings },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, settingsOpen, onOpenSettings, onOpenPrivacy, menuOpen, onToggleMenu },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // ── Page-tools state ────────────────────────────────────
+  // Bookmark + reader + speaking are all per-tab. We refresh on tab change
+  // and on URL change (the URL change captures bookmark add/remove from
+  // any other surface — the menu bookmark list, for example).
+  const [bookmarked, setBookmarked] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [readerOn, setReaderOn] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
+
   useEffect(() => {
     if (!focused) setValue(tab?.url ?? "")
   }, [tab?.url, tab?.id, focused])
+
+  // Sync bookmark + reader + speaking state when the active tab/URL changes.
+  useEffect(() => {
+    let alive = true
+    if (!tab) {
+      setBookmarked(false); setReaderOn(false); setSpeaking(false)
+      return
+    }
+    void window.api.bookmarks.has(tab.url).then((b) => { if (alive) setBookmarked(b) })
+    void window.api.reader.isActive(tab.id).then((r) => { if (alive) setReaderOn(r) })
+    void window.api.tts.isSpeaking(tab.id).then((s) => { if (alive) setSpeaking(s) })
+    return () => { alive = false }
+  }, [tab?.id, tab?.url])
+
+  const isBookmarkable = !!tab?.url && !tab.url.startsWith("delta:")
+
+  const onToggleBookmark = async () => {
+    if (!tab || !isBookmarkable) return
+    if (bookmarked) {
+      await window.api.bookmarks.remove(tab.url)
+      setBookmarked(false)
+    } else {
+      await window.api.bookmarks.add(tab.url, tab.title)
+      setBookmarked(true)
+    }
+  }
+
+  const onCopyLink = async () => {
+    if (!tab?.url) return
+    try {
+      await navigator.clipboard.writeText(tab.url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1400)
+    } catch { /* clipboard denied — silent */ }
+  }
+
+  const onToggleReader = async () => {
+    if (!tab) return
+    const next = await window.api.reader.toggle(tab.id)
+    setReaderOn(next)
+  }
+
+  const onToggleListen = async () => {
+    if (!tab) return
+    if (speaking) {
+      await window.api.tts.stop(tab.id)
+      setSpeaking(false)
+    } else {
+      const ok = await window.api.tts.start(tab.id)
+      setSpeaking(ok)
+    }
+  }
 
   useImperativeHandle(ref, () => ({
     focus: () => inputRef.current?.focus(),
@@ -183,15 +306,118 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
           aria-label="Address bar"
           className="flex-1 bg-transparent text-[13px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none"
         />
+        {/* Privacy shield lives inside the URL pill — it's a status
+            indicator (like the lock + safety badge), not an action toolbar
+            item. Only renders when there's a count to show, so the pill
+            stays clean on internal pages and fresh tabs. */}
+        {!focused && (tab?.trackersBlocked ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={onOpenPrivacy}
+            title={`${tab!.trackersBlocked} ${tab!.trackersBlocked === 1 ? "tracker" : "trackers"} blocked on this page`}
+            aria-label="Open privacy report"
+            className="shrink-0 flex items-center gap-1 h-6 px-2 rounded-full text-signal hover:bg-signal/10 transition-colors duration-150"
+          >
+            {Icon.shield}
+            <span className="font-mono text-[10px] tabular-nums">{tab!.trackersBlocked}</span>
+          </button>
+        )}
       </div>
+
+      {/* Group B: page-tools cluster — bookmark, copy link, reader, listen.
+          Between URL pill and the trailing divider. Hidden on internal
+          pages (delta://newtab) where they make no sense. */}
+      {tab && !tab.url.startsWith("delta:") && (
+        <div className="flex items-center gap-0.5 mr-1">
+          <button
+            type="button"
+            aria-label={bookmarked ? "Remove bookmark" : "Add bookmark"}
+            aria-pressed={bookmarked}
+            title={bookmarked ? "Bookmarked" : "Bookmark this page"}
+            disabled={!isBookmarkable}
+            onClick={onToggleBookmark}
+            className={[
+              "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+              bookmarked
+                ? "text-signal hover:bg-signal/10"
+                : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+              !isBookmarkable && "opacity-40 cursor-not-allowed",
+            ].filter(Boolean).join(" ")}
+          >
+            {Icon.star(bookmarked)}
+          </button>
+
+          <button
+            type="button"
+            aria-label="Copy link"
+            title={copied ? "Copied" : "Copy link"}
+            onClick={onCopyLink}
+            className={[
+              "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+              copied
+                ? "text-signal"
+                : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+            ].join(" ")}
+          >
+            {copied ? Icon.check : Icon.link}
+          </button>
+
+          <button
+            type="button"
+            aria-label={readerOn ? "Exit reader mode" : "Enter reader mode"}
+            aria-pressed={readerOn}
+            title={readerOn ? "Exit reader" : "Reader mode"}
+            onClick={onToggleReader}
+            className={[
+              "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+              readerOn
+                ? "text-signal bg-signal/10"
+                : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+            ].join(" ")}
+          >
+            {Icon.reader}
+          </button>
+
+          <button
+            type="button"
+            aria-label={speaking ? "Stop listening" : "Listen to page"}
+            aria-pressed={speaking}
+            title={speaking ? "Stop reading" : "Listen to page"}
+            onClick={onToggleListen}
+            className={[
+              "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+              speaking
+                ? "text-signal bg-signal/10"
+                : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+            ].join(" ")}
+          >
+            {speaking ? Icon.stop : Icon.listen}
+          </button>
+        </div>
+      )}
 
       {/* Hairline divider — visually separates the URL pill (primary
           surface) from the trailing tools cluster (secondary actions). */}
       <span aria-hidden className="w-px h-5 bg-chrome-border mx-1 shrink-0" />
 
-      {/* Group C: tools cluster (settings + Assistant). Tight gap so they
-          read as one unit, not two unrelated buttons. */}
+      {/* Group C: tools cluster (menu + settings + Assistant). Tight gap so
+          they read as one unit, not three unrelated buttons. */}
       <div className="flex items-center gap-1">
+      <button
+        type="button"
+        aria-label={menuOpen ? "Close menu" : "Open menu"}
+        aria-pressed={menuOpen}
+        title="Menu"
+        onClick={onToggleMenu}
+        className={[
+          "h-7 w-7 grid place-items-center rounded-md transition-colors duration-150",
+          menuOpen
+            ? "text-signal bg-signal/10"
+            : "text-chrome-text-2 hover:text-chrome-text hover:bg-chrome-surface",
+        ].join(" ")}
+      >
+        {Icon.menu}
+      </button>
       <button
         type="button"
         aria-label={settingsOpen ? "Close settings" : "Open settings"}
