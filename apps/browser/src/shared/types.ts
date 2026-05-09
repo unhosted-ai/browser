@@ -81,6 +81,22 @@ export type SettingsUpdate =
   | { kind: "removeCustomEndpoint"; id: string }
   | { kind: "defaultProvider"; id: "auto" | ProviderId; model?: string }
 
+// ── Persisted conversation history (one JSON file per conversation) ──
+export type ConversationSummary = {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+  messageCount: number
+}
+
+export type ConversationRecord = {
+  id: string
+  createdAt: number
+  updatedAt: number
+  messages: AgentMessage[]
+}
+
 // ── Agent (Phase 1: chat + Phase 2: read tools) ─────────
 export type AgentRole = "user" | "assistant" | "system"
 
@@ -179,6 +195,12 @@ export type BrowserApi = {
     get: () => Promise<UserSettings>
     update: (u: SettingsUpdate) => Promise<UserSettings>
     onChange: (cb: (s: UserSettings) => void) => () => void
+  }
+  conversations: {
+    list:   () => Promise<ConversationSummary[]>
+    load:   (id: string) => Promise<ConversationRecord | null>
+    save:   (id: string, messages: AgentMessage[]) => Promise<void>
+    delete: (id: string) => Promise<void>
   }
 }
 

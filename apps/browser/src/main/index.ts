@@ -4,9 +4,10 @@ import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
 import { Agent } from "./agent"
 import { SettingsStore } from "./settings"
+import { ConversationStore } from "./conversations"
 import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
-import type { AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
+import type { AgentMessage, AgentSendInput, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
 
@@ -25,6 +26,7 @@ let mainWindow: BrowserWindow | null = null
 let tabs: TabManager | null = null
 let agent: Agent | null = null
 let settings: SettingsStore | null = null
+let conversations: ConversationStore | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -55,6 +57,7 @@ function createWindow(): void {
 
   tabs = new TabManager(mainWindow)
   settings = new SettingsStore()
+  conversations = new ConversationStore()
   agent = new Agent({
     emit: (event) => mainWindow?.webContents.send("agent:event", event),
     readActivePage: () => tabs!.readActivePage(),
@@ -101,6 +104,13 @@ function registerIpc(): void {
   // Find in page
   ipcMain.handle("find:start", (_e, query: string, opts?: { findNext?: boolean; forward?: boolean }) => t.startFindInActive(query, opts))
   ipcMain.handle("find:stop",  () => t.stopFindInActive())
+
+  // Conversation persistence (Phase 5 prep — for now, the renderer drives
+  // saves on idle transitions; the store is just a key-value JSON layer).
+  ipcMain.handle("conversations:list",   () => conversations?.list() ?? [])
+  ipcMain.handle("conversations:load",   (_e, id: string) => conversations?.load(id) ?? null)
+  ipcMain.handle("conversations:save",   (_e, id: string, messages: AgentMessage[]) => { conversations?.save(id, messages) })
+  ipcMain.handle("conversations:delete", (_e, id: string) => { conversations?.delete(id) })
 
   // Agent (Phase 1: chat). Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))

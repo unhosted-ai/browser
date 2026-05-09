@@ -1,8 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron"
 import type {
   AgentEvent,
+  AgentMessage,
   AgentSendInput,
   BrowserApi,
+  ConversationRecord,
+  ConversationSummary,
   ProviderInfo,
   SettingsUpdate,
   TabId,
@@ -70,6 +73,12 @@ const api: BrowserApi = {
       ipcRenderer.on("settings:change", listener)
       return () => ipcRenderer.removeListener("settings:change", listener)
     },
+  },
+  conversations: {
+    list:   () => ipcRenderer.invoke("conversations:list") as Promise<ConversationSummary[]>,
+    load:   (id: string) => ipcRenderer.invoke("conversations:load", id) as Promise<ConversationRecord | null>,
+    save:   (id: string, messages: AgentMessage[]) => ipcRenderer.invoke("conversations:save", id, messages) as Promise<void>,
+    delete: (id: string) => ipcRenderer.invoke("conversations:delete", id) as Promise<void>,
   },
 }
 
