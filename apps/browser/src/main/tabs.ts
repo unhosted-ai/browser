@@ -104,6 +104,15 @@ export class TabManager {
       this.emit()
     })
 
+    // Convert window.open() / target=_blank into Delta tabs instead of
+    // letting Electron spawn a separate child BrowserWindow with no chrome.
+    // OAuth flows that depend on the postMessage opener bridge may break
+    // here — acceptable v1 trade-off; users overwhelmingly prefer tabs.
+    wc.setWindowOpenHandler(({ url: nextUrl }) => {
+      this.create(nextUrl)
+      return { action: "deny" }
+    })
+
     void wc.loadURL(url)
     this.activate(id)
     return this.toTab(entry)

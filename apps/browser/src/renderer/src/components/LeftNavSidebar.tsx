@@ -6,19 +6,26 @@ type Props = {
   onToggleCollapsed: () => void
   onNewTab: () => void
   onOpenSettings: () => void
+  onOpenHistory: () => void
 }
 
 // Two widths — full and rail. Both end up reserved by main/tabs.ts so the
 // WebContentsView never paints under the sidebar.
+//
+// Why 88 for the rail? The macOS hidden-inset traffic lights occupy ~78px
+// from the window's left edge. Anything narrower and the lights spill past
+// the rail into the tab strip, where they look like they're "hanging out"
+// over the first tab. 88 leaves a small margin without the rail feeling
+// chunky.
 export const LEFT_NAV_WIDTH_FULL = 232
-export const LEFT_NAV_WIDTH_RAIL = 56
+export const LEFT_NAV_WIDTH_RAIL = 88
 
 // macOS hidden-inset traffic-light reservation. The traffic lights render
 // at the OS layer in the top-left corner of the window — the sidebar's
 // first 32px stay empty so they don't sit on top of nav buttons.
 const TRAFFIC_LIGHT_RESERVATION = 32
 
-export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenSettings }: Props) {
+export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenSettings, onOpenHistory }: Props) {
   const width = collapsed ? LEFT_NAV_WIDTH_RAIL : LEFT_NAV_WIDTH_FULL
 
   return (
@@ -86,15 +93,15 @@ export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenS
           collapsed={collapsed}
           icon={<IconSpaces />}
           label="Spaces"
-          hint="Coming soon"
+          hint="Workspaces with their own tabs and conversations. Coming."
           disabled
         />
         <NavRow
           collapsed={collapsed}
           icon={<IconHistory />}
           label="History"
-          hint="Coming soon"
-          disabled
+          shortcut="⌘J"
+          onClick={onOpenHistory}
         />
         <NavRow
           collapsed={collapsed}
@@ -166,14 +173,20 @@ function NavRow({
 }
 
 function ProfileChip({ collapsed }: { collapsed: boolean }) {
+  // No login. The chip is informational — it says "this device IS the
+  // account." Per docs/identity.md: profiles will be local-only when they
+  // ship; there is never a remote Delta account. The tooltip explains
+  // that so users don't expect a sign-in flow that doesn't exist.
+  const tooltip =
+    "Default profile · stored locally on this device.\n" +
+    "Delta has no account — your settings and history live on this machine.\n" +
+    "Multi-profile support is coming."
   return (
     <div className="no-drag p-3 border-t border-chrome-border">
-      <button
-        type="button"
-        title={collapsed ? "Default profile (local)" : undefined}
+      <div
+        title={tooltip}
         className={[
-          "rounded-full flex items-center transition-colors duration-150",
-          "hover:bg-chrome-surface",
+          "rounded-full flex items-center cursor-default",
           collapsed ? "h-8 w-8 justify-center" : "w-full h-9 px-1.5 gap-2",
         ].join(" ")}
       >
@@ -184,10 +197,10 @@ function ProfileChip({ collapsed }: { collapsed: boolean }) {
         {!collapsed && (
           <div className="min-w-0 flex-1 text-left">
             <p className="text-[12px] text-chrome-text truncate leading-tight">Default profile</p>
-            <p className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3 leading-tight">local · private</p>
+            <p className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3 leading-tight">local · no account</p>
           </div>
         )}
-      </button>
+      </div>
     </div>
   )
 }

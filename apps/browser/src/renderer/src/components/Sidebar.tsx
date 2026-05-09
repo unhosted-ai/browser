@@ -17,6 +17,10 @@ type Props = {
   activeTitle: string | null
   onRefresh: () => void
   onOpenSettings: () => void
+  /** Optional controlled-mode for the inline history view. When the LeftNav
+   *  History row triggers it, App opens the sidebar AND sets this true. */
+  historyOpen?: boolean
+  onHistoryOpenChange?: (open: boolean) => void
 }
 
 // What the Assistant *can do*. Read tools auto-run; act tools route through
@@ -33,15 +37,20 @@ const SUGGESTIONS = [
   "What does this page miss?",
 ] as const
 
-export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSettings }: Props) {
+export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSettings, historyOpen: historyOpenProp, onHistoryOpenChange }: Props) {
   const [draft, setDraft] = useState("")
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [status, setStatus] = useState<AgentStatus>("idle")
   const [taskId, setTaskId] = useState<string | null>(null)
-  // Conversation persistence — one id per "thread"; created lazily when the
-  // user actually says something. Saved to disk on each idle transition.
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
+  // Internal fallback when the parent doesn't control history mode. When
+  // App passes historyOpenProp + onHistoryOpenChange, we use those instead.
+  const [historyOpenLocal, setHistoryOpenLocal] = useState(false)
+  const historyOpen = historyOpenProp ?? historyOpenLocal
+  const setHistoryOpen = (v: boolean) => {
+    setHistoryOpenLocal(v)
+    onHistoryOpenChange?.(v)
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // The agent picks the first usable online provider. We surface that one as
@@ -208,7 +217,7 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
             </button>
             <button
               type="button"
-              onClick={() => setHistoryOpen((v) => !v)}
+              onClick={() => setHistoryOpen(!historyOpen)}
               title="Conversation history"
               className={[
                 "font-mono text-[10px] tracking-[0.12em] uppercase transition-colors px-1.5 py-0.5",

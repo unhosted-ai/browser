@@ -18,6 +18,7 @@ const SETTINGS_WIDTH = 420
 export function App() {
   const [state, setState] = useState<TabsState>({ tabs: [], activeId: null })
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarHistoryOpen, setSidebarHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
@@ -67,8 +68,13 @@ export function App() {
   // Settings + Assistant sidebar are mutually exclusive — they both anchor
   // right:0 and would otherwise stack invisibly. Opening one closes the
   // other. ("Chat didn't open when I clicked AI" was this.)
-  const openSettings = () => { setSidebarOpen(false);  openSettings() }
+  const openSettings = () => { setSidebarOpen(false);  setSettingsOpen(true) }
   const openAssistant = () => { setSettingsOpen(false); setSidebarOpen(true) }
+  const openHistory = () => {
+    setSettingsOpen(false)
+    setSidebarOpen(true)
+    setSidebarHistoryOpen(true)
+  }
   const toggleAssistant = () => {
     if (sidebarOpen) { setSidebarOpen(false); return }
     setSettingsOpen(false); setSidebarOpen(true)
@@ -147,7 +153,8 @@ export function App() {
         collapsed={leftNavCollapsed}
         onToggleCollapsed={() => setLeftNavCollapsed((v) => !v)}
         onNewTab={() => window.api.tabs.create()}
-        onOpenSettings={() => openSettings()}
+        onOpenSettings={openSettings}
+        onOpenHistory={openHistory}
       />
 
       {/* Main column — chrome + content area. Sits to the right of the
@@ -191,6 +198,8 @@ export function App() {
                 activeUrl={active?.url ?? null}
                 activeTitle={active?.title ?? null}
                 onOpenSettings={openSettings}
+                historyOpen={sidebarHistoryOpen}
+                onHistoryOpenChange={setSidebarHistoryOpen}
               />
             </aside>
           )}
