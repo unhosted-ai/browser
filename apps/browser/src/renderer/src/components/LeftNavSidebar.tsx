@@ -212,14 +212,12 @@ function IconHistory() {
   )
 }
 function IconSettings() {
+  // Toothed gear — distinct from the address-bar theme toggle's sun shape.
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-chrome-text-2">
-      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-chrome-text-2">
       <path
-        d="M7 1.5v1.6 M7 10.9v1.6 M1.5 7h1.6 M10.9 7h1.6
-           M3 3l1.1 1.1 M9.9 9.9l1.1 1.1
-           M11 3l-1.1 1.1 M4.1 9.9L3 11"
-        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"
+        d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.5 7.5 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.42l-.38 2.65c-.61.25-1.17.58-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.14.24.43.34.68.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65a.5.5 0 0 0 .5.42h4a.5.5 0 0 0 .5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.25.12.54.02.68-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+        stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="currentColor" fillOpacity="0.05"
       />
     </svg>
   )

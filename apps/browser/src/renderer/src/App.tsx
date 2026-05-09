@@ -11,7 +11,8 @@ import {
 } from "./components/LeftNavSidebar"
 import { useTheme } from "./hooks/useTheme"
 
-const SIDEBAR_WIDTH = 360
+const SIDEBAR_WIDTH  = 360
+const SETTINGS_WIDTH = 420
 
 export function App() {
   const [state, setState] = useState<TabsState>({ tabs: [], activeId: null })
@@ -37,9 +38,16 @@ export function App() {
     return () => { off(); offSettings() }
   }, [])
 
+  // Right-side reservation = max width of any open right-overlay panel, so
+  // the WebContentsView never paints under the AI sidebar OR the settings
+  // panel. (Without this, settings was drawn behind the page content.)
   useEffect(() => {
-    void window.api.layout.setSidebarOpen(sidebarOpen)
-  }, [sidebarOpen])
+    const right = Math.max(
+      sidebarOpen  ? SIDEBAR_WIDTH  : 0,
+      settingsOpen ? SETTINGS_WIDTH : 0,
+    )
+    void window.api.layout.setRightReservation(right)
+  }, [sidebarOpen, settingsOpen])
 
   // Reserve the left-nav width in the WebContentsView layout, and persist
   // the collapsed state so it survives reloads.

@@ -4,7 +4,6 @@ import type { Tab, TabId, TabsState } from "@shared/types"
 
 // Layout constants — kept in sync with renderer chrome.
 const CHROME_TOP = 80          // tab strip + address bar height
-const SIDEBAR_WIDTH = 360      // when open
 
 type Entry = {
   id: TabId
@@ -20,7 +19,7 @@ export class TabManager {
   private win: BrowserWindow
   private entries = new Map<TabId, Entry>()
   private activeId: TabId | null = null
-  private sidebarOpen = false
+  private rightReservation = 0
   private leftNavWidth = 0
   private listeners = new Set<(state: TabsState) => void>()
 
@@ -42,9 +41,10 @@ export class TabManager {
     return () => this.listeners.delete(cb)
   }
 
-  setSidebarOpen(open: boolean): void {
-    if (this.sidebarOpen === open) return
-    this.sidebarOpen = open
+  setRightReservation(px: number): void {
+    const w = Math.max(0, Math.floor(px))
+    if (this.rightReservation === w) return
+    this.rightReservation = w
     this.relayoutActive()
   }
 
@@ -187,12 +187,12 @@ export class TabManager {
     const entry = this.entries.get(this.activeId)
     if (!entry) return
     const { width, height } = this.win.getContentBounds()
-    const sidebar = this.sidebarOpen ? SIDEBAR_WIDTH : 0
+    const right = this.rightReservation
     const leftNav = this.leftNavWidth
     entry.view.setBounds({
       x: leftNav,
       y: CHROME_TOP,
-      width: Math.max(0, width - sidebar - leftNav),
+      width: Math.max(0, width - right - leftNav),
       height: Math.max(0, height - CHROME_TOP),
     })
   }

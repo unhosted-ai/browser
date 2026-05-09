@@ -112,7 +112,13 @@ export type BrowserApi = {
     onUpdate: (cb: (state: TabsState) => void) => () => void
   }
   layout: {
-    setSidebarOpen: (open: boolean) => Promise<void>
+    /**
+     * Pixel width reserved on the right of the WebContentsView for the AI
+     * sidebar, the settings panel, or anything else that overlays at right:0.
+     * The renderer passes the *union* (max of all open right-side panels)
+     * so the page never paints under whichever panel is widest.
+     */
+    setRightReservation: (px: number) => Promise<void>
     /** Pixel width reserved on the left for the navigation rail. 0 = hidden. */
     setLeftNavWidth: (px: number) => Promise<void>
   }
