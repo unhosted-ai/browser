@@ -92,7 +92,26 @@ function SettingsBody({
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
         <ConnectionSection providers={providers} onRefresh={onRefreshProviders} />
         <AppearanceSection />
-        <OpenAISection settings={settings} />
+        <CloudKeySection
+          label="OpenAI cloud"
+          hint="Used only when explicitly enabled. Off by default."
+          placeholder="sk-…"
+          enabled={settings.openaiEnabled}
+          hasKey={settings.openaiHasKey}
+          onSaveKey={(v) => window.api.settings.update({ kind: "openaiKey", value: v })}
+          onClearKey={() => window.api.settings.update({ kind: "openaiKey", value: null })}
+          onSetEnabled={(v) => window.api.settings.update({ kind: "openaiEnabled", value: v })}
+        />
+        <CloudKeySection
+          label="Anthropic cloud"
+          hint="Claude (Opus / Sonnet / Haiku). Used only when explicitly enabled."
+          placeholder="sk-ant-…"
+          enabled={settings.anthropicEnabled}
+          hasKey={settings.anthropicHasKey}
+          onSaveKey={(v) => window.api.settings.update({ kind: "anthropicKey", value: v })}
+          onClearKey={() => window.api.settings.update({ kind: "anthropicKey", value: null })}
+          onSetEnabled={(v) => window.api.settings.update({ kind: "anthropicEnabled", value: v })}
+        />
         <CustomEndpointsSection settings={settings} />
         <DefaultProviderSection settings={settings} />
         <PrivacyNote />
@@ -201,8 +220,20 @@ function AppearanceSection() {
   )
 }
 
-// ── OpenAI cloud ────────────────────────────────────────────────────
-function OpenAISection({ settings }: { settings: UserSettings }) {
+// ── Generic cloud key section (OpenAI / Anthropic / future) ─────────
+function CloudKeySection({
+  label, hint, placeholder, enabled, hasKey,
+  onSaveKey, onClearKey, onSetEnabled,
+}: {
+  label: string
+  hint: string
+  placeholder: string
+  enabled: boolean
+  hasKey: boolean
+  onSaveKey: (v: string) => Promise<unknown>
+  onClearKey: () => Promise<unknown>
+  onSetEnabled: (v: boolean) => Promise<unknown>
+}) {
   const [draft, setDraft] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -210,43 +241,32 @@ function OpenAISection({ settings }: { settings: UserSettings }) {
     if (!draft.trim()) return
     setBusy(true)
     try {
-      await window.api.settings.update({ kind: "openaiKey", value: draft.trim() })
-      await window.api.settings.update({ kind: "openaiEnabled", value: true })
+      await onSaveKey(draft.trim())
+      await onSetEnabled(true)
       setDraft("")
     } finally { setBusy(false) }
   }
-
   const remove = async () => {
     setBusy(true)
-    try {
-      await window.api.settings.update({ kind: "openaiKey", value: null })
-    } finally { setBusy(false) }
+    try { await onClearKey() } finally { setBusy(false) }
   }
-
-  const toggleEnabled = async (v: boolean) => {
-    await window.api.settings.update({ kind: "openaiEnabled", value: v })
-  }
+  const keyHint = placeholder.replace(/…+$/, "•••••••")
 
   return (
     <section>
-      <SectionHeader label="OpenAI cloud" hint="Used only when explicitly enabled. Off by default." />
-
-      {settings.openaiHasKey ? (
+      <SectionHeader label={label} hint={hint} />
+      {hasKey ? (
         <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[12px]">
               <span className={[
                 "h-1.5 w-1.5 rounded-full shrink-0",
-                settings.openaiEnabled ? "bg-signal" : "bg-chrome-text-3",
+                enabled ? "bg-signal" : "bg-chrome-text-3",
               ].join(" ")} />
               <span className="text-chrome-text">Key configured</span>
-              <span className="font-mono text-[10px] text-chrome-text-3">sk-•••••••</span>
+              <span className="font-mono text-[10px] text-chrome-text-3">{keyHint}</span>
             </div>
-            <Toggle
-              checked={settings.openaiEnabled}
-              onChange={toggleEnabled}
-              ariaLabel="Enable OpenAI cloud"
-            />
+            <Toggle checked={enabled} onChange={(v) => void onSetEnabled(v)} ariaLabel={`Enable ${label}`} />
           </div>
           <button
             type="button"
@@ -263,7 +283,7 @@ function OpenAISection({ settings }: { settings: UserSettings }) {
             type="password"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="sk-…"
+            placeholder={placeholder}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
@@ -277,10 +297,6 @@ function OpenAISection({ settings }: { settings: UserSettings }) {
           >
             Save key (encrypted)
           </button>
-          <p className="text-[11px] text-chrome-text-3 leading-relaxed">
-            Stored in your OS keychain via <code className="font-mono">safeStorage</code>.
-            Never leaves the main process; the renderer only learns whether a key is set.
-          </p>
         </div>
       )}
     </section>
@@ -424,7 +440,8 @@ function DefaultProviderSection({ settings }: { settings: UserSettings }) {
     { id: "llamacpp", label: "llama.cpp (local)" },
     { id: "mlx",      label: "MLX (local)" },
   ]
-  if (settings.openaiHasKey) opts.push({ id: "openai", label: "OpenAI (cloud)" })
+  if (settings.openaiHasKey)    opts.push({ id: "openai",    label: "OpenAI (cloud)" })
+  if (settings.anthropicHasKey) opts.push({ id: "anthropic", label: "Anthropic (cloud)" })
   for (const e of settings.customEndpoints) {
     opts.push({ id: e.id, label: `${e.label} (custom)` })
   }

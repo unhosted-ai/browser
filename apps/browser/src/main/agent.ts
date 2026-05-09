@@ -16,10 +16,15 @@
 // cross the IPC boundary.
 import { randomUUID } from "node:crypto"
 import type { AgentEvent, AgentSendInput, ToolCallView } from "@shared/types"
-import { pickDefaultProvider } from "./providers"
+import { pickDefaultProvider, type ResolvedProvider } from "./providers"
 import type { SettingsStore } from "./settings"
 import type { TabManager } from "./tabs"
 import { runTool, toolDefs } from "./tools"
+import {
+  anthropicHeaders,
+  buildAnthropicBody,
+  readAnthropicStream,
+} from "./adapters/anthropic"
 
 const SYSTEM_PROMPT = [
   "You are Delta, a privacy-respecting AI browser's assistant. You help the user understand and act on what's in their browser tabs.",
@@ -123,7 +128,7 @@ export class Agent {
   private async runLoop(opts: {
     taskId: string
     assistantId: string
-    provider: { endpoint: string; model: string; apiKey?: string }
+    provider: ResolvedProvider
   }): Promise<void> {
     const { taskId, assistantId, provider } = opts
     this.deps.emit({ type: "task_start", taskId, assistantId })
@@ -196,7 +201,61 @@ export class Agent {
   // Returns text + any accumulated tool calls + finish reason. Rejects with
   // Error("cancelled") on abort.
   private async runStream(
-    provider: { endpoint: string; model: string; apiKey?: string },
+    provider: ResolvedProvider,
+    taskId: string,
+    assistantId: string,
+  ): Promise<StreamResult> {
+    if (provider.kind === "anthropic") {
+      return this.runStreamAnthropic(provider, taskId, assistantId)
+    }
+    return this.runStreamOpenAI(provider, taskId, assistantId)
+  }
+
+  // ── Anthropic /v1/messages path ──────────────────────────────────────
+  private async runStreamAnthropic(
+    provider: ResolvedProvider,
+    taskId: string,
+    assistantId: string,
+  ): Promise<StreamResult> {
+    if (!provider.apiKey) throw new Error("Anthropic requires an API key.")
+    const abort = new AbortController()
+    this.activeAbort = abort
+
+    const body = buildAnthropicBody({
+      model: provider.model,
+      systemPrompt: SYSTEM_PROMPT,
+      history: this.history,
+      tools: toolDefs(),
+    })
+    const timeout = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS)
+    const res = await fetch(`${provider.endpoint}/v1/messages`, {
+      method: "POST",
+      headers: anthropicHeaders(provider.apiKey),
+      body: JSON.stringify(body),
+      signal: abort.signal,
+    })
+    clearTimeout(timeout)
+
+    if (!res.ok || !res.body) {
+      const detail = await res.text().catch(() => "")
+      throw new Error(`Anthropic HTTP ${res.status} ${res.statusText}${detail ? `: ${detail.slice(0, 200)}` : ""}`)
+    }
+
+    try {
+      return await readAnthropicStream(res, (delta) => {
+        this.deps.emit({ type: "text_delta", taskId, assistantId, delta })
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") throw new Error("cancelled")
+      throw err
+    } finally {
+      if (this.activeAbort === abort) this.activeAbort = null
+    }
+  }
+
+  // ── OpenAI-compatible /v1/chat/completions path ──────────────────────
+  private async runStreamOpenAI(
+    provider: ResolvedProvider,
     taskId: string,
     assistantId: string,
   ): Promise<StreamResult> {

@@ -7,6 +7,7 @@
 // them via Settings — never reached out to otherwise.
 import type { ProviderId, ProviderInfo, ProviderStatus } from "@shared/types"
 import type { SettingsStore } from "./settings"
+import { ANTHROPIC_MODELS } from "./adapters/anthropic"
 
 type Endpoint = { label: string; endpoint: string; local: boolean }
 
@@ -84,10 +85,9 @@ export async function listProviders(settings?: SettingsStore): Promise<ProviderI
       status,
       models,
       authed: true,
+      kind: "openai",
     })
   } else if (s.openaiHasKey || s.openaiEnabled) {
-    // Configured but disabled — surface as a known-but-off entry so the user
-    // can see why it isn't being used.
     out.push({
       id: "openai",
       label: "OpenAI",
@@ -95,6 +95,36 @@ export async function listProviders(settings?: SettingsStore): Promise<ProviderI
       status: "needs-key",
       models: [],
       authed: true,
+      kind: "openai",
+    })
+  }
+
+  // Anthropic cloud — same gating: enabled + key. /v1/models isn't a stable
+  // endpoint there, so we don't probe; we test the key via a HEAD-ish ping
+  // (a 0-token dry run isn't free either) and just trust the key when set.
+  // Models are the current shipping set (see adapters/anthropic.ts).
+  if (s.anthropicEnabled && s.anthropicHasKey) {
+    const key = settings.resolveAnthropicKey()
+    out.push({
+      id: "anthropic",
+      label: "Anthropic",
+      endpoint: "https://api.anthropic.com",
+      // Optimistic: we treat a configured + enabled cloud key as online.
+      // Errors surface in the chat error state if the key is bad.
+      status: key ? "online" : "needs-key",
+      models: [...ANTHROPIC_MODELS],
+      authed: true,
+      kind: "anthropic",
+    })
+  } else if (s.anthropicHasKey || s.anthropicEnabled) {
+    out.push({
+      id: "anthropic",
+      label: "Anthropic",
+      endpoint: "https://api.anthropic.com",
+      status: "needs-key",
+      models: [],
+      authed: true,
+      kind: "anthropic",
     })
   }
 
@@ -125,23 +155,29 @@ export async function listProviders(settings?: SettingsStore): Promise<ProviderI
  * "auto" — first online local, falling back to cloud / custom only when
  * the user has explicitly enabled and configured them.
  */
-export async function pickDefaultProvider(
-  settings: SettingsStore,
-): Promise<{ endpoint: string; model: string; apiKey?: string } | null> {
+export type ResolvedProvider = {
+  endpoint: string
+  model: string
+  apiKey?: string
+  kind: "openai" | "anthropic"
+}
+
+export async function pickDefaultProvider(settings: SettingsStore): Promise<ResolvedProvider | null> {
   const all = await listProviders(settings)
   const s = settings.get()
 
-  function bind(p: ProviderInfo): { endpoint: string; model: string; apiKey?: string } | null {
+  function bind(p: ProviderInfo): ResolvedProvider | null {
     if (p.status !== "online" || p.models.length === 0) return null
     const model = s.defaultProvider.model && p.models.includes(s.defaultProvider.model)
       ? s.defaultProvider.model
       : p.models[0]!
-    const apiKey = p.id === "openai"
-      ? settings.resolveOpenaiKey() ?? undefined
-      : p.custom && p.authed
-        ? settings.resolveCustomKey(p.id) ?? undefined
-        : undefined
-    return { endpoint: p.endpoint, model, apiKey }
+    const kind: "openai" | "anthropic" = p.kind === "anthropic" ? "anthropic" : "openai"
+    const apiKey =
+        p.id === "openai"    ? settings.resolveOpenaiKey()    ?? undefined
+      : p.id === "anthropic" ? settings.resolveAnthropicKey() ?? undefined
+      : p.custom && p.authed ? settings.resolveCustomKey(p.id) ?? undefined
+                             : undefined
+    return { endpoint: p.endpoint, model, apiKey, kind }
   }
 
   if (s.defaultProvider.id !== "auto") {
@@ -150,13 +186,12 @@ export async function pickDefaultProvider(
       const bound = bind(pinned)
       if (bound) return bound
     }
-    // fall through to auto if the pinned provider isn't usable
   }
 
-  // Auto — local first, then any remaining online (cloud / custom).
+  // Auto — local first, then cloud (OpenAI + Anthropic), then custom.
   const ordered = [
     ...all.filter((p) => ["ollama", "lmstudio", "llamacpp", "mlx"].includes(p.id)),
-    ...all.filter((p) => p.id === "openai"),
+    ...all.filter((p) => p.id === "openai" || p.id === "anthropic"),
     ...all.filter((p) => p.custom),
   ]
   for (const p of ordered) {

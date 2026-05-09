@@ -22,8 +22,9 @@ type StoredEndpoint = {
   endpoint: string
   apiKeyCipher?: string
 }
-type StoredSettings = Omit<UserSettings, "openaiHasKey" | "customEndpoints"> & {
-  openaiKeyCipher?: string  // base64 of safeStorage ciphertext
+type StoredSettings = Omit<UserSettings, "openaiHasKey" | "anthropicHasKey" | "customEndpoints"> & {
+  openaiKeyCipher?: string     // base64 of safeStorage ciphertext
+  anthropicKeyCipher?: string
   customEndpoints: StoredEndpoint[]
 }
 
@@ -31,6 +32,7 @@ const FILE = "settings.json"
 
 const DEFAULTS: StoredSettings = {
   openaiEnabled: false,
+  anthropicEnabled: false,
   customEndpoints: [],
   defaultProvider: { id: "auto" },
 }
@@ -76,8 +78,10 @@ function decrypt(cipher: string): string | null {
 // ── Public-facing shape ───────────────────────────────────
 function toWire(s: StoredSettings): UserSettings {
   return {
-    openaiEnabled: s.openaiEnabled && !!s.openaiKeyCipher,
-    openaiHasKey: !!s.openaiKeyCipher,
+    openaiEnabled:    s.openaiEnabled    && !!s.openaiKeyCipher,
+    openaiHasKey:     !!s.openaiKeyCipher,
+    anthropicEnabled: s.anthropicEnabled && !!s.anthropicKeyCipher,
+    anthropicHasKey:  !!s.anthropicKeyCipher,
     customEndpoints: s.customEndpoints.map((e) => ({
       id: e.id,
       label: e.label,
@@ -106,6 +110,11 @@ export class SettingsStore {
     return decrypt(this.state.openaiKeyCipher)
   }
 
+  resolveAnthropicKey(): string | null {
+    if (!this.state.anthropicKeyCipher) return null
+    return decrypt(this.state.anthropicKeyCipher)
+  }
+
   /** Resolve a custom endpoint's API key for use in main only. */
   resolveCustomKey(id: string): string | null {
     const e = this.state.customEndpoints.find((x) => x.id === id)
@@ -124,6 +133,17 @@ export class SettingsStore {
           this.state.openaiEnabled = false
         } else {
           this.state.openaiKeyCipher = encrypt(update.value)
+        }
+        break
+      case "anthropicEnabled":
+        this.state.anthropicEnabled = update.value
+        break
+      case "anthropicKey":
+        if (update.value === null) {
+          delete this.state.anthropicKeyCipher
+          this.state.anthropicEnabled = false
+        } else {
+          this.state.anthropicKeyCipher = encrypt(update.value)
         }
         break
       case "addCustomEndpoint": {

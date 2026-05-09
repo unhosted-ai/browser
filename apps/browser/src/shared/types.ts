@@ -36,6 +36,13 @@ export type ProviderInfo = {
   authed?: boolean
   /** True when the user added it manually via settings; lets the renderer offer a "remove" affordance. */
   custom?: boolean
+  /**
+   * Wire-format dialect. "openai" covers OpenAI itself plus all OpenAI-
+   * compatible providers (Ollama /v1, LM Studio, llama.cpp, MLX, custom
+   * endpoints). "anthropic" uses /v1/messages with content-block tool
+   * shapes — see main/adapters/anthropic.ts.
+   */
+  kind?: "openai" | "anthropic"
 }
 
 // ── User settings (persisted in main; secrets encrypted via safeStorage) ─
@@ -47,10 +54,12 @@ export type CustomEndpoint = {
 }
 
 export type UserSettings = {
-  /** Whether OpenAI cloud is enabled (requires key). False keeps the agent local-only. */
+  /** OpenAI cloud — off by default, requires both a key and the toggle. */
   openaiEnabled: boolean
-  /** Whether an OpenAI key is configured. Never returns the key value to the renderer. */
   openaiHasKey: boolean
+  /** Anthropic cloud — same shape; uses the /v1/messages adapter. */
+  anthropicEnabled: boolean
+  anthropicHasKey: boolean
   /** User-added custom OpenAI-compatible endpoints. */
   customEndpoints: CustomEndpoint[]
   /**
@@ -65,7 +74,9 @@ export type UserSettings = {
 // plaintext over IPC and are encrypted in main before being persisted.
 export type SettingsUpdate =
   | { kind: "openaiEnabled"; value: boolean }
-  | { kind: "openaiKey"; value: string | null }   // null clears
+  | { kind: "openaiKey"; value: string | null }
+  | { kind: "anthropicEnabled"; value: boolean }
+  | { kind: "anthropicKey"; value: string | null }
   | { kind: "addCustomEndpoint"; label: string; endpoint: string; apiKey?: string }
   | { kind: "removeCustomEndpoint"; id: string }
   | { kind: "defaultProvider"; id: "auto" | ProviderId; model?: string }
