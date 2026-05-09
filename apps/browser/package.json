@@ -4,6 +4,15 @@
   "version": "0.0.1",
   "private": true,
   "description": "Delta — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
+  "author": {
+    "name": "Ankur Sinha",
+    "url": "https://github.com/Delta-Practice/Browser"
+  },
+  "homepage": "https://github.com/Delta-Practice/Browser",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Delta-Practice/Browser.git"
+  },
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -44,18 +53,51 @@
     },
     "files": [
       "out/**/*",
-      "package.json"
+      "package.json",
+      "!**/{.DS_Store,.git,*.tsbuildinfo}",
+      "!**/{tsconfig*.json,electron.vite.config.ts,tailwind.config.ts,postcss.config.js}"
     ],
+    "asar": true,
     "mac": {
       "icon": "build/icon.icns",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": false
+    },
+    "dmg": {
+      "background": null,
+      "iconSize": 96,
+      "contents": [
+        { "x": 130, "y": 220, "type": "file" },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
     },
     "win": {
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "target": [
+        { "target": "nsis", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
     },
     "linux": {
       "icon": "build/icon.png",
-      "category": "Network"
-    }
+      "category": "Network",
+      "target": [
+        { "target": "AppImage", "arch": ["x64", "arm64"] },
+        { "target": "deb", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "publish": null
   }
 }
