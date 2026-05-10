@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Tool registry for the Delta browser agent. Two tiers: 'read' tools auto-run; 'act' tools route through a per-(origin, tool) permission gate that the runtime enforces — the model cannot bypass it. Source of truth: apps/browser/src/main/tools.ts in github.com/Delta-Practice/Browser.",
+  "tools": [
+    {
+      "name": "list_tabs",
+      "side": "read",
+      "description": "List all of the user's currently open browser tabs (id, title, url, whether it's the active tab). Use this when you need an overview before reading specific tabs.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "read_active_page",
+      "side": "read",
+      "description": "Read the rendered text of the active tab. Returns the page title, URL, and innerText (truncated). Use this to ground answers in what the user is currently looking at.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "maxChars": {
+            "type": "number",
+            "description": "Maximum characters of page text to return. Defaults to 16000."
+          }
+        }
+      }
+    },
+    {
+      "name": "read_tab",
+      "side": "read",
+      "description": "Read the rendered text of a specific tab by id. Use this after list_tabs when you need the contents of a tab that isn't currently active. Returns title, URL, and innerText (truncated).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tabId": {
+            "type": "string",
+            "description": "The tab's id (from list_tabs)."
+          },
+          "maxChars": {
+            "type": "number",
+            "description": "Maximum characters of page text to return. Defaults to 16000."
+          }
+        },
+        "required": ["tabId"]
+      }
+    },
+    {
+      "name": "navigate",
+      "side": "act",
+      "description": "Load a URL in the user's currently active tab. Use this when the user explicitly asks to go somewhere, or when the answer requires navigating to a specific page first. Permissioned: the user is asked to allow each (origin, navigate) pair the first time.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute URL to load. Must include scheme (https:// or http://)."
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    {
+      "name": "open_tab",
+      "side": "act",
+      "description": "Open a URL in a new tab. Use this when the user asks for something to be opened alongside their current tabs (e.g. background research) instead of replacing the active tab. Permissioned: same per-(origin, open_tab) gate as navigate.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute URL. Must include scheme."
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  ],
+  "page_content_envelope": {
+    "description": "Page text passed to the model is wrapped in this envelope. The system prompt instructs the model to treat anything inside as untrusted data — never as instructions. This is the defense against prompt injection from arbitrary web pages.",
+    "shape": "<page_content title=\"...\" url=\"...\">\n...page innerText, truncated to ~16K chars...\n</page_content>"
+  },
+  "sensitive_site_classifier": {
+    "description": "Before any 'act' tool runs, the runtime checks whether the active tab's host falls into a sensitive class (banking, government, payment, wallet, healthcare). If so, ALL act tools are blocked unconditionally for that tab — the model is told 'blocked: this site is classified as sensitive' and must not propose a workaround.",
+    "categories": ["banking", "government", "payment", "wallet", "healthcare"]
+  }
+}
