@@ -3,282 +3,277 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Delta — a privacy-first AI browser</title>
-  <meta name="description" content="An Electron browser with a built-in agent that runs against a local LLM by default. No accounts. No telemetry. Nothing leaves your machine." />
-  <meta property="og:title" content="Delta — a privacy-first AI browser" />
-  <meta property="og:description" content="Local LLM by default. The agent reads and acts on the active page. Nothing leaves your machine." />
+  <title>delta — a privacy-first ai browser</title>
+  <meta name="description" content="an electron browser with a built-in agent that runs against a local llm by default. no accounts. no telemetry. nothing leaves your machine." />
+  <meta property="og:title" content="delta — a privacy-first ai browser" />
+  <meta property="og:description" content="local llm by default. the agent reads and acts on the active page. nothing leaves your machine." />
   <meta property="og:type" content="website" />
-  <meta name="theme-color" content="#0a0c10" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="delta — a privacy-first ai browser" />
+  <meta name="twitter:description" content="local llm by default. the agent reads and acts on the active page. nothing leaves your machine." />
+  <meta name="twitter:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" />
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- ── Top nav ─────────────────────────────────────────── -->
-<header class="nav">
-  <a class="brand" href="#top" aria-label="Delta home">
-    <span class="brand-mark" aria-hidden="true">
-      <!-- Δ + spark, mirrors brand/icon.svg -->
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="2.4" r="1.1" fill="currentColor" />
-        <path d="M8 5 L13 13.5 L3 13.5 Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.18" />
-      </svg>
-    </span>
-    <span class="brand-word">Delta</span>
-  </a>
-  <nav class="nav-links">
-    <a href="#why">Why Delta?</a>
-    <a href="#features">Features</a>
-    <a href="#install">Install</a>
-    <a href="#architecture">Architecture</a>
-    <a href="#privacy">Privacy</a>
-    <a href="https://github.com/Delta-Practice/Browser" class="link-ghost">GitHub →</a>
-  </nav>
-</header>
+  <!-- ─────────────────────────────────────────────────────────
+       hero — giant wordmark slab + thin nav row underneath
+       ───────────────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta">delta</h1>
+    </div>
+    <nav class="nav">
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+      <a href="#modes">how it works</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent</a>
+      <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">prompt</a>
+      <a href="https://github.com/Delta-Practice/Browser">github</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+    </nav>
+  </header>
 
-<!-- ── Hero ────────────────────────────────────────────── -->
-<section class="hero" id="top">
-  <p class="kicker">An open, privacy-first AI browser</p>
-  <h1 class="display">
-    Browse <em>quietly.</em><br />
-    Your machine. Your model.
-  </h1>
-  <p class="lede">
-    Delta is an Electron browser with a built-in agent that runs against a
-    locally-installed LLM by default. There is no Delta account. No telemetry.
-    Nothing leaves your machine unless you explicitly enable a cloud provider.
-  </p>
-  <div class="cta-row">
-    <a class="btn-primary" href="#install">Get started</a>
-    <a class="btn-ghost" href="https://github.com/Delta-Practice/Browser">View on GitHub →</a>
-  </div>
+  <!-- ─────────────────────────────────────────────────────────
+       pitch — left: huge h2 + sub. right: "works with" list
+       (right-aligned, mute-coloured).
+       ───────────────────────────────────────────────────────── -->
+  <section class="pitch">
+    <div class="lede">
+      <h2>
+        your model.
+        <br>your machine.
+        <span class="badges">
+          <span class="badge">local-first</span>
+          <span class="badge">mit-spirited</span>
+        </span>
+      </h2>
+      <p class="sub">an electron browser with a built-in agent that talks to whatever llm is sitting on your laptop. cloud is opt-in. keys live in your os keychain. nothing leaves the device unless you explicitly enable it.</p>
+    </div>
+    <ul class="hardware-list" aria-label="works with">
+      <li>ollama</li>
+      <li>lm studio</li>
+      <li>llama.cpp</li>
+      <li>mlx</li>
+      <li>anthropic</li>
+      <li>openai</li>
+      <li>+ any openai-compatible</li>
+    </ul>
+  </section>
 
-  <!-- Status strip — small, terminal-like badges -->
-  <ul class="status-strip" aria-label="Project status">
-    <li><span class="dot dot-on"></span> Phase 1 — chat shipped</li>
-    <li><span class="dot"></span> Phase 2 — read-tools next</li>
-    <li><span class="dot"></span> Phase 3 — act-tools (gated)</li>
-    <li><span class="dot"></span> Phase 4 — address-bar AI</li>
-  </ul>
-</section>
+  <div class="index-marker">index</div>
 
-<!-- ── Why Delta — naming + thesis + open-source rationale ──── -->
-<section class="band" id="why">
-  <div class="band-head">
-    <p class="kicker">About</p>
-    <h2>Why <em>Delta&nbsp;Practice?</em></h2>
-  </div>
+  <!-- ─────────────────────────────────────────────────────────
+       bento — 4-col grid with varied spans for rhythm. one
+       inverted dark card (card-local) anchors the row.
+       ───────────────────────────────────────────────────────── -->
+  <section class="bento" id="modes">
 
-  <div class="prose">
-    <h3 class="prose-h">The name</h3>
-    <p>
-      <strong>Δ</strong> is the Greek letter for <em>change</em> — and the
-      shape a river makes where it meets the sea. The agent in this browser
-      exists to manage the delta between what you already know and what's
-      on the page in front of you. Delta is also where things land: in a
-      privacy-respecting browser, your activity is the river, the open web
-      is the sea, and the delta is where attention <em>stays</em> — not
-      where it gets carried out by trackers.
-    </p>
-    <p>
-      <strong>Practice</strong> is the second word, and the deliberate one.
-      Software in practice, not in theory. A discipline of getting the
-      mundane things right — the keyboard shortcuts, the address bar, the
-      way windows manage focus — because an AI browser that treats those
-      as incidental ends up being a chat panel with tabs. And practice as
-      in: <em>we're still figuring it out.</em> The repo is public on day
-      one because the practice happens in the open.
-    </p>
-
-    <h3 class="prose-h">The thesis</h3>
-    <p class="thesis">
-      The next browser is not a Chrome with a chat button. It's a browser
-      that runs the model on your machine, reads pages with permission,
-      acts on your behalf with consent, and forgets when you tell it to.
-    </p>
-    <p>
-      Each clause is load-bearing. Local LLM by default — every other AI
-      browser ships your queries (and often the page) to a cloud. Permission
-      lives in the runtime, not the prompt — a malicious page can't
-      hijack the agent because the gate fires <em>between</em> the model's
-      tool-call and the actual handler. Conversations persist on your disk;
-      delete a thread and it's gone. There is no remote conversation log
-      because there is no remote.
-    </p>
-
-    <h3 class="prose-h">Open source — and why</h3>
-    <p>
-      The repo is public from day one. Three reasons:
-    </p>
-    <ol class="prose-list">
-      <li>
-        <strong>Privacy claims need verification.</strong> "Local-first,
-        no telemetry, keys in the OS keychain" is a line on a landing
-        page until someone can read the code. Closing the source on a
-        privacy-first browser is a contradiction.
-      </li>
-      <li>
-        <strong>Architecture is the moat, not the binary.</strong> The
-        thoughtful parts of this project are the design docs and the
-        discipline of staying true to them — not any clever trick. A team
-        that wants to copy us would spend more time understanding the
-        design than the code.
-      </li>
-      <li>
-        <strong>Contributors over velocity.</strong> A solo project moves
-        fast for two weeks and stops. A small community moves slower per
-        week and doesn't stop. The repo is structured to be readable —
-        you should be productive in a day.
-      </li>
-    </ol>
-    <p class="prose-cta">
-      The full version, including what we're explicitly <em>not</em>
-      building and the constraints we accept, lives in
-      <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">apps/browser/docs/about.md</a>.
-    </p>
-  </div>
-</section>
-
-<!-- ── Install / quickstart ───────────────────────────── -->
-<section class="band install" id="install">
-  <div class="band-head">
-    <p class="kicker">Quickstart</p>
-    <h2>Run it in three commands.</h2>
-    <p class="lede">Requires <code>pnpm</code> and Node 20+. Tested on macOS; Linux works; Windows works in dev but the icon pipeline is mac-only for now.</p>
-  </div>
-  <div class="codeblock" aria-label="Install commands">
-    <div class="code-meta"><span>shell</span></div>
-<pre><code><span class="cmt"># clone, install, run</span>
-git clone https://github.com/Delta-Practice/Browser.git
-cd Browser
-pnpm install
-pnpm delta:dev
-</code></pre>
-  </div>
-  <div class="codeblock" aria-label="Bring up a local model">
-    <div class="code-meta"><span>shell</span></div>
-<pre><code><span class="cmt"># bring up a local model — fastest path is Ollama</span>
-brew install ollama
-ollama serve &amp;
-ollama pull llama3.2
-<span class="cmt"># Delta auto-detects it within a few seconds</span>
-</code></pre>
-  </div>
-  <p class="footnote">
-    Already running LM Studio / llama.cpp / MLX? Start their local server and
-    Delta picks them up. Cloud providers (OpenAI &amp; OpenAI-compatible) are
-    opt-in via Settings → API key, encrypted in your OS keychain.
-  </p>
-</section>
-
-<!-- ── Features ──────────────────────────────────────── -->
-<section class="band" id="features">
-  <div class="band-head">
-    <p class="kicker">What's in the box</p>
-    <h2>Four pillars.</h2>
-  </div>
-  <div class="grid-4">
-    <article class="card">
-      <p class="card-tag">Privacy</p>
-      <h3>Local by default</h3>
-      <p>Auto-discovers Ollama, LM Studio, llama.cpp, MLX. Cloud providers are off until you explicitly enable them. No Delta account.</p>
+    <!-- card-local: spans 2, inverted dark. the headline feature. -->
+    <article class="card card-local">
+      <div class="art">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <circle cx="50" cy="50" r="44" stroke-dasharray="2 6" opacity="0.25"/>
+          <circle cx="50" cy="50" r="28" opacity="0.45"/>
+          <circle cx="50" cy="50" r="14" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">local llm by default</span>
+      </div>
+      <p>auto-discovers ollama, lm studio, llama.cpp, mlx on 127.0.0.1. the model that reads your tabs sits on the same machine that opened them.</p>
     </article>
-    <article class="card">
-      <p class="card-tag">Agent</p>
-      <h3>Reads &amp; acts</h3>
-      <p>The sidebar agent reads the active page (Phase 1 ✓). Read-tools, act-tools, and a per-origin permission model are next on the roadmap.</p>
-    </article>
-    <article class="card">
-      <p class="card-tag">Identity</p>
-      <h3>Device is the account</h3>
-      <p>Profiles are local. API keys live in your OS keychain via <code>safeStorage</code>. The renderer never sees a key value.</p>
-    </article>
-    <article class="card">
-      <p class="card-tag">Trust</p>
-      <h3>Open-source</h3>
-      <p>The repo is public for feedback. Brand assets are under <code>brand/</code>. Architecture &amp; threat model are in <code>apps/browser/docs/</code>.</p>
-    </article>
-  </div>
-</section>
 
-<!-- ── Architecture ───────────────────────────────────── -->
-<section class="band" id="architecture">
-  <div class="band-head">
-    <p class="kicker">Architecture</p>
-    <h2>One rule:<br /><em>the agent never runs in the renderer.</em></h2>
-    <p class="lede">All LLM calls, tool execution, and conversation state live in the main process. The renderer is a typed view over an event stream — it can request actions but never owns them. That keeps secrets out of the page-loading process and centralises tool authority where the permission gate can enforce it.</p>
-  </div>
-  <div class="codeblock" aria-label="Architecture diagram">
-    <div class="code-meta"><span>main + renderer</span></div>
-<pre><code>┌─ Electron <span class="kw">main</span> ──────────────────────────────────────────────┐
-│                                                                    │
-│  TabManager           Agent runtime          SettingsStore         │
-│   ├ WebContentsView    ├ task state           ├ user settings       │
-│   ├ navigation         ├ provider client      ├ safeStorage keys    │
-│   └ DOM access via     └ tool registry        └ (OS keychain)       │
-│      executeJavaScript                                              │
-│                                                                    │
-└──────────────────── ipc events ───────────────────────────────────┘
-                              │
-   ┌──────────────── React <span class="kw">renderer</span> ─────────────────┐
-   │  TabStrip · AddressBar · Sidebar · SettingsPanel    │
-   └──────────────────────────────────────────────────────┘
-</code></pre>
-  </div>
-</section>
+    <!-- card-untrusted: span 1 -->
+    <article class="card card-untrusted">
+      <div class="art art-text mono">&lt;/&gt;</div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">untrusted-content</span>
+      </div>
+      <p>page text wrapped in tags the system prompt frames as data, not instructions. malicious page can't hijack the agent.</p>
+    </article>
 
-<!-- ── Privacy posture ────────────────────────────────── -->
-<section class="band privacy" id="privacy">
-  <div class="band-head">
-    <p class="kicker">Privacy posture</p>
-    <h2>What goes where.</h2>
-  </div>
-  <div class="ledger">
-    <div class="ledger-row">
-      <span class="lhs">You ↔ a website</span>
-      <span class="rhs">Cookies in the WebContentsView. Same as any browser.</span>
-    </div>
-    <div class="ledger-row">
-      <span class="lhs">You ↔ a local LLM</span>
-      <span class="rhs">HTTP to <code>127.0.0.1</code>. Never leaves the machine.</span>
-    </div>
-    <div class="ledger-row">
-      <span class="lhs">You ↔ a cloud LLM</span>
-      <span class="rhs">Off by default. Opt-in via Settings, key encrypted in OS keychain.</span>
-    </div>
-    <div class="ledger-row">
-      <span class="lhs">You ↔ Delta</span>
-      <span class="rhs"><em>Nothing.</em> There is no Delta server.</span>
-    </div>
-    <div class="ledger-row">
-      <span class="lhs">Update check</span>
-      <span class="rhs">Once a day. Single signed manifest. No telemetry. Toggleable.</span>
-    </div>
-  </div>
-</section>
+    <!-- card-permission: span 1 -->
+    <article class="card card-permission">
+      <div class="art">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <rect x="14" y="22" width="72" height="56" rx="6"/>
+          <path d="M30 50 L46 64 L72 38" stroke-width="3"/>
+        </svg>
+      </div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">permission gate</span>
+      </div>
+      <p>every act-tool routes through a per-(origin, tool) gate that lives in the runtime, not the prompt.</p>
+    </article>
 
-<!-- ── Footer ─────────────────────────────────────────── -->
-<footer class="foot">
-  <div class="foot-brand">
-    <span class="brand-mark" aria-hidden="true">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="2.4" r="1.1" fill="currentColor" />
-        <path d="M8 5 L13 13.5 L3 13.5 Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.18" />
-      </svg>
-    </span>
-    <span class="foot-word">Delta</span>
-    <span class="foot-meta">Open · MIT-spirited · No tracking</span>
-  </div>
-  <div class="foot-links">
-    <a href="https://github.com/Delta-Practice/Browser">GitHub</a>
-    <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">Agent design</a>
-    <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">Identity</a>
-    <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/guidelines.md">Brand</a>
-  </div>
-</footer>
+    <!-- card-honest: span 1, BIG NUMBER ART -->
+    <article class="card card-honest">
+      <div class="art art-text">78</div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">tracker blocker</span>
+      </div>
+      <p>~150 known trackers caught at the network layer from app boot. 30-day rolling stats. on-device only.</p>
+    </article>
+
+    <!-- card-open: span 2 -->
+    <article class="card card-open">
+      <div class="art art-text mono">{ }</div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">read &amp; act tools</span>
+      </div>
+      <p>read tools (list_tabs, read_active_page, read_tab) auto-run. act tools (navigate, open_tab) need explicit consent. tool registry is open in tools.ts. the prompt + schemas are mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a> for verification.</p>
+    </article>
+
+    <!-- card-private: span 1 -->
+    <article class="card card-private">
+      <div class="art">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <circle cx="50" cy="50" r="34"/>
+          <line x1="22" y1="22" x2="78" y2="78"/>
+        </svg>
+      </div>
+      <div class="meta">
+        <span class="dot"></span>
+        <span class="label">no telemetry. no account.</span>
+      </div>
+      <p>device is the identity. conversations, bookmarks, history live as flat json on your disk. quit deletes nothing; rm -rf does.</p>
+    </article>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       milestones — kernel-style "stories" strip. real shipped
+       phases with code snippets that hint at what each does.
+       ───────────────────────────────────────────────────────── -->
+  <section class="milestones">
+    <div class="head">
+      <h3>milestones</h3>
+      <a class="view-all" href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">view all</a>
+    </div>
+    <div class="cards">
+
+      <article class="story">
+        <div class="meta">
+          <span class="dot"></span>
+          <span class="label">phase 1 — chat</span>
+        </div>
+        <p>streaming chat against the active tab, talking to whatever local model is running. cloud opt-in.</p>
+        <div class="image">
+          <pre><code>$ pnpm delta:dev
+delta detected · ollama / llama3.2
+&gt; summarise this page
+the article argues that...</code></pre>
+        </div>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts" class="more">read source →</a>
+      </article>
+
+      <article class="story">
+        <div class="meta">
+          <span class="dot"></span>
+          <span class="label">phase 2 + 3 — read &amp; act</span>
+        </div>
+        <p>read tools auto-run (list_tabs, read_active_page, read_tab). act tools (navigate, open_tab) gated per-origin.</p>
+        <div class="image">
+          <pre><code>read_active_page → {
+  title: "hacker news",
+  url: "https://news.ycombinator.com",
+  text: "...", truncated: false
+}</code></pre>
+        </div>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts" class="more">read source →</a>
+      </article>
+
+      <article class="story">
+        <div class="meta">
+          <span class="dot"></span>
+          <span class="label">tracker blocker + privacy report</span>
+        </div>
+        <p>blocks ~150 known trackers from app boot. 30-day rolling stats in settings + a chip on the new tab.</p>
+        <div class="image">
+          <pre><code>googletagmanager.com  blocked across 52 sites
+google-analytics.com  blocked across 41 sites
+hotjar.com            blocked across  8 sites
+...</code></pre>
+        </div>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/privacy.ts" class="more">read source →</a>
+      </article>
+
+      <article class="story">
+        <div class="meta">
+          <span class="dot"></span>
+          <span class="label">phase 4 — designed, not started</span>
+        </div>
+        <p>address-bar AI (⌘L ?), concurrent task threads, click + type act tools. designed in agent-design.md.</p>
+        <div class="image">
+          <pre><code>⌘L ? "is the cheapest flight on
+       the page non-stop?"
+→ ask mode (no sidebar needed)</code></pre>
+        </div>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md" class="more">read roadmap →</a>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────
+       footer — 4-col: logo / articles / follow / legal
+       ───────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-grid">
+
+      <div class="logo">
+        <!-- Line-art mark, mirrors brand/icon-mark.svg. currentColor so
+             it tints to the page's --fg without a fork in the SVG. -->
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor"
+             stroke-width="6" stroke-linejoin="round" stroke-linecap="round"
+             width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+
+      <div class="col">
+        <h4>articles</h4>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">why we're building this — the manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design + threat model</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">device-as-account: the identity model</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/guidelines.md">brand and voice</a>
+      </div>
+
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. issues + PRs welcome. there is no podcast.</p>
+        <p>prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+
+      <div class="col">
+        <h4>legal</h4>
+        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. read it, fork it, audit it. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+        <p class="badges">
+          <span class="badge">v0</span>
+          <span class="badge">unsigned</span>
+        </p>
+      </div>
+
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
 
 </body>
 </html>

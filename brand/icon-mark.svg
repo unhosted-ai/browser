@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Delta — minimal line-art mark.
+
+  Companion to brand/icon.svg (the app icon with gradient + dark canvas).
+  This variant strips everything to a single stroke-weight Δ + spark,
+  uses `currentColor` so it tints to the surrounding page, and matches
+  the visual register used by unhosted-ai / Kernel for header logos:
+  line-only, no fills, calm, geometric.
+
+  Use it for:
+    • GitHub Pages footer / header marks
+    • README hero (smaller usage where the gradient icon would feel busy)
+    • Slack / Discord avatars where the surrounding chrome already provides background
+
+  200×200 viewBox so it's drop-in-compatible with other minimal marks.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
+     fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"
+     aria-label="Delta">
+  <title>Delta — line-art mark</title>
+
+  <!-- Spark — small filled circle above the apex of the triangle.
+       Sits at ~12% of the height; same proportional placement as in
+       brand/icon.svg + brand/wordmark.svg so the mark family stays
+       visually coherent at a glance. -->
+  <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+
+  <!-- Δ — equilateral triangle. Same proportions as the app icon's
+       glyph, just stripped to a single stroke. The fill stays empty
+       so it reads as a glyph, not a button. -->
+  <path d="M 100 60 L 168 168 L 32 168 Z"/>
+</svg>

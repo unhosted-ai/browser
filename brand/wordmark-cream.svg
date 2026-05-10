@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Delta wordmark, cream-background variant.
+
+  Mirrors brand/wordmark.svg but inverts the colour register: the
+  "Delta" type sits in near-black on cream, and the Δ glyph keeps
+  its mint signal but with a darker stroke weight so it reads on
+  the lighter ground. Use this on the GitHub Pages landing page
+  and any cream-register marketing.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
+  <title>Delta wordmark — cream</title>
+
+  <!-- Cream background fill (so JPG export composites cleanly). -->
+  <rect width="640" height="160" fill="#f5f5f0"/>
+
+  <!-- Spark — mint dot above the apex of the Δ. -->
+  <circle cx="80" cy="22" r="6.2" fill="hsl(135 55% 38%)"/>
+
+  <!-- Δ mark — darker mint to read on cream. -->
+  <path
+    d="M 80 38 L 138 130 L 22 130 Z"
+    fill="hsl(135 55% 38%)"
+    fill-opacity="0.18"
+    stroke="hsl(135 55% 38%)"
+    stroke-width="6"
+    stroke-linejoin="round"
+  />
+
+  <!-- Wordmark — near-black on cream. -->
+  <text
+    x="170"
+    y="118"
+    font-family="'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif"
+    font-style="italic"
+    font-weight="400"
+    font-size="120"
+    fill="#0a0a0a"
+  >Delta</text>
+</svg>
