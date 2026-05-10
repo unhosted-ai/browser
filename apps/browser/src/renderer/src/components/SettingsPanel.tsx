@@ -108,6 +108,7 @@ function SettingsBody({
           onAddCustomEndpoint={openAdderAndScroll}
         />
         <AppearanceSection />
+        <NewTabSection settings={settings} />
         <CloudKeySection
           label="OpenAI cloud"
           hint="Used only when explicitly enabled. Off by default."
@@ -387,6 +388,101 @@ function AppearanceSection() {
           </button>
         ))}
       </div>
+    </section>
+  )
+}
+
+// ── New-tab background ───────────────────────────────────────
+function NewTabSection({ settings }: { settings: UserSettings }) {
+  const mode = settings.newtabBackground
+  const folder = settings.newtabFolder
+  const [busy, setBusy] = useState(false)
+
+  const setMode = (v: "procedural" | "photographic") => {
+    void window.api.settings.update({ kind: "newtabBackground", value: v })
+  }
+  const pickFolder = async () => {
+    setBusy(true)
+    try {
+      const picked = await window.api.newtabBg.pickFolder()
+      if (picked) {
+        await window.api.settings.update({ kind: "newtabFolder", value: picked })
+        // Auto-switch to photographic when the user picks a folder — the
+        // most common path: "I picked a folder, I want to see those photos."
+        await window.api.settings.update({ kind: "newtabBackground", value: "photographic" })
+      }
+    } finally { setBusy(false) }
+  }
+  const clearFolder = () => {
+    void window.api.settings.update({ kind: "newtabFolder", value: null })
+    void window.api.settings.update({ kind: "newtabBackground", value: "procedural" })
+  }
+
+  return (
+    <section>
+      <SectionHeader
+        label="New tab"
+        hint="The opening surface every time you ⌘T. Procedural is local & animated; photographic cycles through your own folder of images."
+      />
+      <div className="flex gap-2 mb-3">
+        {(["procedural", "photographic"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={[
+              "h-9 px-4 rounded-full border text-[12px] tracking-[0.02em] capitalize transition-colors duration-150",
+              mode === m
+                ? "bg-signal/15 border-signal/60 text-signal"
+                : "border-chrome-border text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3",
+            ].join(" ")}
+          >
+            {m === "procedural" ? "Procedural sky" : "Your photos"}
+          </button>
+        ))}
+      </div>
+      {mode === "photographic" && (
+        <div className="rounded-[12px] border border-chrome-border bg-chrome-surface px-3 py-2.5 space-y-2">
+          {folder ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">Folder</p>
+                <p className="text-[12px] text-chrome-text truncate" title={folder}>{folder}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={pickFolder}
+                  disabled={busy}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-2 hover:text-signal px-2 py-1 rounded"
+                >
+                  Change
+                </button>
+                <button
+                  type="button"
+                  onClick={clearFolder}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text px-2 py-1 rounded"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={pickFolder}
+              disabled={busy}
+              className="w-full h-9 rounded-md border border-dashed border-chrome-border hover:border-signal/60 text-[12px] text-chrome-text-2 hover:text-signal transition-colors"
+            >
+              {busy ? "Opening picker…" : "Pick a folder of images…"}
+            </button>
+          )}
+          <p className="text-[11px] text-chrome-text-3 leading-relaxed">
+            JPG / PNG / WebP / AVIF / GIF. One image per new tab, picked
+            at random. Your photos never leave this device.
+          </p>
+        </div>
+      )}
     </section>
   )
 }

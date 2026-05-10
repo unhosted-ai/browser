@@ -37,6 +37,8 @@ const DEFAULTS: StoredSettings = {
   customEndpoints: [],
   defaultProvider: { id: "auto" },
   permissionGrants: [],
+  newtabBackground: "procedural",
+  newtabFolder: null,
 }
 
 function settingsPath(): string {
@@ -92,6 +94,8 @@ function toWire(s: StoredSettings): UserSettings {
     })),
     defaultProvider: s.defaultProvider,
     permissionGrants: s.permissionGrants ?? [],
+    newtabBackground: s.newtabBackground ?? "procedural",
+    newtabFolder: s.newtabFolder ?? null,
   }
 }
 
@@ -194,6 +198,12 @@ export class SettingsStore {
         }
         break
       }
+      case "newtabBackground":
+        this.state.newtabBackground = update.value
+        break
+      case "newtabFolder":
+        this.state.newtabFolder = update.value
+        break
     }
     persist(this.state)
     this.emit()

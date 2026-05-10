@@ -14,6 +14,7 @@ import { isSpeaking, startSpeaking, stopSpeaking } from "./tts"
 import { HistoryStore } from "./history"
 import { DownloadsManager } from "./downloads"
 import { clearBrowsingData } from "./browsing-data"
+import { pickFolder } from "./newtab-bg"
 import type { AgentMessage, AgentSendInput, ClearScope, SettingsUpdate, TabId } from "@shared/types"
 
 const isDev = !app.isPackaged
@@ -178,6 +179,12 @@ function registerIpc(): void {
     await clearBrowsingData(scope, { history, downloads })
   })
 
+  // New-tab background folder picker — opens a native dialog and returns
+  // the chosen path. The renderer then writes it via settings:update.
+  ipcMain.handle("newtabBg:pickFolder", async () => {
+    return await pickFolder(mainWindow)
+  })
+
   // Agent (Phase 1: chat + Phase 2: read tools + Phase 3: act tools).
   // Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
@@ -211,7 +218,16 @@ app.whenReady().then(() => {
   bookmarks = new BookmarkStore()
   history = new HistoryStore()
   downloads = new DownloadsManager()
-  registerNewtabProtocol(() => privacy?.getReport() ?? null)
+  registerNewtabProtocol(
+    () => privacy?.getReport() ?? null,
+    () => {
+      const s = settings?.get()
+      return {
+        mode: s?.newtabBackground ?? "procedural",
+        folder: s?.newtabFolder ?? null,
+      }
+    },
+  )
   createWindow()
   // Per-tab counters: every block tells the active TabManager which tab
   // owned the request, so the address-bar shield can show "N blocked here".

@@ -9,20 +9,54 @@
 // aphorism, the manifesto excerpt, the silhouette all rotate together.
 import { protocol } from "electron"
 import type { PrivacyReport } from "@shared/types"
+import { buildBgResponse, pickRandomImage } from "./newtab-bg"
 
 type ReportGetter = () => PrivacyReport | null
+type BgGetter = () => { mode: "procedural" | "photographic"; folder: string | null }
 
-export function registerNewtabProtocol(getReport: ReportGetter = () => null): void {
+export function registerNewtabProtocol(
+  getReport: ReportGetter = () => null,
+  getBg: BgGetter = () => ({ mode: "procedural", folder: null }),
+): void {
   protocol.handle("delta", (req) => {
     const url = new URL(req.url)
-    const path = url.hostname || "newtab"
-    if (path === "newtab") {
-      // Snapshot stats at request time and inline them into the page so
-      // the card paints with real numbers on first frame — no IPC round-
-      // trip from the renderer required.
+    const host = url.hostname || "newtab"
+
+    // ── delta://newtab-bg/<encoded-abs-path> ───────────────
+    // Serves a single image file for the photographic background. Path
+    // traversal is enforced inside buildBgResponse — only files within
+    // the user-picked folder are returned.
+    if (host === "newtab-bg") {
+      try {
+        // We hand the photo path back in url.pathname (skip leading /).
+        const decoded = decodeURIComponent(url.pathname.slice(1))
+        return buildBgResponse(decoded, getBg().folder)
+      } catch {
+        return new Response("Bad path", { status: 400 })
+      }
+    }
+
+    // ── delta://newtab ─────────────────────────────────────
+    if (host === "newtab") {
       const report = getReport()
       const stats7d = report ? sumLastNDays(report.dailyCounts, 7) : 0
-      const html = HTML.replace(/__STATS_7D__/g, String(stats7d))
+      const bg = getBg()
+      // Pick an image at request time. If photographic mode is on but the
+      // folder is empty/missing, we fall back to procedural — `bgUrl` is
+      // empty and the body class stays "bg-procedural".
+      let bgUrl = ""
+      let bgClass = "bg-procedural"
+      if (bg.mode === "photographic" && bg.folder) {
+        const pick = pickRandomImage(bg.folder)
+        if (pick) {
+          bgUrl = "delta://newtab-bg/" + encodeURIComponent(pick)
+          bgClass = "bg-photographic"
+        }
+      }
+      const html = HTML
+        .replace(/__STATS_7D__/g, String(stats7d))
+        .replace(/__BG_URL__/g, bgUrl)
+        .replace(/__BG_CLASS__/g, bgClass)
       return new Response(html, {
         headers: { "content-type": "text/html; charset=utf-8" },
       })
@@ -88,22 +122,45 @@ const MANIFESTOS = [
   "Software you can read is software you can trust. Delta is open from day one because the alternative is asking you to take our word for things that should be verifiable.",
 ] as const
 
-// 7 sky palettes, one per weekday. Hand-tuned for cohesion.
-const PALETTES: Array<{ a: string; b: string; c: string; sun: string; horizon: string }> = [
-  // Mon — dawn
-  { a: "#1d2540", b: "#5a6e9a", c: "#f4c79a", sun: "#ffd9a8", horizon: "#0e1422" },
-  // Tue — clear noon
-  { a: "#2c4a78", b: "#7fa9d4", c: "#dfeaf5", sun: "#ffe9b6", horizon: "#162437" },
-  // Wed — golden hour
-  { a: "#3a2a52", b: "#c95f5a", c: "#f4a261", sun: "#ffd58a", horizon: "#1c1428" },
-  // Thu — overcast
-  { a: "#3b3f4a", b: "#7a8190", c: "#b9bfca", sun: "#e9eaee", horizon: "#1f2127" },
-  // Fri — pink dusk
-  { a: "#2a1c3a", b: "#a06a9b", c: "#f0c0c4", sun: "#ffc6c6", horizon: "#150e1e" },
-  // Sat — stormy
-  { a: "#1a2230", b: "#3e5470", c: "#7f95b3", sun: "#cdd9e8", horizon: "#0b0f17" },
-  // Sun — midnight
-  { a: "#0b0e1c", b: "#1d2545", c: "#3c4a78", sun: "#aab8e3", horizon: "#05070d" },
+// Sky palettes — hand-tuned for cohesion. Inspired by the moodboards
+// you find on Pinterest "calm desktop" / "Studio Ghibli sky" boards and
+// the most-saved Unsplash nature shots: cotton candy dawns, Mojave dusks,
+// Ghibli noons, foggy mountains, aurora nights.
+//   `dark`   → enables stars + city lights + (rarely) a shooting star
+//   `aurora` → enables the green/purple aurora wisps
+//   `haze`   → CSS color used for the mid-altitude haze layer
+type Palette = {
+  name: string
+  a: string; b: string; c: string
+  sun: string
+  horizon: string
+  haze: string
+  dark?: boolean
+  aurora?: boolean
+}
+const PALETTES: Palette[] = [
+  // Dawn — pale lavender → peach
+  { name: "dawn",         a: "#1d2540", b: "#5a6e9a", c: "#f4c79a", sun: "#ffd9a8", horizon: "#0e1422", haze: "rgba(255,225,200,0.20)" },
+  // Cotton candy — pastel pink/purple/cream (Pinterest-core)
+  { name: "cottoncandy",  a: "#2a1f3a", b: "#d8a0c8", c: "#fce4d4", sun: "#ffd6e0", horizon: "#1a1024", haze: "rgba(255,210,225,0.22)" },
+  // Ghibli noon — deep cyan with cream clouds
+  { name: "ghibli",       a: "#1f4e8a", b: "#6cb4e0", c: "#f6f3e3", sun: "#fff7c4", horizon: "#0f2c50", haze: "rgba(255,255,255,0.18)" },
+  // Mojito morning — mint green + cream
+  { name: "mojito",       a: "#1f4536", b: "#7fc7a4", c: "#eef5e3", sun: "#fff5b8", horizon: "#0f2418", haze: "rgba(220,255,230,0.20)" },
+  // Golden hour — purple → coral → amber
+  { name: "goldenhour",   a: "#3a2a52", b: "#c95f5a", c: "#f4a261", sun: "#ffd58a", horizon: "#1c1428", haze: "rgba(255,180,140,0.22)" },
+  // Mojave dusk — burnt orange + teal (Pinterest desert vibe)
+  { name: "mojave",       a: "#1a3540", b: "#c46a3a", c: "#f4d3a4", sun: "#ffc080", horizon: "#0f2028", haze: "rgba(255,170,100,0.22)" },
+  // Pink dusk — mauve to soft rose
+  { name: "pinkdusk",     a: "#2a1c3a", b: "#a06a9b", c: "#f0c0c4", sun: "#ffc6c6", horizon: "#150e1e", haze: "rgba(240,180,200,0.20)" },
+  // Foggy mountain — slate greys + pale yellow
+  { name: "foggy",        a: "#3b3f4a", b: "#7a8190", c: "#b9bfca", sun: "#e9eaee", horizon: "#1f2127", haze: "rgba(255,255,255,0.30)" },
+  // Stormy — deep blue-grey
+  { name: "stormy",       a: "#1a2230", b: "#3e5470", c: "#7f95b3", sun: "#cdd9e8", horizon: "#0b0f17", haze: "rgba(180,200,220,0.18)", dark: true },
+  // Midnight — deep navy with starlight
+  { name: "midnight",     a: "#0b0e1c", b: "#1d2545", c: "#3c4a78", sun: "#aab8e3", horizon: "#05070d", haze: "rgba(80,120,180,0.10)", dark: true },
+  // Aurora — deep night with green/purple wisps overlaid
+  { name: "aurora",       a: "#040814", b: "#0e1a3a", c: "#1f2a52", sun: "#9ec3ff", horizon: "#020410", haze: "rgba(120,200,180,0.12)", dark: true, aurora: true },
 ]
 
 // ── HTML ─────────────────────────────────────────────────
@@ -154,7 +211,249 @@ const HTML = /* html */ `<!doctype html>
         var(--c1, #1d2540) 0%,
         var(--c2, #5a6e9a) 55%,
         var(--c3, #f4c79a) 100%);
+    /* "Breathing" — the gradient stops shift by ~3% over a 24s loop, so
+       the sky feels alive without distracting. Slow enough that the eye
+       doesn't track it; fast enough that you notice within ~10s. */
+    animation: skyBreath 24s ease-in-out infinite alternate;
   }
+  @keyframes skyBreath {
+    0%   { background-position: 0% 0%, 0% 0%; filter: brightness(1.00) saturate(1.00); }
+    100% { background-position: 0% 3%, 0% 0%; filter: brightness(1.04) saturate(1.06); }
+  }
+  /* Sun shimmer — a separate radial that pulses on top of the sky's
+     baked-in sun. Subtle: opacity 0.35 → 0.55 over 6s. */
+  .sun-shimmer {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at var(--sun-x, 70%) var(--sun-y, 22%),
+      var(--sun, #fff) 0%, transparent 22%);
+    mix-blend-mode: screen;
+    opacity: 0.35;
+    pointer-events: none;
+    animation: sunPulse 6s ease-in-out infinite alternate;
+  }
+  @keyframes sunPulse {
+    0%   { opacity: 0.32; transform: scale(1.00); }
+    100% { opacity: 0.58; transform: scale(1.06); }
+  }
+  /* ── drifting clouds ────────────────────────────────── */
+  /* Three layers — wispy cirrus (highest), tufted altocumulus (middle),
+     puffy cumulus (low). Each is a cluster of overlapping ellipses run
+     through a Gaussian blur filter so the edges read soft + organic
+     instead of geometric. Layers move at different speeds for parallax. */
+  .clouds {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    mix-blend-mode: screen;
+  }
+  .cloud-layer {
+    position: absolute;
+    left: -50%;
+    width: 200%;
+    background-repeat: repeat-x;
+    background-size: contain;
+    will-change: transform;
+  }
+  /* Cirrus — highest layer, wispy and almost transparent. */
+  .cloud-far {
+    top: 8%; height: 14%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 140'><defs><filter id='b1' x='-10%25' y='-10%25' width='120%25' height='120%25'><feGaussianBlur stdDeviation='3.5'/></filter></defs><g fill='white' fill-opacity='0.5' filter='url(%23b1)'><ellipse cx='80' cy='70' rx='95' ry='5'/><ellipse cx='160' cy='75' rx='110' ry='4'/><ellipse cx='270' cy='68' rx='80' ry='3.5'/><ellipse cx='420' cy='72' rx='130' ry='5'/><ellipse cx='540' cy='66' rx='100' ry='4'/><ellipse cx='720' cy='74' rx='150' ry='5'/><ellipse cx='870' cy='70' rx='90' ry='4'/></g></svg>");
+    animation: drift 220s linear infinite;
+    opacity: 0.7;
+  }
+  /* Altocumulus — middle layer, soft tufts. */
+  .cloud-mid {
+    top: 18%; height: 22%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 220'><defs><filter id='b2' x='-10%25' y='-10%25' width='120%25' height='120%25'><feGaussianBlur stdDeviation='5'/></filter></defs><g fill='white' fill-opacity='0.8' filter='url(%23b2)'><ellipse cx='90' cy='130' rx='55' ry='28'/><ellipse cx='140' cy='115' rx='60' ry='30'/><ellipse cx='195' cy='128' rx='50' ry='24'/><ellipse cx='150' cy='148' rx='90' ry='12'/><ellipse cx='420' cy='110' rx='65' ry='32'/><ellipse cx='480' cy='100' rx='75' ry='38'/><ellipse cx='550' cy='115' rx='60' ry='30'/><ellipse cx='480' cy='140' rx='110' ry='14'/><ellipse cx='760' cy='125' rx='58' ry='28'/><ellipse cx='820' cy='115' rx='68' ry='32'/><ellipse cx='880' cy='128' rx='55' ry='26'/><ellipse cx='820' cy='148' rx='100' ry='12'/></g></svg>");
+    animation: drift 140s linear infinite;
+    opacity: 0.85;
+  }
+  /* Cumulus — lowest layer, big puffy shapes with flat bases. */
+  .cloud-near {
+    top: 30%; height: 28%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 280'><defs><filter id='b3' x='-10%25' y='-10%25' width='120%25' height='120%25'><feGaussianBlur stdDeviation='8'/></filter></defs><g fill='white' fill-opacity='0.95' filter='url(%23b3)'><ellipse cx='110' cy='150' rx='75' ry='42'/><ellipse cx='180' cy='130' rx='90' ry='52'/><ellipse cx='260' cy='145' rx='80' ry='45'/><ellipse cx='320' cy='160' rx='65' ry='35'/><ellipse cx='200' cy='185' rx='160' ry='18'/><ellipse cx='560' cy='155' rx='85' ry='48'/><ellipse cx='650' cy='135' rx='100' ry='58'/><ellipse cx='740' cy='150' rx='90' ry='50'/><ellipse cx='820' cy='165' rx='70' ry='38'/><ellipse cx='670' cy='195' rx='180' ry='20'/></g></svg>");
+    animation: drift 90s linear infinite;
+    opacity: 0.8;
+  }
+  @keyframes drift {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(50%); }
+  }
+  /* ── sun god-rays ───────────────────────────────────── */
+  /* Conic gradient from the sun position with narrow wedge stops, masked
+     to fade out radially. Slowly rotates so the rays look like light
+     scattering through atmosphere. Only visible when the sun is in the
+     visible part of the sky (controlled by --rays-opacity). */
+  .sun-rays {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: conic-gradient(
+      from 0deg at var(--sun-x, 70%) var(--sun-y, 22%),
+      transparent 0deg, var(--sun, #fff) 4deg, transparent 12deg,
+      transparent 32deg, var(--sun, #fff) 36deg, transparent 44deg,
+      transparent 70deg, var(--sun, #fff) 74deg, transparent 82deg,
+      transparent 110deg, var(--sun, #fff) 114deg, transparent 122deg,
+      transparent 150deg, var(--sun, #fff) 154deg, transparent 162deg,
+      transparent 195deg, var(--sun, #fff) 199deg, transparent 207deg,
+      transparent 240deg, var(--sun, #fff) 244deg, transparent 252deg,
+      transparent 285deg, var(--sun, #fff) 289deg, transparent 297deg,
+      transparent 330deg, var(--sun, #fff) 334deg, transparent 342deg,
+      transparent 360deg
+    );
+    -webkit-mask: radial-gradient(circle at var(--sun-x, 70%) var(--sun-y, 22%), black 0%, transparent 45%);
+            mask: radial-gradient(circle at var(--sun-x, 70%) var(--sun-y, 22%), black 0%, transparent 45%);
+    mix-blend-mode: screen;
+    opacity: var(--rays-opacity, 0.18);
+    animation: rotateSlow 180s linear infinite;
+  }
+  @keyframes rotateSlow {
+    0%   { filter: hue-rotate(0deg); transform: rotate(0deg); transform-origin: var(--sun-x, 70%) var(--sun-y, 22%); }
+    100% { filter: hue-rotate(0deg); transform: rotate(360deg); transform-origin: var(--sun-x, 70%) var(--sun-y, 22%); }
+  }
+  /* ── starfield (only shown on dark palettes) ────────── */
+  .stars {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    display: none;
+  }
+  body.stars-on .stars { display: block; }
+  .stars circle {
+    fill: white;
+    transform-origin: center;
+    animation: twinkle var(--twinkle-dur, 3s) ease-in-out var(--twinkle-delay, 0s) infinite alternate;
+  }
+  @keyframes twinkle {
+    0%   { opacity: 0.18; }
+    100% { opacity: 0.95; }
+  }
+  /* ── flying bird (rare, charming detail) ────────────── */
+  .bird {
+    position: absolute;
+    top: 22%;
+    width: 22px; height: 14px;
+    pointer-events: none;
+    opacity: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 14'><path d='M1 9 Q5 2 11 7 Q17 2 21 9' stroke='%23000' stroke-width='1.2' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'/></svg>");
+    background-repeat: no-repeat; background-size: contain;
+    animation: birdFly 70s linear infinite;
+    animation-delay: var(--bird-delay, -20s);
+  }
+  @keyframes birdFly {
+    0%   { transform: translate(-5vw, 0); opacity: 0; }
+    4%   { opacity: 0.55; }
+    50%  { transform: translate(50vw, 6vh); opacity: 0.55; }
+    96%  { opacity: 0; }
+    100% { transform: translate(110vw, 12vh); opacity: 0; }
+  }
+  /* ── atmospheric haze (mountain depth) ──────────────── */
+  /* A horizontal band of haze that sits between the far ridge and the
+     mid ridge, fading the distant mountains into the sky for depth. */
+  .haze {
+    position: absolute; left: 0; right: 0;
+    bottom: 28%; height: 18%;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      var(--haze-color, rgba(255,255,255,0.18)) 60%,
+      transparent 100%);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  /* ── aurora (only on aurora palette) ────────────────── */
+  /* Two soft curving bands of green-purple that gently translate +
+     pulse opacity. SVG path filled with a vertical gradient, blurred,
+     screen-blended over the sky. Hidden by default; body class flips
+     it on. */
+  .aurora {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  body.aurora-on .aurora {
+    opacity: 0.85;
+    animation: auroraDrift 28s ease-in-out infinite alternate;
+  }
+  @keyframes auroraDrift {
+    0%   { transform: translateY(0) scaleY(1.00); filter: blur(8px) hue-rotate(0deg); }
+    100% { transform: translateY(-2%) scaleY(1.04); filter: blur(10px) hue-rotate(20deg); }
+  }
+  /* ── distant city lights (only on dark palettes) ────── */
+  /* Tiny dots along the horizon — warm yellow, twinkle slowly. Hidden
+     unless body has stars-on (re-using the dark-palette flag). */
+  .citylights {
+    position: absolute; left: 0; right: 0;
+    bottom: 26%; height: 6px;
+    pointer-events: none;
+    display: none;
+  }
+  body.stars-on .citylights { display: block; }
+  .citylights span {
+    position: absolute; top: 0;
+    width: 2px; height: 2px; border-radius: 50%;
+    background: #ffd58a;
+    box-shadow: 0 0 4px #ffd58a;
+    opacity: 0.7;
+    animation: twinkle var(--twinkle-dur, 4s) ease-in-out var(--twinkle-delay, 0s) infinite alternate;
+  }
+  /* ── shooting star (very rare, dark palettes only) ──── */
+  .shootingstar {
+    position: absolute;
+    top: 12%; left: 0;
+    width: 80px; height: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+    opacity: 0;
+    transform: rotate(-18deg);
+    display: none;
+  }
+  body.stars-on .shootingstar {
+    display: block;
+    animation: shootStar 22s ease-out infinite;
+    animation-delay: var(--shoot-delay, 8s);
+  }
+  @keyframes shootStar {
+    0%, 5%   { transform: translate(0, 0) rotate(-18deg); opacity: 0; }
+    6%       { opacity: 1; }
+    11%      { transform: translate(70vw, 22vh) rotate(-18deg); opacity: 0; }
+    100%     { transform: translate(70vw, 22vh) rotate(-18deg); opacity: 0; }
+  }
+  /* When the user prefers reduced motion, hold everything still. */
+  @media (prefers-reduced-motion: reduce) {
+    .sky, .sun-shimmer, .cloud-far, .cloud-mid, .cloud-near, .photo { animation: none !important; }
+  }
+  /* ── photographic background ────────────────────────── */
+  /* When body has class .bg-photographic, the .photo layer is shown and
+     the procedural sky + clouds + horizon are hidden. The photo gets a
+     slow Ken-Burns-style scale to add motion without re-fetching. */
+  .photo {
+    position: absolute; inset: 0;
+    background-image: var(--photo-url, none);
+    background-size: cover;
+    background-position: center;
+    display: none;
+    transform-origin: center;
+    animation: kenburns 60s ease-in-out infinite alternate;
+  }
+  @keyframes kenburns {
+    0%   { transform: scale(1.00) translate(0, 0); }
+    100% { transform: scale(1.08) translate(-1%, 1%); }
+  }
+  /* Darkening overlay so the wordmark + search remain legible on bright
+     photos. Tuned for a slightly higher contrast than the procedural sky. */
+  .photo-veil {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.10) 35%, rgba(0,0,0,0.55) 100%);
+    display: none;
+    pointer-events: none;
+  }
+  body.bg-photographic .sky,
+  body.bg-photographic .sun-shimmer,
+  body.bg-photographic .clouds,
+  body.bg-photographic .horizon { display: none; }
+  body.bg-photographic .photo,
+  body.bg-photographic .photo-veil { display: block; }
   .grain {
     position: absolute; inset: 0;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/></svg>");
@@ -371,13 +670,54 @@ const HTML = /* html */ `<!doctype html>
   .privacy-chip .num { color: #fff; font-weight: 600; }
 </style>
 </head>
-<body>
+<body class="__BG_CLASS__" style="--photo-url: url('__BG_URL__');">
 <main>
   <div class="frame" id="frame">
+    <!-- Procedural sky stack (hidden when body.bg-photographic). -->
     <div class="sky" id="sky"></div>
+    <!-- Aurora wisps for the night-aurora palette (hidden by default). -->
+    <svg class="aurora" id="aurora" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="aur1" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%"  stop-color="rgba(120,255,170,0)"/>
+          <stop offset="50%" stop-color="rgba(120,255,170,0.55)"/>
+          <stop offset="100%" stop-color="rgba(180,140,255,0)"/>
+        </linearGradient>
+        <linearGradient id="aur2" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%"  stop-color="rgba(180,140,255,0)"/>
+          <stop offset="55%" stop-color="rgba(180,140,255,0.45)"/>
+          <stop offset="100%" stop-color="rgba(120,255,170,0)"/>
+        </linearGradient>
+      </defs>
+      <path d="M-100 220 Q300 60 600 280 T1100 240 L1100 0 L-100 0 Z" fill="url(#aur1)"/>
+      <path d="M-100 320 Q400 180 700 360 T1200 320 L1200 0 L-100 0 Z" fill="url(#aur2)"/>
+    </svg>
+    <!-- Sun rays (rotating). Opacity controlled by --rays-opacity (0 at night). -->
+    <div class="sun-rays" id="sun-rays" aria-hidden="true"></div>
+    <div class="sun-shimmer" id="sun-shimmer"></div>
+    <!-- Starfield (only painted when body has class stars-on). -->
+    <svg class="stars" id="stars" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <!-- Distant city lights at the horizon (only on dark palettes). -->
+    <div class="citylights" id="citylights" aria-hidden="true"></div>
+    <!-- Rare shooting star (dark palettes only). -->
+    <div class="shootingstar" aria-hidden="true"></div>
+    <div class="clouds" aria-hidden="true">
+      <div class="cloud-layer cloud-far"></div>
+      <div class="cloud-layer cloud-mid"></div>
+      <div class="cloud-layer cloud-near"></div>
+    </div>
+    <!-- Atmospheric haze band — fades distant ridges into the sky. -->
+    <div class="haze" aria-hidden="true"></div>
+    <!-- Charm: a tiny bird silhouette occasionally crosses. -->
+    <div class="bird" id="bird" aria-hidden="true"></div>
     <div class="horizon">
       <svg viewBox="0 0 1200 400" preserveAspectRatio="none" id="horizon-svg"></svg>
     </div>
+    <!-- Photographic stack (hidden when body.bg-procedural). The image
+         path is server-injected at protocol-handler time so the photo
+         paints on first frame, no IPC. -->
+    <div class="photo" aria-hidden="true"></div>
+    <div class="photo-veil" aria-hidden="true"></div>
     <div class="grain"></div>
 
     <div class="content">
@@ -452,16 +792,20 @@ const HTML = /* html */ `<!doctype html>
   const PALETTES = ${JSON.stringify(PALETTES)};
 
   const now = new Date();
-  // Day-of-year so the seed is monotonic.
+  // Day-of-year so the horizon ridge stays stable within a day (re-rolling
+  // the mountains every tab is too busy). The sky palette, on the other
+  // hand, re-rolls per-session so opening a new tab actually feels new.
   function dayIndex(d) {
     const start = new Date(d.getFullYear(), 0, 0);
     return Math.floor((d - start) / 86400000);
   }
   const day = dayIndex(now);
-  const dow = now.getDay(); // 0=Sun..6=Sat → palette index
 
-  // ── Sky palette + sun position (sun rises across the day) ──
-  const palette = PALETTES[dow];
+  // ── Sky palette: random per session ────────────────────────
+  // Use Math.random so each new-tab open picks a fresh sky. The horizon
+  // (mountains) still uses the daily seed so the *shape* feels consistent
+  // through the day — only the colour changes.
+  const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
   const minutes = now.getHours() * 60 + now.getMinutes();
   // Sun arcs from x=15% at 6am to x=85% at 8pm; outside that, hidden up high.
   const arc = Math.max(0, Math.min(1, (minutes - 6 * 60) / (14 * 60)));
@@ -474,7 +818,68 @@ const HTML = /* html */ `<!doctype html>
   sky.style.setProperty("--sun", palette.sun);
   sky.style.setProperty("--sun-x", sunX + "%");
   sky.style.setProperty("--sun-y", sunY + "%");
+  // Several layers read --sun-* from their own elements (CSS doesn't
+  // inherit sibling-set custom props), so propagate explicitly.
+  function setSunVars(el) {
+    if (!el) return;
+    el.style.setProperty("--sun", palette.sun);
+    el.style.setProperty("--sun-x", sunX + "%");
+    el.style.setProperty("--sun-y", sunY + "%");
+  }
+  setSunVars(document.getElementById("sun-shimmer"));
+  // Sun rays opacity tracks the day arc — fades to 0 at night so dark
+  // palettes don't get a phantom rotating glow on top of the stars.
+  const raysEl = document.getElementById("sun-rays");
+  if (raysEl) {
+    setSunVars(raysEl);
+    const rayOpacity = palette.dark ? 0 : (0.10 + 0.18 * Math.sin(arc * Math.PI));
+    raysEl.style.setProperty("--rays-opacity", rayOpacity.toFixed(3));
+  }
   document.querySelector(".horizon").style.setProperty("--horizon", palette.horizon);
+  // Haze color from the palette (mountain depth band).
+  const haze = document.querySelector(".haze");
+  if (haze) haze.style.setProperty("--haze-color", palette.haze);
+
+  // Body class flags drive the conditional layers (stars, aurora, city
+  // lights, shooting star). Cleaner than per-layer JS toggling.
+  if (palette.dark)   document.body.classList.add("stars-on");
+  if (palette.aurora) document.body.classList.add("aurora-on");
+
+  // ── Starfield: ~80 random dots in the upper 60% of the viewport ──
+  if (palette.dark) {
+    const starsSvg = document.getElementById("stars");
+    const r = seedRand(day * 31 + 17);
+    const STAR_COUNT = 90;
+    let starsHtml = "";
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const x  = (r() * 100).toFixed(2);
+      const y  = (r() * 60).toFixed(2);
+      const sz = (0.10 + r() * 0.32).toFixed(2);
+      const dur   = (1.5 + r() * 3.0).toFixed(2);
+      const delay = (r() * 4).toFixed(2);
+      starsHtml += '<circle cx="' + x + '" cy="' + y + '" r="' + sz + '" style="--twinkle-dur:' + dur + 's;--twinkle-delay:' + delay + 's"/>';
+    }
+    starsSvg.innerHTML = starsHtml;
+
+    // City lights along the horizon — ~24 warm dots spaced unevenly.
+    const cityEl = document.getElementById("citylights");
+    let cityHtml = "";
+    for (let i = 0; i < 28; i++) {
+      const x   = (r() * 100).toFixed(2);
+      const dur = (3 + r() * 3).toFixed(2);
+      const dly = (r() * 2).toFixed(2);
+      cityHtml += '<span style="left:' + x + '%;--twinkle-dur:' + dur + 's;--twinkle-delay:' + dly + 's"></span>';
+    }
+    cityEl.innerHTML = cityHtml;
+  }
+
+  // ── Bird: random per-session delay so the bird shows up at unpredictable
+  //    moments. ~40% of the time the bird is mid-flight when you open the
+  //    tab, ~60% it'll cross within the next 70s. Charming, not noisy.
+  const birdEl = document.getElementById("bird");
+  if (birdEl) {
+    birdEl.style.setProperty("--bird-delay", (-Math.random() * 70).toFixed(1) + "s");
+  }
 
   // ── Procedural horizon (mountains + foreground), seeded by day ──
   function seedRand(seed) {

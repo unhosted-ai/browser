@@ -77,6 +77,14 @@ export type UserSettings = {
    * Origin is the active tab's host at the moment of the request.
    */
   permissionGrants: Array<{ origin: string; tool: string }>
+  /**
+   * New-tab background style. `procedural` is the animated sky (default).
+   * `photographic` cycles through user-picked images in `newtabFolder`.
+   * Falls back to procedural when the folder is missing or empty.
+   */
+  newtabBackground: "procedural" | "photographic"
+  /** Absolute path to a folder of images for photographic mode. */
+  newtabFolder: string | null
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -91,6 +99,8 @@ export type SettingsUpdate =
   | { kind: "defaultProvider"; id: "auto" | ProviderId; model?: string }
   | { kind: "grantPermission"; origin: string; tool: string }
   | { kind: "revokePermission"; origin: string; tool: string }
+  | { kind: "newtabBackground"; value: "procedural" | "photographic" }
+  | { kind: "newtabFolder"; value: string | null }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {
@@ -337,6 +347,10 @@ export type BrowserApi = {
   }
   data: {
     clear: (scope: ClearScope) => Promise<void>
+  }
+  newtabBg: {
+    /** Open the native folder-picker. Returns the chosen path, or null on cancel. */
+    pickFolder: () => Promise<string | null>
   }
 }
 

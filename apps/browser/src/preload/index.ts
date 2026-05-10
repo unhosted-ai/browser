@@ -129,6 +129,9 @@ const api: BrowserApi = {
   data: {
     clear: (scope: ClearScope) => ipcRenderer.invoke("data:clear", scope) as Promise<void>,
   },
+  newtabBg: {
+    pickFolder: () => ipcRenderer.invoke("newtabBg:pickFolder") as Promise<string | null>,
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)
