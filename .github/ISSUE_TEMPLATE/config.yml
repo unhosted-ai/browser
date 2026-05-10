@@ -1,0 +1,13 @@
+# Disable the blank-issue option so people land on the right template.
+# Templates live in this folder and render as forms in the GitHub UI.
+blank_issues_enabled: false
+contact_links:
+  - name: Read the architecture first
+    url: https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md
+    about: For deep questions about the agent loop, permission gate, or tool registry — the design doc usually has the answer.
+  - name: Hugging Face — system prompt + tool schemas
+    url: https://huggingface.co/sinhaankur/delta-agent-prompt
+    about: Mirror of the prompt + tools the agent uses. Forkable; useful if you want to adapt the contract for your own tool.
+  - name: Security vulnerability
+    url: https://github.com/Delta-Practice/Browser/security/advisories/new
+    about: Use GitHub's private vulnerability reporting — do NOT open a public issue for security bugs.

@@ -1,0 +1,49 @@
+name: Feature request
+description: A new capability, a UX change, a workflow you wish Delta supported.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening: please check [`apps/browser/docs/about.md`](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md)
+        for the explicit non-goals (no account, no telemetry, no extension
+        store, no cross-device sync in v1). If your idea conflicts with one
+        of those, the answer is probably no — but a thoughtful argument for
+        why we should change the non-goal is welcome.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem you're trying to solve?
+      description: |
+        Describe the user-facing situation, not a proposed implementation.
+        "I can't easily X" is more useful than "Delta should add a Y button."
+      placeholder: |
+        I bookmark the same handful of sites every morning and the
+        ⌘L → typing → enter dance is repetitive — I'd want a one-key
+        jump to my pinned bookmarks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would a good answer look like?
+      description: |
+        If you have one in mind. It's fine to leave this empty and let the
+        conversation surface options.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How blocking is this for you?
+      options:
+        - Nice-to-have — I'd use it but I'm not blocked
+        - Friction — I work around it daily but it's annoying
+        - Blocking — I can't use Delta as my daily driver without it
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've tried
+      description: Other tools, other browsers, workflows that approximate it. Helps shape the design.

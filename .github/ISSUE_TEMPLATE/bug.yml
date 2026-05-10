@@ -1,0 +1,82 @@
+name: Bug report
+description: Something in Delta is broken or behaves wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Be as concrete as you can —
+        a five-line stack trace beats a paragraph of "doesn't work".
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you see, what did you expect to see?
+      placeholder: |
+        1. Opened a new tab to https://example.com
+        2. Clicked the AI sidebar (⌘J)
+        3. Typed "summarise this page"
+        4. Expected: a summary using read_active_page
+        5. Got: nothing — sidebar stayed empty
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console / dev-tools output (if any)
+      description: |
+        Open the chrome dev tools with View → Toggle Developer Tools (⌥⌘I).
+        Paste anything red. If the bug is on a real page, also check the
+        page's own console (right-click → Inspect on the page).
+      render: text
+    validations:
+      required: false
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: LLM provider in use when this happened
+      options:
+        - Ollama (local)
+        - LM Studio (local)
+        - llama.cpp (local)
+        - MLX (local)
+        - OpenAI cloud
+        - Anthropic cloud
+        - Custom OpenAI-compatible endpoint
+        - Not relevant (bug isn't agent-related)
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model name
+      placeholder: llama3.2 / qwen2.5:7b / claude-sonnet-4-6 / etc.
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: OS + version
+      placeholder: macOS 14.4 / Windows 11 / Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Delta commit / version
+      description: Run `git rev-parse --short HEAD` in the repo, or paste the version from the menu / settings panel.
+      placeholder: 9fba7f7
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, recordings, or context. Drag images directly into the field.

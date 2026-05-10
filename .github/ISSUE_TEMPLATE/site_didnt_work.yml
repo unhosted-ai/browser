@@ -1,0 +1,66 @@
+name: Site that didn't work
+description: A specific site broke. Tracker over-blocked, reader-mode failed, agent couldn't read it, popup misbehaved, etc.
+labels: ["site-compat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These reports are how the tracker blocklist, reader mode, and the
+        popup-handling code get better. Even partial info ("X is broken on
+        a banking site, can't share the URL") is useful — say "category:
+        banking" and we'll triage.
+
+  - type: input
+    id: site
+    attributes:
+      label: Site URL (or category)
+      description: A URL is best. If the site is private/sensitive, just describe the category.
+      placeholder: https://news.ycombinator.com  —  or "category: gov, regional tax site"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Which Delta feature broke on this site?
+      multiple: true
+      options:
+        - Page didn't load at all
+        - Tracker blocker over-blocked (broke functionality)
+        - Tracker blocker under-blocked (let known trackers through)
+        - Reader mode failed / produced bad output
+        - Listen / TTS read the wrong text
+        - Agent couldn't read the page (read_active_page returned bad data)
+        - Agent couldn't navigate / open_tab to this site
+        - Popup / OAuth flow broke (window.open behavior)
+        - Bookmark / history record was wrong
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened?
+      placeholder: |
+        Loaded gmail.com, signed in. The OAuth popup window opened as a
+        separate tab instead of returning the auth code, so the sign-in
+        loop never completed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-i-tried
+    attributes:
+      label: What did you try?
+      description: |
+        Reload, incognito, different model, settings toggles. Useful so we
+        don't suggest things you already ruled out.
+
+  - type: input
+    id: commit
+    attributes:
+      label: Delta commit / version
+      placeholder: 9fba7f7
+    validations:
+      required: true
