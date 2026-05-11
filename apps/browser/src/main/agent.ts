@@ -78,7 +78,14 @@ export type AgentDeps = {
 
 export class Agent {
   private deps: AgentDeps
-  private history: Turn[] = []
+  // The Assistant sidebar's long-lived thread. send() reads + appends here
+  // across calls, so the user can have multi-turn chats.
+  private persistentHistory: Turn[] = []
+  // The currently-active task's history. Always points at either
+  // persistentHistory (sidebar) or a fresh local array (address-bar ask).
+  // All reads/writes inside runLoop / runStream go through this pointer,
+  // so swapping it before a task is what scopes its memory.
+  private history: Turn[] = this.persistentHistory
   private activeAbort: AbortController | null = null
   private activeTaskId: string | null = null
   // Pending act-tool permission requests awaiting a user decision.
@@ -104,6 +111,10 @@ export class Agent {
     const assistantId = randomUUID()
 
     this.cancel()
+    // A prior ask() may have left history pointing at an ephemeral array.
+    // Swing the pointer back to the persistent sidebar thread before this
+    // turn lands.
+    this.history = this.persistentHistory
 
     const provider = await pickDefaultProvider(this.deps.settings)
     if (!provider) {
@@ -125,6 +136,65 @@ export class Agent {
     }
 
     // User turn — optionally with the active page attached as context.
+    let userContent = input.text
+    if (input.attachActivePage) {
+      const page = await this.deps.readActivePage()
+      if (page && page.text.trim()) {
+        const text = page.text.slice(0, MAX_PAGE_CHARS)
+        userContent =
+          `${input.text}\n\n` +
+          `<page_content title=${JSON.stringify(page.title)} url=${JSON.stringify(page.url)}>\n` +
+          `${text}\n` +
+          `</page_content>`
+      }
+    }
+    this.history.push({ role: "user", content: userContent })
+
+    this.activeTaskId = taskId
+    void this.runLoop({ taskId, assistantId, provider })
+
+    return { taskId, assistantId }
+  }
+
+  /**
+   * One-shot question from the address bar (`?` ask mode). Same plumbing
+   * as send() — same tools, same provider resolution, same event stream —
+   * but the history is a fresh local array. Nothing gets appended to the
+   * sidebar's conversation. Persistence is the caller's job (we don't
+   * write to the conversations store).
+   *
+   * Cancels any in-flight task before starting, same as send(). One task
+   * at a time is still the contract — the sidebar listening for events
+   * filters by assistantId, so events from this ask don't bleed into a
+   * stale sidebar render.
+   */
+  async ask(input: AgentSendInput): Promise<{ taskId: string; assistantId: string }> {
+    const taskId = randomUUID()
+    const assistantId = randomUUID()
+
+    this.cancel()
+    // Ephemeral history — lives only for the duration of this task.
+    this.history = []
+
+    const provider = await pickDefaultProvider(this.deps.settings)
+    if (!provider) {
+      const s = this.deps.settings.get()
+      const cloudHint =
+        s.openaiHasKey && !s.openaiEnabled
+          ? " (You have an OpenAI key configured but cloud is disabled — enable it in Settings.)"
+          : ""
+      this.deps.emit({
+        type: "task_error",
+        taskId,
+        assistantId,
+        error:
+          "No provider online. Start a local LLM (Ollama / LM Studio / llama.cpp / MLX), " +
+          "or configure a cloud / custom endpoint in Settings." +
+          cloudHint,
+      })
+      return { taskId, assistantId }
+    }
+
     let userContent = input.text
     if (input.attachActivePage) {
       const page = await this.deps.readActivePage()

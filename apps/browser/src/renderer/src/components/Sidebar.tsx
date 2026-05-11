@@ -23,6 +23,14 @@ type Props = {
    *  History row triggers it, App opens the sidebar AND sets this true. */
   historyOpen?: boolean
   onHistoryOpenChange?: (open: boolean) => void
+  /**
+   * A seed prompt to prefill the composer with. Used by the address-bar
+   * `?` ask mode: when the user hits ⌘↩ ("continue in Assistant"), App
+   * sets this to the ask text and the sidebar opens with the draft
+   * ready to send. The token changes per send so the same text can be
+   * seeded again — the seedKey makes the effect re-fire.
+   */
+  seedDraft?: { text: string; key: string } | null
 }
 
 // What the Assistant *can do*. Read tools auto-run; act tools route through
@@ -39,8 +47,14 @@ const SUGGESTIONS = [
   "What does this page miss?",
 ] as const
 
-export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSettings, historyOpen: historyOpenProp, onHistoryOpenChange }: Props) {
+export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSettings, historyOpen: historyOpenProp, onHistoryOpenChange, seedDraft }: Props) {
   const [draft, setDraft] = useState("")
+  // Prefill the composer when App hands us a seed (address-bar `?` →
+  // ⌘↩). Keyed so the same text can be re-seeded; only fires when the
+  // key changes so user typing isn't clobbered.
+  useEffect(() => {
+    if (seedDraft?.text) setDraft(seedDraft.text)
+  }, [seedDraft?.key])
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [status, setStatus] = useState<AgentStatus>("idle")
   const [taskId, setTaskId] = useState<string | null>(null)

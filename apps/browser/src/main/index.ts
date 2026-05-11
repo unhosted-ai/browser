@@ -188,6 +188,7 @@ function registerIpc(): void {
   // Agent (Phase 1: chat + Phase 2: read tools + Phase 3: act tools).
   // Streaming events are pushed via "agent:event".
   ipcMain.handle("agent:send",   (_e, input: AgentSendInput) => agent?.send(input))
+  ipcMain.handle("agent:ask",    (_e, input: AgentSendInput) => agent?.ask(input))
   ipcMain.handle("agent:cancel", (_e, taskId: string) => agent?.cancel(taskId))
   ipcMain.handle("agent:respondToPermission", (_e, permissionId: string, decision: "allow" | "block" | "always_allow") => agent?.resolvePermission(permissionId, decision))
 

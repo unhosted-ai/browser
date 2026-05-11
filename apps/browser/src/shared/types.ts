@@ -298,6 +298,14 @@ export type BrowserApi = {
   }
   agent: {
     send: (input: AgentSendInput) => Promise<{ taskId: string; assistantId: string }>
+    /**
+     * One-shot ephemeral ask, used by the address-bar `?` mode. Same wire
+     * shape as send(), but the agent's conversation history is a fresh
+     * empty array for this call — the result doesn't pollute the
+     * sidebar's running conversation. The renderer filters events by
+     * assistantId to route the stream to the address-bar's AskPanel.
+     */
+    ask: (input: AgentSendInput) => Promise<{ taskId: string; assistantId: string }>
     cancel: (taskId: string) => Promise<void>
     onEvent: (cb: (e: AgentEvent) => void) => () => void
     /** Resolve a pending act-tool permission request. */

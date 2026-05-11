@@ -25,6 +25,10 @@ export function App() {
   const [findOpen, setFindOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [providers, setProviders] = useState<ProviderInfo[]>([])
+  // Seed for the Sidebar composer when the address-bar `?` ask mode
+  // forwards a question (⌘↩ "continue in Assistant"). The key bumps each
+  // time so re-seeding the same text still works.
+  const [assistantSeed, setAssistantSeed] = useState<{ text: string; key: string } | null>(null)
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(() => {
     try { return localStorage.getItem("delta:leftNavCollapsed") === "1" } catch { return false }
   })
@@ -204,6 +208,10 @@ export function App() {
             onOpenPrivacy={openPrivacySettings}
             menuOpen={menuOpen}
             onToggleMenu={() => setMenuOpen((v) => !v)}
+            onContinueInAssistant={(text) => {
+              setAssistantSeed({ text, key: crypto.randomUUID() })
+              openAssistant()
+            }}
           />
         </header>
 
@@ -233,6 +241,7 @@ export function App() {
                   onOpenSettings={openSettings}
                   historyOpen={sidebarHistoryOpen}
                   onHistoryOpenChange={setSidebarHistoryOpen}
+                  seedDraft={assistantSeed}
                 />
               </motion.aside>
             )}

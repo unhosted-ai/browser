@@ -65,6 +65,7 @@ const api: BrowserApi = {
   },
   agent: {
     send:   (input: AgentSendInput) => ipcRenderer.invoke("agent:send", input),
+    ask:    (input: AgentSendInput) => ipcRenderer.invoke("agent:ask", input),
     cancel: (taskId: string) => ipcRenderer.invoke("agent:cancel", taskId),
     onEvent: (cb: (e: AgentEvent) => void) => {
       const listener = (_e: Electron.IpcRendererEvent, ev: AgentEvent) => cb(ev)

@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useMemo, useRef, useState, useImperativeHandle } from "react"
-import type { Tab } from "@shared/types"
+import type { AgentEvent, Tab } from "@shared/types"
 import { classifyUrl } from "../lib/safety"
 import { SafetyBadge } from "./SafetyBadge"
 
@@ -18,6 +18,12 @@ type Props = {
   /** Toggle the chrome hamburger menu. */
   menuOpen: boolean
   onToggleMenu: () => void
+  /**
+   * The "continue in Assistant" path from `?` ask mode: forward the
+   * question to the sidebar (composer seeded, panel opens). The actual
+   * provider call already streamed inline — this is for follow-ups.
+   */
+  onContinueInAssistant: (text: string) => void
 }
 
 export type AddressBarHandle = {
@@ -157,12 +163,95 @@ const Icon = {
 }
 
 export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBar(
-  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, settingsOpen, onOpenSettings, onOpenPrivacy, menuOpen, onToggleMenu },
+  { tab, onNavigate, onBack, onForward, onReload, sidebarOpen, onToggleSidebar, settingsOpen, onOpenSettings, onOpenPrivacy, menuOpen, onToggleMenu, onContinueInAssistant },
   ref
 ) {
   const [value, setValue] = useState(tab?.url ?? "")
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── Ask mode ────────────────────────────────────────────
+  // Triggered when the address bar value starts with `?`. Hitting Enter
+  // routes the (post-?) text to window.api.agent.ask, which streams a
+  // one-shot answer with a fresh ephemeral history. The response renders
+  // inline below the URL pill — no sidebar needed. ⌘↩ forwards the
+  // question to the Assistant; Esc closes.
+  const askMode = value.startsWith("?")
+  const askQuery = askMode ? value.slice(1).trimStart() : ""
+  const [askActive, setAskActive] = useState(false)
+  const [askText, setAskText] = useState("")
+  const [askError, setAskError] = useState<string | null>(null)
+  const [askStreaming, setAskStreaming] = useState(false)
+  const askAssistantIdRef = useRef<string | null>(null)
+  const askLastQueryRef = useRef<string>("")
+  const askPanelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    return window.api.agent.onEvent((e: AgentEvent) => {
+      // Only react to events for the assistantId WE started — the sidebar
+      // listens to the same stream for its own conversation.
+      if (e.assistantId !== askAssistantIdRef.current) return
+      if (e.type === "text_delta") {
+        setAskText((prev) => prev + e.delta)
+      } else if (e.type === "task_done") {
+        setAskStreaming(false)
+      } else if (e.type === "task_error") {
+        setAskStreaming(false)
+        setAskError(e.error)
+      }
+    })
+  }, [])
+
+  const submitAsk = async () => {
+    const text = askQuery.trim()
+    if (!text || askStreaming) return
+    setAskActive(true)
+    setAskText("")
+    setAskError(null)
+    setAskStreaming(true)
+    askLastQueryRef.current = text
+    try {
+      const { assistantId } = await window.api.agent.ask({
+        text,
+        attachActivePage: !!tab?.url && !tab.url.startsWith("delta:"),
+      })
+      askAssistantIdRef.current = assistantId
+    } catch (err) {
+      setAskStreaming(false)
+      setAskError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const closeAsk = () => {
+    setAskActive(false)
+    setAskText("")
+    setAskError(null)
+    setAskStreaming(false)
+    askAssistantIdRef.current = null
+  }
+
+  const continueInAssistant = () => {
+    const text = askLastQueryRef.current
+    if (!text) return
+    closeAsk()
+    setValue(tab?.url ?? "")
+    inputRef.current?.blur()
+    onContinueInAssistant(text)
+  }
+
+  // Click-outside the panel closes it. Esc inside the input handler also
+  // closes (covered there) — this is for when focus has left the bar.
+  useEffect(() => {
+    if (!askActive) return
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (askPanelRef.current?.contains(target)) return
+      if (inputRef.current?.contains(target)) return
+      closeAsk()
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [askActive])
 
   // ── Page-tools state ────────────────────────────────────
   // Bookmark + reader + speaking are all per-tab. We refresh on tab change
@@ -264,62 +353,145 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
         <button type="button" aria-label="Reload"  title="Reload  ⌘R"  onClick={onReload}            className={buttonCls(false)}>{Icon.reload}</button>
       </div>
 
-      {/* Group B: URL pill (primary surface) */}
-      <div
-        className={[
-          "flex-1 mx-2 h-8 flex items-center gap-2 px-4 rounded-full",
-          "bg-chrome-surface border transition-colors duration-150",
-          focused ? "border-signal/50" : "border-chrome-border",
-        ].join(" ")}
-      >
-        <span className="text-chrome-text-3 shrink-0">
-          {showLock ? Icon.lock : showSearch ? Icon.search : null}
-        </span>
-        {showBadge && <SafetyBadge safety={safety} />}
-        <input
-          ref={inputRef}
-          value={focused ? value : (tab ? displayUrl(tab.url) : "")}
-          onChange={(e) => setValue(e.target.value)}
-          onFocus={(e) => {
-            setFocused(true)
-            setValue(tab?.url ?? "")
-            e.currentTarget.select()
-          }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const url = normalizeUrl(value)
-              if (url) {
-                onNavigate(url)
-                inputRef.current?.blur()
-              }
-            } else if (e.key === "Escape") {
+      {/* Group B: URL pill (primary surface). Wrapped in a relative
+          container so the ask-mode AskPanel can absolute-position itself
+          flush against the bottom edge of the pill at the same width. */}
+      <div className="flex-1 mx-2 relative">
+        <div
+          className={[
+            "h-8 flex items-center gap-2 px-4 rounded-full",
+            "bg-chrome-surface border transition-colors duration-150",
+            focused
+              ? (askMode ? "border-signal" : "border-signal/50")
+              : "border-chrome-border",
+          ].join(" ")}
+        >
+          <span className={["shrink-0", askMode ? "text-signal" : "text-chrome-text-3"].join(" ")}>
+            {askMode ? Icon.delta : (showLock ? Icon.lock : showSearch ? Icon.search : null)}
+          </span>
+          {showBadge && !askMode && <SafetyBadge safety={safety} />}
+          <input
+            ref={inputRef}
+            value={focused ? value : (tab ? displayUrl(tab.url) : "")}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={(e) => {
+              setFocused(true)
               setValue(tab?.url ?? "")
-              inputRef.current?.blur()
-            }
-          }}
-          placeholder="Search or enter address"
-          spellCheck={false}
-          autoCapitalize="off"
-          autoCorrect="off"
-          aria-label="Address bar"
-          className="flex-1 bg-transparent text-[13px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none"
-        />
-        {/* Privacy shield lives inside the URL pill — it's a status
-            indicator (like the lock + safety badge), not an action toolbar
-            item. Only renders when there's a count to show, so the pill
-            stays clean on internal pages and fresh tabs. */}
-        {!focused && (tab?.trackersBlocked ?? 0) > 0 && (
-          <button
-            type="button"
-            onClick={onOpenPrivacy}
-            title={`${tab!.trackersBlocked} ${tab!.trackersBlocked === 1 ? "tracker" : "trackers"} blocked on this page`}
-            aria-label="Open privacy report"
-            className="shrink-0 flex items-center gap-1 h-6 px-2 rounded-full text-signal hover:bg-signal/10 transition-colors duration-150"
+              e.currentTarget.select()
+            }}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (askMode) {
+                  e.preventDefault()
+                  if (askActive && (e.metaKey || e.ctrlKey)) {
+                    // ⌘↩ while a response is showing → continue in Assistant.
+                    continueInAssistant()
+                  } else {
+                    void submitAsk()
+                  }
+                } else {
+                  const url = normalizeUrl(value)
+                  if (url) {
+                    onNavigate(url)
+                    inputRef.current?.blur()
+                  }
+                }
+              } else if (e.key === "Escape") {
+                if (askActive) {
+                  closeAsk()
+                } else {
+                  setValue(tab?.url ?? "")
+                  inputRef.current?.blur()
+                }
+              }
+            }}
+            placeholder={askMode ? "Ask Delta…  ⌘↩ continue in Assistant" : "Search or enter address"}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            aria-label="Address bar"
+            className={[
+              "flex-1 bg-transparent text-[13px] focus:outline-none",
+              askMode ? "text-chrome-text placeholder:text-chrome-text-3" : "text-chrome-text placeholder:text-chrome-text-3",
+            ].join(" ")}
+          />
+          {/* Tiny "Ask" label on the right when in ask mode — confirms the
+              user is in the AI register without taking up much room. */}
+          {askMode && (
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-signal shrink-0">Ask</span>
+          )}
+          {/* Privacy shield lives inside the URL pill — it's a status
+              indicator (like the lock + safety badge), not an action toolbar
+              item. Only renders when there's a count to show, so the pill
+              stays clean on internal pages and fresh tabs. */}
+          {!focused && !askMode && (tab?.trackersBlocked ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={onOpenPrivacy}
+              title={`${tab!.trackersBlocked} ${tab!.trackersBlocked === 1 ? "tracker" : "trackers"} blocked on this page`}
+              aria-label="Open privacy report"
+              className="shrink-0 flex items-center gap-1 h-6 px-2 rounded-full text-signal hover:bg-signal/10 transition-colors duration-150"
+            >
+              {Icon.shield}
+              <span className="font-mono text-[10px] tabular-nums">{tab!.trackersBlocked}</span>
+            </button>
+          )}
+        </div>
+
+        {/* AskPanel — streaming response from the ?-mode ask. Absolute so
+            it floats over the WebContentsView area. Same width as the
+            URL pill (the relative parent), shifted just below the pill
+            with a small gap. */}
+        {askActive && (
+          <div
+            ref={askPanelRef}
+            className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-chrome-border bg-chrome-bg shadow-[0_18px_48px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
           >
-            {Icon.shield}
-            <span className="font-mono text-[10px] tabular-nums">{tab!.trackersBlocked}</span>
-          </button>
+            <div className="px-4 pt-3 pb-1.5 flex items-center justify-between border-b border-chrome-border">
+              <div className="flex items-center gap-2">
+                <span className="text-signal"><span style={{ display: "inline-block", transform: "translateY(1px)" }}>{Icon.delta}</span></span>
+                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">
+                  Ask · {askStreaming ? "thinking…" : (askError ? "error" : "answered")}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 font-mono text-[10px] tracking-[0.12em] uppercase">
+                {!askStreaming && !askError && (
+                  <button
+                    type="button"
+                    onClick={continueInAssistant}
+                    className="text-chrome-text-2 hover:text-signal transition-colors"
+                    title="Continue this conversation in the Assistant sidebar"
+                  >
+                    Continue in Assistant <span className="text-chrome-text-3 normal-case ml-1">⌘↩</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={closeAsk}
+                  className="text-chrome-text-3 hover:text-chrome-text transition-colors"
+                  title="Close"
+                >
+                  Close <span className="normal-case ml-1">esc</span>
+                </button>
+              </div>
+            </div>
+            <div className="px-4 py-3 max-h-[320px] overflow-y-auto">
+              {askError ? (
+                <p className="text-[13px] leading-relaxed text-chrome-text-2">
+                  <span className="text-signal font-mono text-[11px] tracking-[0.06em] uppercase mr-2">error</span>
+                  {askError}
+                </p>
+              ) : (
+                <p className="text-[13.5px] leading-[1.6] text-chrome-text whitespace-pre-wrap">
+                  {askText || (askStreaming ? <span className="text-chrome-text-3">…reading the page</span> : "")}
+                  {askStreaming && askText && (
+                    <span className="inline-block ml-1 w-[6px] h-[12px] align-middle bg-signal animate-pulse" aria-hidden />
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
