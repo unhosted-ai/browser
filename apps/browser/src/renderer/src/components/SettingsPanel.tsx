@@ -151,7 +151,7 @@ function SettingsBody({
           onAdderClose={() => setAdderOpen(false)}
           onRefresh={onRefreshProviders}
         />
-        <DefaultProviderSection settings={settings} />
+        <DefaultProviderSection settings={settings} providers={providers} />
         <PrivacySection />
         <PrivacyNote />
       </div>
@@ -756,9 +756,22 @@ function CustomEndpointsSection({
 }
 
 // ── Default-provider picker ─────────────────────────────────────────
-function DefaultProviderSection({ settings }: { settings: UserSettings }) {
-  const set = (id: "auto" | string) =>
-    window.api.settings.update({ kind: "defaultProvider", id, model: undefined })
+// Two-level pick: provider radio + (when a specific provider is chosen
+// and online) a model select. "Auto" leaves the model unset so the
+// agent picks the first online local provider's first model.
+function DefaultProviderSection({
+  settings, providers,
+}: {
+  settings: UserSettings
+  providers: ProviderInfo[]
+}) {
+  const setProvider = (id: "auto" | string) => {
+    // Reset the model pin when the provider changes — the previous model
+    // is unlikely to exist on the new provider.
+    void window.api.settings.update({ kind: "defaultProvider", id, model: undefined })
+  }
+  const setModel = (id: "auto" | string, model: string | undefined) =>
+    void window.api.settings.update({ kind: "defaultProvider", id, model })
 
   const opts: Array<{ id: "auto" | string; label: string }> = [
     { id: "auto",     label: "Auto — local first, cloud if enabled" },
@@ -773,9 +786,14 @@ function DefaultProviderSection({ settings }: { settings: UserSettings }) {
     opts.push({ id: e.id, label: `${e.label} (custom)` })
   }
 
+  const selectedId = settings.defaultProvider.id
+  const selectedProvider = providers.find((p) => p.id === selectedId) || null
+  const selectedModels = selectedProvider?.models ?? []
+  const currentModel = settings.defaultProvider.model
+
   return (
     <section>
-      <SectionHeader label="Default provider" hint="Which provider the agent uses for new messages." />
+      <SectionHeader label="Default provider" hint="Which provider — and which model — the agent uses for new messages." />
       <ul className="space-y-1">
         {opts.map((o) => (
           <li key={o.id}>
@@ -783,8 +801,8 @@ function DefaultProviderSection({ settings }: { settings: UserSettings }) {
               <input
                 type="radio"
                 name="defaultProvider"
-                checked={settings.defaultProvider.id === o.id}
-                onChange={() => void set(o.id)}
+                checked={selectedId === o.id}
+                onChange={() => setProvider(o.id)}
                 className="accent-signal"
               />
               <span>{o.label}</span>
@@ -792,6 +810,36 @@ function DefaultProviderSection({ settings }: { settings: UserSettings }) {
           </li>
         ))}
       </ul>
+
+      {/* Model picker — only rendered when the user has pinned a specific
+          provider (not "auto") AND that provider is online with at least
+          one listed model. For "auto", model selection lives on the
+          Assistant chip (per-conversation override). */}
+      {selectedId !== "auto" && selectedProvider?.status === "online" && selectedModels.length > 0 && (
+        <div className="mt-3 rounded-2xl border border-chrome-border bg-chrome-surface p-3">
+          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3 mb-1.5">
+            Model · {selectedProvider.label}
+          </p>
+          <select
+            value={currentModel && selectedModels.includes(currentModel) ? currentModel : ""}
+            onChange={(e) => setModel(selectedId, e.target.value || undefined)}
+            className="w-full bg-chrome-surface-2 border border-chrome-border rounded-lg px-2.5 py-1.5 text-[12px] text-chrome-text font-mono focus:outline-none focus:border-signal/50 transition-colors"
+          >
+            <option value="">First available ({selectedModels[0]})</option>
+            {selectedModels.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-[11px] text-chrome-text-3 leading-relaxed">
+            {selectedModels.length} model{selectedModels.length === 1 ? "" : "s"} available. The Assistant chip mirrors this choice and lets you switch on the fly.
+          </p>
+        </div>
+      )}
+      {selectedId !== "auto" && selectedProvider?.status !== "online" && (
+        <p className="mt-2 text-[11px] text-chrome-text-3 leading-relaxed">
+          Pinned provider is offline. Start it and click Refresh under Connection — then a model dropdown will appear here.
+        </p>
+      )}
     </section>
   )
 }

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>delta — tracker blocker</title>
+  <meta name="description" content="how delta blocks trackers. ~150 known third-party trackers caught at the network layer from app boot, with a 30-day rolling stats dashboard rendered entirely on-device — no extension to install, no remote telemetry." />
+  <meta property="og:title" content="delta — tracker blocker" />
+  <meta property="og:description" content="~150 known trackers caught at the network layer from app boot. 30-day rolling stats. on-device only." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/tracker-blocker/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta"><a href="../" style="color:inherit; text-decoration:none;">delta</a></h1>
+    </div>
+    <nav class="nav">
+      <a href="../">home</a>
+      <a href="../#modes">how it works</a>
+      <a href="../brand/">brand</a>
+      <a href="https://github.com/Delta-Practice/Browser">github</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/><line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/><line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <section class="pitch">
+    <div class="lede">
+      <h2>tracker<br/>blocker.</h2>
+      <p class="sub">~150 known trackers caught at the network layer from app boot. counts roll up on-device, no extension required.</p>
+    </div>
+  </section>
+
+  <div class="index-marker">tracker-blocker</div>
+
+  <div class="ex-body">
+    <article class="ex-prose">
+      <p class="ex-crumb"><a href="../">← back to delta</a></p>
+      <p class="ex-lede">a browser that ships with privacy on by default. nothing to install, nothing to configure, nothing reported back.</p>
+
+      <p>delta hooks electron's <code>webRequest</code> api at startup and inspects every outbound request against a static list of about 150 known third-party trackers — analytics, ad networks, fingerprinters, session replayers. requests to those hosts are short-circuited with an abort response; the page never sees them, and the network never sees you.</p>
+
+      <h3>which trackers</h3>
+      <p>the list is committed to the repo at <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tracker-list.ts">tracker-list.ts</a>. each entry is a hostname pattern plus an owner label (google, meta, amazon, hotjar, etc.) so the privacy report can roll up counts by company, not just by domain. the list is hand-curated — small, conservative, easy to audit. additions land via PR.</p>
+
+      <h3>the 30-day report</h3>
+      <p>blocked requests increment a daily counter in memory and on disk. settings → privacy renders a small report:</p>
+      <ul>
+        <li>total trackers blocked across all your tabs</li>
+        <li>which sites had the most</li>
+        <li>which company those trackers belong to</li>
+        <li>a 30-day spark line of daily counts</li>
+      </ul>
+      <p>the report never leaves your machine. it isn't synced, isn't uploaded, isn't shared with us — there's no "us" to share it with. <code>privacy.reset()</code> wipes the counters; the blocking still runs from the static list.</p>
+
+      <h3>per-tab chip</h3>
+      <p>the active tab's address bar shows a small shield with the count of trackers blocked since the last top-level navigation. tap it to jump to the privacy section in settings. the chip on the new tab summarises the trailing 30 days.</p>
+
+      <h3>not a full ad blocker</h3>
+      <p>this is intentionally narrow: <em>trackers</em>, not all advertising. blocking the entire ads-and-creator-economy stack is a different project with different trade-offs. delta blocks the surveillance layer; if you want full ad-blocking too, plug in <a href="https://ublockorigin.com">ublock origin</a> or a system-wide solution like <a href="https://nextdns.io">nextdns</a>.</p>
+    </article>
+
+    <aside class="ex-aside">
+      <h4>look at the source</h4>
+      <ul>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/privacy.ts">privacy.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tracker-list.ts">tracker-list.ts</a></li>
+      </ul>
+      <h4>related reading</h4>
+      <ul>
+        <li><a href="../identity/">no telemetry. no account.</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <hr class="divider" />
+
+  <section class="ex-next">
+    <h4>next</h4>
+    <div class="ex-next-grid">
+      <a class="ex-next-card" href="../identity/">
+        <p class="label">no telemetry. no account.</p>
+        <p>device is the identity. conversations, history, bookmarks live as flat json on your disk.</p>
+      </a>
+      <a class="ex-next-card" href="../local-llm/">
+        <p class="label">local llm by default</p>
+        <p>the model that reads your tabs sits on the same machine that opened them.</p>
+      </a>
+      <a class="ex-next-card" href="../permissions/">
+        <p class="label">permission gate</p>
+        <p>act-tools route through a per-(origin, tool) gate that lives in the runtime, not the prompt.</p>
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="logo">
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"
+             stroke-linejoin="round" stroke-linecap="round" width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+      <div class="col">
+        <h4>articles</h4>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity model</a>
+        <a href="../brand/">brand</a>
+      </div>
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+      <div class="col">
+        <h4>legal</h4>
+        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+      </div>
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
+    });
+  </script>
+</body>
+</html>

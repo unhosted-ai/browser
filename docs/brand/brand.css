@@ -277,7 +277,7 @@
 .dont-art {
   height: 140px;
   display: flex; align-items: center; justify-content: center;
-  background: #f0efe9;
+  background: var(--neutral);
   border-radius: 10px;
   position: relative;
   overflow: hidden;

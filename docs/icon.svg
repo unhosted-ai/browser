@@ -1,98 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta — application icon. 1024×1024 master.
-
-  Concept: a Δ with a small mint "spark" above its apex. The triangle is
-  the brand mark; the spark is a quiet AI cue — a guiding light, not an
-  eye. Reads as Delta at any size and gives the icon personality next to
-  generic squircle apps in the dock.
-
-  Apple HIG: ~100pt of breathing room around the artwork inside an 824
-  safe area on a 1024 grid. The Δ + spark composition fits inside that.
-
-  No SVG filters — only paths/rects/gradients — so every iconset size from
-  16 up rasterises edge-clean. Transparency outside the squircle relies
-  on a renderer that respects SVG alpha (rsvg-convert; brand/scripts/
-  build-icons.sh prefers it over qlmanage for that reason).
+  Delta — favicon for the GitHub Pages site. Mirrors brand/icon.svg
+  (cream squircle + black mark) but inverts colours under
+  prefers-color-scheme: dark so the favicon stays legible against dark
+  browser chrome. Browsers re-evaluate the media query when the OS
+  theme flips, so this single file covers both registers.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <title>Delta — application icon</title>
-
+  <title>Delta</title>
+  <style>
+    .canvas { fill: #f5f5f0; }
+    .mark   { fill: #0a0a0a; stroke: #0a0a0a; }
+    @media (prefers-color-scheme: dark) {
+      .canvas { fill: #0a0a0a; }
+      .mark   { fill: #f5f5f0; stroke: #f5f5f0; }
+    }
+  </style>
   <defs>
-    <linearGradient id="canvas" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0"    stop-color="hsl(225 14% 17%)"/>
-      <stop offset="0.65" stop-color="hsl(230 11% 9%)"/>
-      <stop offset="1"    stop-color="hsl(232 13% 5%)"/>
-    </linearGradient>
-
-    <linearGradient id="delta" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0"    stop-color="hsl(132 70% 78%)"/>
-      <stop offset="0.55" stop-color="hsl(135 55% 64%)"/>
-      <stop offset="1"    stop-color="hsl(140 55% 48%)"/>
-    </linearGradient>
-
-    <linearGradient id="rim" x1="0.5" y1="0" x2="0.5" y2="0.18">
-      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.06"/>
-      <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
-    </linearGradient>
-
-    <linearGradient id="lit" x1="0.5" y1="0" x2="0.5" y2="0.55">
-      <stop offset="0" stop-color="hsl(0 0% 100%)" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="hsl(0 0% 100%)" stop-opacity="0"/>
-    </linearGradient>
-
-    <radialGradient id="cast" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0"   stop-color="hsl(140 60% 25%)" stop-opacity="0.55"/>
-      <stop offset="0.6" stop-color="hsl(140 60% 25%)" stop-opacity="0.18"/>
-      <stop offset="1"   stop-color="hsl(140 60% 25%)" stop-opacity="0"/>
-    </radialGradient>
-
-    <radialGradient id="sparkHalo" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0"   stop-color="hsl(132 80% 80%)" stop-opacity="0.85"/>
-      <stop offset="0.4" stop-color="hsl(135 70% 70%)" stop-opacity="0.40"/>
-      <stop offset="1"   stop-color="hsl(135 70% 70%)" stop-opacity="0"/>
-    </radialGradient>
-
     <clipPath id="squircle-clip">
       <rect width="1024" height="1024" rx="232" ry="232"/>
     </clipPath>
   </defs>
-
   <g clip-path="url(#squircle-clip)">
-    <!-- Squircle canvas + glassy top edge -->
-    <rect width="1024" height="1024" fill="url(#canvas)"/>
-    <rect width="1024" height="1024" fill="url(#rim)"/>
-
-    <!-- Δ cast shadow -->
-    <ellipse cx="512" cy="780" rx="232" ry="18" fill="url(#cast)"/>
-
-    <!--
-      Δ. Apex shifted down a touch to make room for the spark above.
-      Width 584, height 460, optically balanced inside the 824 safe area.
-    -->
+    <rect class="canvas" width="1024" height="1024"/>
+    <circle class="mark" cx="512" cy="164" r="46"/>
     <path
-      d="M 512 280
-         L 804 740
-         L 220 740 Z"
-      fill="url(#delta)"
+      class="mark"
+      d="M 512 307 L 860 860 L 164 860 Z"
+      fill="none"
+      stroke-width="30"
       stroke-linejoin="round"
+      stroke-linecap="round"
     />
-    <path
-      d="M 512 300
-         L 786 728
-         L 238 728 Z"
-      fill="url(#lit)"
-      stroke-linejoin="round"
-    />
-
-    <!--
-      Spark above the apex — a small mint dot with a soft halo. Reads as
-      a guiding light or "intelligence". At 16px it collapses to a single
-      bright pixel above the triangle, which is exactly the abstract
-      "spark" cue we want.
-    -->
-    <circle cx="512" cy="190" r="78" fill="url(#sparkHalo)"/>
-    <circle cx="512" cy="190" r="32" fill="hsl(132 75% 84%)"/>
-    <circle cx="512" cy="190" r="22" fill="hsl(0 0% 100%)" fill-opacity="0.85"/>
   </g>
 </svg>

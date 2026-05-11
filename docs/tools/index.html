@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>delta — read &amp; act tools</title>
+  <meta name="description" content="the registry of what delta's agent can do. read tools (list_tabs, read_active_page, read_tab) auto-run; act tools (navigate, open_tab) need explicit consent. the registry is open in tools.ts and mirrored to huggingface for verification." />
+  <meta property="og:title" content="delta — read &amp; act tools" />
+  <meta property="og:description" content="read tools auto-run, act tools need consent. tool registry is open; prompt + schemas mirrored to huggingface." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/tools/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta"><a href="../" style="color:inherit; text-decoration:none;">delta</a></h1>
+    </div>
+    <nav class="nav">
+      <a href="../">home</a>
+      <a href="../#modes">how it works</a>
+      <a href="../brand/">brand</a>
+      <a href="https://github.com/Delta-Practice/Browser">github</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/><line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/><line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <section class="pitch">
+    <div class="lede">
+      <h2>read &amp; act<br/>tools.</h2>
+      <p class="sub">the agent can see freely; it can act only with consent. the registry of both halves is open in <code>tools.ts</code>.</p>
+    </div>
+  </section>
+
+  <div class="index-marker">read-act-tools</div>
+
+  <div class="ex-body">
+    <article class="ex-prose">
+      <p class="ex-crumb"><a href="../">← back to delta</a></p>
+      <p class="ex-lede">every tool the agent has is tagged as read or act. read is observation; act is a side effect. they're handled differently on purpose.</p>
+
+      <h3>read tools — auto-run</h3>
+      <p>read tools are idempotent and side-effect-free. they observe state and return it. the runtime executes them without prompting, because asking the user for permission to <em>look</em> at a tab they already have open would be paranoid theatre.</p>
+      <ul>
+        <li><code>list_tabs</code> — return the titles + urls of every open tab</li>
+        <li><code>read_active_page</code> — extract the visible text of the active tab, wrapped in an untrusted-content envelope</li>
+        <li><code>read_tab(tabId)</code> — same, for a specific tab</li>
+      </ul>
+      <p>page text comes back inside a <code>&lt;page-content&gt;</code> tag the system prompt has framed as data — see <a href="../untrusted/">untrusted-content</a>.</p>
+
+      <h3>act tools — gated</h3>
+      <p>act tools change the world. they need explicit consent every time, scoped to <code>(origin, tool)</code>. you can <em>always allow</em> a pair (e.g. <code>navigate</code> on <code>wikipedia.org</code>); that grant lives in your settings json, alongside the rest of the config.</p>
+      <ul>
+        <li><code>navigate(url)</code> — set the active tab's location</li>
+        <li><code>open_tab(url)</code> — open a new tab in the background</li>
+        <li><code>click(selector)</code> — click an element on the active tab (phase 3.1+)</li>
+        <li><code>type(selector, text)</code> — type into an input on the active tab (phase 3.1+)</li>
+      </ul>
+      <p>see <a href="../permissions/">permission gate</a> for how the runtime intercepts these calls.</p>
+
+      <h3>the registry is open</h3>
+      <p>every tool — name, description, json-schema arguments, side classification, handler — lives in one file: <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts">tools.ts</a>. there are no hidden tools. there is no "tools.ts but actually we also do this" file. what you see in the registry is what the agent can call.</p>
+
+      <pre><code>// tools.ts
+export const tools: ToolDef[] = [
+  { name: "list_tabs",        side: "read", schema: {...}, ... },
+  { name: "read_active_page", side: "read", schema: {...}, ... },
+  { name: "navigate",         side: "act",  schema: {...}, ... },
+  { name: "open_tab",         side: "act",  schema: {...}, ... },
+  // …
+]</code></pre>
+
+      <h3>verify on huggingface</h3>
+      <p>the agent's system prompt and the json-schema for every tool are mirrored to the <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">delta-agent-prompt</a> dataset on huggingface. you don't have to clone the repo to inspect what the model is told it can do — you can read it on the web, alongside the model card. the mirror is a build artifact; the repo is the source of truth.</p>
+    </article>
+
+    <aside class="ex-aside">
+      <h4>look at the source</h4>
+      <ul>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts">tools.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a></li>
+        <li><a href="https://huggingface.co/sinhaankur/delta-agent-prompt">hf · prompt + schemas</a></li>
+      </ul>
+      <h4>related reading</h4>
+      <ul>
+        <li><a href="../permissions/">permission gate</a></li>
+        <li><a href="../untrusted/">untrusted-content</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <hr class="divider" />
+
+  <section class="ex-next">
+    <h4>next</h4>
+    <div class="ex-next-grid">
+      <a class="ex-next-card" href="../permissions/">
+        <p class="label">permission gate</p>
+        <p>how act-tools route through a per-(origin, tool) consent gate.</p>
+      </a>
+      <a class="ex-next-card" href="../untrusted/">
+        <p class="label">untrusted-content</p>
+        <p>how page text is framed so malicious pages can't hijack the agent.</p>
+      </a>
+      <a class="ex-next-card" href="../local-llm/">
+        <p class="label">local llm by default</p>
+        <p>the model the agent calls these tools through. yours, on your machine.</p>
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="logo">
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"
+             stroke-linejoin="round" stroke-linecap="round" width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+      <div class="col">
+        <h4>articles</h4>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity model</a>
+        <a href="../brand/">brand</a>
+      </div>
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+      <div class="col">
+        <h4>legal</h4>
+        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+      </div>
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
+    });
+  </script>
+</body>
+</html>

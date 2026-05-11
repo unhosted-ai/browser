@@ -135,7 +135,7 @@ apps/
       shared/                  # types crossing the IPC boundary
     build/                     # icons (.icns, .png) for electron-builder
 brand/
-  icon.svg                     # 1024 master — Δ + spark on a dark squircle
+  icon.svg                     # 1024 master — Δ + spark on a cream squircle
   wordmark.svg                 # Δ + Delta lockup
   guidelines.md                # do/don't, colors, typography
   scripts/build-icons.sh       # rasterise the iconset (rsvg-convert + sips + iconutil)

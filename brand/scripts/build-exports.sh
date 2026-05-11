@@ -57,12 +57,31 @@ for size in 16 32 48 64 128 256 512 1024; do
 done
 
 echo "rendering brand/wordmark.svg (dark register)"
-# Wordmark on dark — keep PNG only (it has transparent bg). The
-# wordmark-cream.svg variant is what we use for JPG.
+# PNG keeps the transparent background. For JPG we composite onto the
+# dark canvas by injecting a <rect> before any other paint instruction
+# — same temp-SVG trick the icon-mark loop uses below.
+wordmark_dark_tmp="$(mktemp -t delta-wordmark-dark.XXXX).svg"
+trap 'rm -f "$mark_dark_tmp" "$mark_cream_tmp" "$wordmark_dark_tmp"' EXIT
+# `</svg>` is unique-enough as an anchor; insert the fill rect right
+# after the opening <svg ...> tag.
+awk -v bg="$JPG_BG_DARK" '
+  !inserted && /<svg /,/>/ {
+    print
+    if (/>/) {
+      print "<rect width=\"100%\" height=\"100%\" fill=\"" bg "\"/>"
+      inserted = 1
+    }
+    next
+  }
+  { print }
+' "$brand/wordmark.svg" > "$wordmark_dark_tmp"
 for w in 320 640 1280; do
   h=$(( w / 4 ))
   rsvg-convert -w "$w" -h "$h" -o "$out/png/wordmark-${w}.png" "$brand/wordmark.svg"
-  echo "  → wordmark-${w} (${w}×${h})"
+  rsvg-convert -w "$w" -h "$h" -o "$out/png/wordmark-${w}-onDark.png" "$wordmark_dark_tmp"
+  sips -s format jpeg -s formatOptions 92 "$out/png/wordmark-${w}-onDark.png" --out "$out/jpg/wordmark-${w}.jpg" >/dev/null
+  rm -f "$out/png/wordmark-${w}-onDark.png"
+  echo "  → wordmark-${w} (${w}×${h}) [png transparent + jpg on dark]"
 done
 
 echo "rendering brand/wordmark-cream.svg (cream register)"
@@ -82,17 +101,33 @@ echo "rendering brand/icon-mark.svg (line-art mark, two color variants)"
 # dark pages). Same shape, two colorways, no fork in source-of-truth.
 mark_dark_tmp="$(mktemp -t delta-mark-dark.XXXX).svg"
 mark_cream_tmp="$(mktemp -t delta-mark-cream.XXXX).svg"
-trap 'rm -f "$mark_dark_tmp" "$mark_cream_tmp"' EXIT
 sed 's/currentColor/#0a0a0a/g' "$brand/icon-mark.svg" > "$mark_dark_tmp"
 sed 's/currentColor/#f5f5f0/g' "$brand/icon-mark.svg" > "$mark_cream_tmp"
+# Composite copies for JPG output (alpha → flat). The dark-stroke mark
+# sits on cream paper; the cream-stroke mark sits on near-black paper.
+mark_dark_jpg_tmp="$(mktemp -t delta-mark-dark-jpg.XXXX).svg"
+mark_cream_jpg_tmp="$(mktemp -t delta-mark-cream-jpg.XXXX).svg"
+trap 'rm -f "$mark_dark_tmp" "$mark_cream_tmp" "$wordmark_dark_tmp" "$mark_dark_jpg_tmp" "$mark_cream_jpg_tmp"' EXIT
+awk -v bg="$JPG_BG_CREAM" '
+  !inserted && /<svg /,/>/ { print; if (/>/) { print "<rect width=\"100%\" height=\"100%\" fill=\"" bg "\"/>"; inserted = 1 } next }
+  { print }
+' "$mark_dark_tmp" > "$mark_dark_jpg_tmp"
+awk -v bg="$JPG_BG_DARK" '
+  !inserted && /<svg /,/>/ { print; if (/>/) { print "<rect width=\"100%\" height=\"100%\" fill=\"" bg "\"/>"; inserted = 1 } next }
+  { print }
+' "$mark_cream_tmp" > "$mark_cream_jpg_tmp"
 for size in 64 128 256 512; do
   rsvg-convert -w "$size" -h "$size" -o "$out/png/icon-mark-dark-${size}.png" "$mark_dark_tmp"
   rsvg-convert -w "$size" -h "$size" -o "$out/png/icon-mark-light-${size}.png" "$mark_cream_tmp"
-  echo "  -> icon-mark-dark-${size} / icon-mark-light-${size} (${size}x${size})"
+  # Composite PNGs at the same sizes, then sips → JPG, then discard the
+  # composite PNG (we keep the transparent one as the canonical PNG).
+  rsvg-convert -w "$size" -h "$size" -o "$out/png/icon-mark-dark-${size}-onCream.png" "$mark_dark_jpg_tmp"
+  rsvg-convert -w "$size" -h "$size" -o "$out/png/icon-mark-light-${size}-onDark.png" "$mark_cream_jpg_tmp"
+  sips -s format jpeg -s formatOptions 92 "$out/png/icon-mark-dark-${size}-onCream.png" --out "$out/jpg/icon-mark-dark-${size}.jpg" >/dev/null
+  sips -s format jpeg -s formatOptions 92 "$out/png/icon-mark-light-${size}-onDark.png" --out "$out/jpg/icon-mark-light-${size}.jpg" >/dev/null
+  rm -f "$out/png/icon-mark-dark-${size}-onCream.png" "$out/png/icon-mark-light-${size}-onDark.png"
+  echo "  -> icon-mark-dark-${size} / icon-mark-light-${size} (${size}x${size}) [png + jpg]"
 done
-# JPG: dark mark on cream paper, light mark on near-black paper.
-sips -s format jpeg -s formatOptions 92 "$out/png/icon-mark-dark-512.png" --out "$out/jpg/icon-mark-dark-512.jpg" >/dev/null
-sips -s format jpeg -s formatOptions 92 "$out/png/icon-mark-light-512.png" --out "$out/jpg/icon-mark-light-512.jpg" >/dev/null
 
 echo
 echo "wrote PNGs:"

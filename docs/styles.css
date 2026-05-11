@@ -5,6 +5,11 @@
    milestones strip, 4-col footer. Accent stays mint to match the app.
    ========================================================================== */
 
+/* Theme tokens. Light is the default register; [data-theme="dark"] on
+   <html> flips to the dark register. A small inline boot script in
+   index.html sets the attribute from localStorage / prefers-color-scheme
+   before first paint so there's no flash. The .theme-toggle in .nav
+   writes the override; without an override the page follows the OS. */
 :root {
   --bg:        #f5f5f0;
   --fg:        #0a0a0a;
@@ -14,9 +19,22 @@
   --line:      rgba(10, 10, 10, 0.12);
   --card:      #ffffff;
   --card-line: rgba(10, 10, 10, 0.18);
+  --neutral:   #f0efe9;            /* tile background for mockups / "wrong" art */
 
   --max: 1320px;
   --pad: 48px;
+}
+
+:root[data-theme="dark"] {
+  --bg:        #0a0a0a;
+  --fg:        #f5f5f0;
+  --accent:    hsl(135 55% 70%);   /* mint, brightened for dark contrast */
+  --accent-2:  hsl(135 55% 78%);
+  --mute:      #8a8a8a;
+  --line:      rgba(245, 245, 240, 0.12);
+  --card:      #141416;
+  --card-line: rgba(245, 245, 240, 0.14);
+  --neutral:   #1c1c1e;
 }
 
 * { box-sizing: border-box; }
@@ -63,6 +81,35 @@ hr.divider {
   overflow: hidden;
 }
 
+/* Small eyebrow above the giant wordmark — pure utility, tells a first
+   visitor what Delta actually is before the editorial wordmark hits.
+   Mono caps so it reads as a label, not a sentence. */
+.hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.hero-eyebrow .sep { opacity: 0.5; }
+.hero-eyebrow .live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+}
+.hero-eyebrow .live::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
 /* The giant wordmark sits flush at the top — clipped slightly to bleed into
    the page. Pointer-events:none so accidental clicks don't snag it. */
 .wordmark-band {
@@ -89,6 +136,7 @@ hr.divider {
   display: flex;
   gap: 36px;
   justify-content: flex-end;
+  align-items: center;
   padding: 20px 0 0;
   border-top: 1px solid var(--line);
   margin-top: 28px;
@@ -104,6 +152,36 @@ hr.divider {
   opacity: 1;
   color: var(--accent);
 }
+
+/* Theme toggle — sun/moon button that lives at the right edge of .nav.
+   Two SVG glyphs stacked; the one matching the active theme is shown via
+   [data-theme] selectors so the icon doesn't need to be swapped in JS. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin-left: -12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity .15s ease, color .15s ease, border-color .15s ease;
+}
+.theme-toggle:hover {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.theme-toggle svg { display: block; width: 14px; height: 14px; }
+.theme-toggle .icon-sun  { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-sun  { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 
 /* --- PITCH ---------------------------------------------------------------- */
 
@@ -137,8 +215,107 @@ hr.divider {
   font-size: clamp(18px, 1.5vw, 22px);
   max-width: 620px;
   color: var(--fg);
-  margin: 0;
+  margin: 0 0 24px;
   line-height: 1.45;
+}
+
+/* Two-button CTA row directly under the lede paragraph. Primary = filled
+   fg-on-bg pill, secondary = outline. The secondary doubles as the
+   anchor link to the quick-start code block lower on the page. */
+.cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: transform .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
+}
+.cta-primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.cta-primary:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.cta-secondary {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--card-line);
+}
+.cta-secondary:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+  transform: translateY(-1px);
+}
+.cta .arrow { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; opacity: 0.7; }
+
+/* Quick-start strip — a small "you can be running in 3 commands" block
+   right under the bento. Two-up: left side a serif sell line, right side
+   the actual shell snippet. Reuses the .card visual register but at full
+   width with a tighter padding. */
+.quickstart {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 32px var(--pad);
+}
+.quickstart-card {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 32px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  padding: 28px 32px;
+}
+.quickstart-card h3 {
+  margin: 0 0 10px;
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-style: italic;
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.2;
+  font-weight: 400;
+  color: var(--fg);
+}
+.quickstart-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--mute);
+  max-width: 38ch;
+}
+.quickstart-card pre {
+  margin: 0;
+  background: var(--bg);
+  border: 1px solid var(--card-line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--fg);
+  overflow-x: auto;
+}
+.quickstart-card pre .c { color: var(--mute); }
+.quickstart-card pre .k { color: var(--accent); }
+@media (max-width: 980px) {
+  .quickstart-card { grid-template-columns: 1fr; gap: 18px; padding: 24px; }
 }
 .badge {
   display: inline-block;
@@ -162,7 +339,21 @@ hr.divider {
   line-height: 1.7;
 }
 .hardware-list li { transition: color .15s ease; }
-.hardware-list li:hover { color: var(--fg); }
+/* Each item links out to the provider's own site. Strip the global <a>
+   register (underline, fg colour) so the list reads as muted text by
+   default; bring colour + underline back on hover for clickability cue. */
+.hardware-list a {
+  color: inherit;
+  text-decoration: none;
+  transition: color .15s ease, text-decoration-color .15s ease;
+}
+.hardware-list a:hover {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
 
 .index-marker {
   font-size: 17px;
@@ -183,6 +374,10 @@ hr.divider {
   max-width: var(--max);
   margin: 0 auto;
 }
+/* Each card is a link to an explainer page. We keep the .card class on the
+   <a> so the home-page layout doesn't need to know whether the element is
+   an <article> or an <a>; this lets us turn cards into navigations without
+   adding nested "Read more" affordances. */
 .card {
   background: var(--card);
   border: 1px solid var(--card-line);
@@ -192,12 +387,31 @@ hr.divider {
   flex-direction: column;
   gap: 14px;
   min-height: 260px;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
   transition: transform .15s ease, border-color .15s ease;
 }
 .card:hover {
   transform: translateY(-2px);
   border-color: var(--fg);
 }
+/* A subtle "→" hint sits in the top-right corner of every card so the
+   reader knows it's clickable without sacrificing the card's calm
+   composition. Picks up the accent on hover. */
+.card .open-cue {
+  position: absolute;
+  top: 18px; right: 20px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 14px;
+  color: var(--mute);
+  opacity: 0.55;
+  transition: opacity .15s ease, color .15s ease, transform .15s ease;
+  pointer-events: none;
+}
+.card:hover .open-cue { opacity: 1; color: var(--accent); transform: translateX(2px); }
+.card-local .open-cue { color: rgba(245,245,240,0.55); }
+.card-local:hover .open-cue { color: var(--accent); }
 .card .art {
   height: 96px;
   display: flex;
@@ -406,4 +620,198 @@ hr.divider {
   .card-local, .card-open, .card-untrusted, .card-permission, .card-honest, .card-private { grid-column: span 1; }
   .footer-grid { grid-template-columns: 1fr; }
   .footer .logo { grid-column: 1 / 2; }
+}
+
+/* ==========================================================================
+   EXPLAINER PAGES (/local-llm/, /untrusted/, /permissions/, /tracker-blocker/,
+   /tools/, /identity/). Each is one bento card's worth of detail. They share
+   the home page's hero/nav/footer; the body below uses the .ex-* classes.
+   ========================================================================== */
+
+.ex-body {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--pad) 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 720px) 1fr;
+  gap: 64px;
+}
+
+/* Lede — big serif italic statement that restates the card's claim in
+   one sentence. Pulls the eye to the editorial register and signals
+   "this is the point" before any prose. */
+.ex-lede {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-style: italic;
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  margin: 0 0 32px;
+  max-width: 26ch;
+  color: var(--fg);
+}
+
+/* Prose stack — straight body type. Slightly larger than the bento card
+   copy so the reader can settle into it. */
+.ex-prose {
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--fg);
+}
+.ex-prose p { margin: 0 0 1.1em; }
+.ex-prose p:last-child { margin-bottom: 0; }
+.ex-prose h3 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 2em 0 0.7em;
+}
+.ex-prose code {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.ex-prose pre {
+  margin: 1.2em 0;
+  padding: 16px 18px;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fg);
+  overflow-x: auto;
+}
+.ex-prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+.ex-prose a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--mute);
+  text-underline-offset: 3px;
+}
+.ex-prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+.ex-prose ul {
+  padding-left: 1.2em;
+  margin: 0 0 1.1em;
+}
+.ex-prose ul li { margin-bottom: 0.4em; }
+
+/* Right rail — "look at the source" links + neighbour-card teasers.
+   Sticky so the reader sees them while scrolling the prose. */
+.ex-aside {
+  position: sticky;
+  top: 32px;
+  align-self: start;
+  font-size: 13px;
+}
+.ex-aside h4 {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--mute);
+  margin: 0 0 12px;
+}
+.ex-aside ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ex-aside li a {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+}
+.ex-aside li a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Back-to-home crumb — one line, mono, mute, above the lede. */
+.ex-crumb {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 28px;
+}
+.ex-crumb a {
+  color: var(--mute);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.ex-crumb a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Footer "next" strip — three small cards at the bottom of each explainer
+   pointing at sibling explainers. Encourages reading the whole set. */
+.ex-next {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--pad) 48px;
+}
+.ex-next h4 {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--mute);
+  margin: 0 0 16px;
+}
+.ex-next-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.ex-next-card {
+  display: block;
+  padding: 18px;
+  border: 1px solid var(--card-line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--fg);
+  text-decoration: none;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.ex-next-card:hover { transform: translateY(-2px); border-color: var(--fg); }
+.ex-next-card .label {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 6px;
+}
+.ex-next-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .ex-body { grid-template-columns: 1fr; gap: 32px; }
+  .ex-aside { position: static; }
+  .ex-next-grid { grid-template-columns: 1fr; }
 }

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>delta — permission gate</title>
+  <meta name="description" content="how delta gates destructive agent actions. every act-tool (navigate, open_tab, click, type) routes through a per-(origin, tool) consent gate that lives in the runtime, not the prompt. a hijacked agent still can't act without you." />
+  <meta property="og:title" content="delta — permission gate" />
+  <meta property="og:description" content="every act-tool routes through a per-(origin, tool) gate that lives in the runtime, not the prompt." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/permissions/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta"><a href="../" style="color:inherit; text-decoration:none;">delta</a></h1>
+    </div>
+    <nav class="nav">
+      <a href="../">home</a>
+      <a href="../#modes">how it works</a>
+      <a href="../brand/">brand</a>
+      <a href="https://github.com/Delta-Practice/Browser">github</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/><line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/><line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <section class="pitch">
+    <div class="lede">
+      <h2>permission<br/>gate.</h2>
+      <p class="sub">act-tools route through a runtime gate, per (origin, tool). a hijacked agent still has to clear a user-facing card.</p>
+    </div>
+  </section>
+
+  <div class="index-marker">permission-gate</div>
+
+  <div class="ex-body">
+    <article class="ex-prose">
+      <p class="ex-crumb"><a href="../">← back to delta</a></p>
+      <p class="ex-lede">the agent can ask to do anything. the runtime decides whether anything actually happens.</p>
+
+      <p>every tool the agent has access to is tagged as either <code>read</code> (idempotent observation — listing tabs, extracting page text) or <code>act</code> (a real side effect — navigating, opening a new tab, clicking, typing). read tools auto-run; act tools route through a permission gate that lives in the main process, not the model's prompt.</p>
+
+      <p>when the model emits <code>navigate("https://evil.example.com")</code>, the runtime intercepts the call, looks up whether you've previously granted <code>(origin: current-tab-host, tool: navigate)</code>, and if not, surfaces an inline permission card in the assistant sidebar with three buttons:</p>
+
+      <ul>
+        <li><strong>allow</strong> — execute this one call</li>
+        <li><strong>block</strong> — refuse this call, tell the model</li>
+        <li><strong>always allow on this site</strong> — record <code>(origin, tool)</code> in settings, auto-allow next time</li>
+      </ul>
+
+      <h3>why (origin, tool), not just (tool)</h3>
+      <p>"the agent can navigate" is too coarse — you might want it to follow links inside <a href="https://wikipedia.org">wikipedia</a> while refusing to navigate at all on your bank's website. so grants are scoped to the host of the active tab at the moment of the call. allowing <code>navigate</code> on <code>news.ycombinator.com</code> doesn't grant it on <code>chase.com</code>.</p>
+
+      <h3>sensitive-site auto-block</h3>
+      <p>some hosts auto-fail the permission check no matter what you've previously granted: banking, government, identity providers, payment processors. the agent simply <em>can't</em> act on <code>*.gov</code>, <code>chase.com</code>, <code>login.live.com</code>, etc. the rule lives in <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a> and is auditable.</p>
+
+      <h3>this is the second wall</h3>
+      <p>the <a href="../untrusted/">untrusted-content frame</a> stops the model from <em>thinking</em> a malicious page's "navigate to evil.com" is an instruction. the permission gate stops the model from <em>doing</em> it even if it does. defence in depth: a single failure doesn't lose the game.</p>
+
+      <h3>where grants live</h3>
+      <p>granted <code>(origin, tool)</code> pairs persist in the user settings json — same file as your provider config. you can review and revoke them in settings → permissions (the list is rendered from <code>settings.permissionGrants</code>). uninstalling delta removes the file; there is no remote record.</p>
+    </article>
+
+    <aside class="ex-aside">
+      <h4>look at the source</h4>
+      <ul>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts">tools.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/settings.ts">settings.ts</a></li>
+      </ul>
+      <h4>related reading</h4>
+      <ul>
+        <li><a href="../untrusted/">untrusted-content</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design + threat model</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <hr class="divider" />
+
+  <section class="ex-next">
+    <h4>next</h4>
+    <div class="ex-next-grid">
+      <a class="ex-next-card" href="../tools/">
+        <p class="label">read &amp; act tools</p>
+        <p>the registry of what the agent can do, split into automatic and consent-gated halves.</p>
+      </a>
+      <a class="ex-next-card" href="../untrusted/">
+        <p class="label">untrusted-content</p>
+        <p>the first wall — page text is framed as data, not instructions.</p>
+      </a>
+      <a class="ex-next-card" href="../identity/">
+        <p class="label">no telemetry. no account.</p>
+        <p>permission grants live in flat json on your disk, alongside the rest of your settings.</p>
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="logo">
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"
+             stroke-linejoin="round" stroke-linecap="round" width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+      <div class="col">
+        <h4>articles</h4>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity model</a>
+        <a href="../brand/">brand</a>
+      </div>
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+      <div class="col">
+        <h4>legal</h4>
+        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+      </div>
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
+    });
+  </script>
+</body>
+</html>

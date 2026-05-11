@@ -11,12 +11,11 @@ Source-of-truth lives one folder up — these files are *outputs* of
 
 ### App icon — `icon-{16,32,48,64,128,256,512,1024}.{png,jpg}`
 
-The full Δ-with-spark icon — gradient mint Δ on a dark squircle, with a
-mint spark above the apex. This is the asset that ends up in the macOS
-dock, the Windows taskbar, and `apple-touch-icon` slots. PNG carries
-the squircle's transparent corners; JPG composites onto the dark canvas
-that's baked into the SVG itself, so JPGs are safe to drop on any
-background.
+The full Δ-with-spark icon — black line-art Δ + spark dot on a cream
+squircle. This is the asset that ends up in the macOS dock, the Windows
+taskbar, and `apple-touch-icon` slots. PNG carries the squircle's
+transparent corners; JPG composites onto the cream canvas that's baked
+into the SVG itself, so JPGs are safe to drop on any background.
 
 | Size | Use |
 | --- | --- |
@@ -25,21 +24,20 @@ background.
 | 256, 512 | Standard app icon |
 | 1024 | macOS Big Sur+, Apple App Store, hi-DPI press |
 
-### Line-art mark — `icon-mark-{dark,light}-{64,128,256,512}.png`, `icon-mark-{dark,light}-512.jpg`
+### Line-art mark — `icon-mark-{dark,light}-{64,128,256,512}.{png,jpg}`
 
 Stripped-down Δ + spark in a single stroke weight. No fills, no
-gradients. Use this for headers, footers, READMEs, monogram avatars
-where the gradient app icon would feel busy.
+gradients. Use this for headers, footers, READMEs, monogram avatars.
 
-- `icon-mark-dark-*` — near-black stroke, transparent / cream JPG. Use on light backgrounds.
-- `icon-mark-light-*` — cream stroke, transparent / near-black JPG. Use on dark backgrounds.
+- `icon-mark-dark-*` — near-black stroke. PNG has a transparent ground; JPG composites onto cream paper (`#f5f5f0`).
+- `icon-mark-light-*` — cream stroke. PNG has a transparent ground; JPG composites onto near-black (`#0a0c10`).
 
-### Wordmark — `wordmark-{320,640,1280}.png` and `wordmark-cream-{320,640,1280}.{png,jpg}`
+### Wordmark — `wordmark-{320,640,1280}.{png,jpg}` and `wordmark-cream-{320,640,1280}.{png,jpg}`
 
-The Δ + "Delta" lockup. Two register variants:
+The Δ + "Delta" lockup. Two register variants, both available as PNG + JPG:
 
-- `wordmark-*` — for dark backgrounds. White Δ-glyph + serif italic "Delta" type. PNG only (transparent background; JPG would lose the hairline edges).
-- `wordmark-cream-*` — for light/cream backgrounds. Darker mint Δ + near-black type on a cream rect. Both PNG and JPG available.
+- `wordmark-*` — dark register. Cream Δ-glyph + serif italic "Delta" type. PNG keeps the transparent ground; JPG composites onto near-black (`#0a0c10`).
+- `wordmark-cream-*` — light register. Black Δ + black type. PNG keeps the cream ground baked in by the SVG; JPG matches.
 
 | Size | Use |
 | --- | --- |
@@ -51,8 +49,8 @@ The Δ + "Delta" lockup. Two register variants:
 
 The unfurled-link card you'll see when someone pastes
 `https://delta-practice.github.io/Browser/` into X / Slack / Discord /
-iMessage. Dark canvas, mint Δ + spark on the left, "delta" wordmark +
-tagline + three badges on the right.
+iMessage. Cream canvas, black line-art Δ + spark on the left, "delta"
+wordmark + tagline + three badges on the right.
 
 The `@2x` variant is for higher-quality re-embeds (some platforms
 re-encode the source).

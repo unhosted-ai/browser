@@ -9,6 +9,7 @@ import type {
   PermissionRequest,
   ProviderInfo,
   ToolCallView,
+  UserSettings,
 } from "@shared/types"
 import { DeltaLogo } from "./DeltaLogo"
 
@@ -55,13 +56,61 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // The agent picks the first usable online provider. We surface that one as
-  // a small footnote — connection state belongs to Settings, not the
-  // conversation. This is just a "you're talking to X" cue.
+  // a small chip — connection state belongs to Settings, but model selection
+  // within the resolved provider is a per-conversation concern that the user
+  // should be able to flip from here without leaving the chat.
   const usable = useMemo(
     () => providers.find((p) => p.status === "online" && p.models.length > 0),
     [providers],
   )
   const online = !!usable
+
+  // Settings — the model chip needs to mirror & write defaultProvider.model.
+  // Subscribed (not just one-shot) so the chip stays in sync when changed
+  // from Settings → Default provider, and vice versa.
+  const [settings, setSettings] = useState<UserSettings | null>(null)
+  useEffect(() => {
+    void window.api.settings.get().then(setSettings)
+    return window.api.settings.onChange(setSettings)
+  }, [])
+
+  // The model the agent will actually use right now. If the user pinned one
+  // in settings *and* it's still in the resolved provider's list, that wins;
+  // otherwise we fall back to the provider's first listed model — same
+  // resolution main/providers.ts → pickDefaultProvider uses.
+  const activeModel = useMemo(() => {
+    if (!usable) return null
+    const pinned = settings?.defaultProvider.model
+    return pinned && usable.models.includes(pinned) ? pinned : (usable.models[0] ?? null)
+  }, [usable, settings])
+
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const modelPickerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!modelPickerOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
+        setModelPickerOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModelPickerOpen(false) }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [modelPickerOpen])
+
+  const pickModel = (model: string | undefined) => {
+    if (!usable || !settings) return
+    // Pin to this provider so the user's explicit choice survives the next
+    // provider re-probe. The previous id may have been "auto" — we promote
+    // it to the resolved provider so the chip remains stable.
+    const id = settings.defaultProvider.id === "auto" ? usable.id : settings.defaultProvider.id
+    void window.api.settings.update({ kind: "defaultProvider", id, model })
+    setModelPickerOpen(false)
+  }
 
   useEffect(() => {
     return window.api.agent.onEvent((e: AgentEvent) => {
@@ -303,25 +352,89 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
           disabled={composerDisabled}
         />
         <div className="mt-2 flex items-center justify-between font-mono text-[10px] tracking-[0.12em] uppercase">
-          {/* Footnote: who's answering. Click to jump to Settings → Connection. */}
+          {/* Chip: who's answering. Click to switch model on the fly without
+              leaving the chat — popover lists every model the resolved
+              provider has loaded. Settings → Default provider is the same
+              setting; this is just a faster path. */}
           {online ? (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              title={`${usable!.label} · ${usable!.models[0]} — change in Settings`}
-              className="flex items-center gap-1.5 text-chrome-text-3 hover:text-chrome-text-2 transition-colors"
-            >
-              {isStreaming ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" />
-              ) : (
-                <span className="h-1.5 w-1.5 rounded-full bg-signal" />
+            <div className="relative" ref={modelPickerRef}>
+              <button
+                type="button"
+                onClick={() => setModelPickerOpen((v) => !v)}
+                title={`${usable!.label} · ${activeModel} — click to switch model`}
+                className={[
+                  "flex items-center gap-1.5 transition-colors",
+                  modelPickerOpen ? "text-chrome-text" : "text-chrome-text-3 hover:text-chrome-text-2",
+                ].join(" ")}
+              >
+                {isStreaming ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-signal animate-pulse" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-signal" />
+                )}
+                <span className="text-chrome-text-2 truncate max-w-[180px]">
+                  {usable!.label}
+                  <span className="text-chrome-text-3 normal-case mx-1">·</span>
+                  {activeModel}
+                </span>
+                <svg width="8" height="8" viewBox="0 0 8 8" className="opacity-60" aria-hidden="true">
+                  <path d="M1 3 L4 6 L7 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+
+              {modelPickerOpen && (
+                <div
+                  className="absolute bottom-full mb-2 left-0 min-w-[220px] max-w-[300px] rounded-xl border border-chrome-border bg-chrome-bg shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)] py-1.5 z-30"
+                  role="menu"
+                >
+                  <p className="px-3 pt-1 pb-1.5 font-mono text-[9px] tracking-[0.18em] uppercase text-chrome-text-3">
+                    Model · {usable!.label}
+                  </p>
+                  <ul className="max-h-[240px] overflow-y-auto">
+                    {usable!.models.map((m) => {
+                      const isActive = m === activeModel
+                      return (
+                        <li key={m}>
+                          <button
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={isActive}
+                            onClick={() => pickModel(m)}
+                            className={[
+                              "w-full text-left px-3 py-1.5 font-mono text-[11px] normal-case flex items-center gap-2",
+                              isActive ? "text-signal" : "text-chrome-text-2 hover:bg-chrome-surface hover:text-chrome-text",
+                            ].join(" ")}
+                          >
+                            <span className={[
+                              "h-1.5 w-1.5 rounded-full shrink-0",
+                              isActive ? "bg-signal" : "bg-transparent border border-chrome-border",
+                            ].join(" ")} />
+                            <span className="truncate">{m}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <div className="border-t border-chrome-border mt-1 pt-1 px-3 pb-1 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => pickModel(undefined)}
+                      className="text-[9px] tracking-[0.14em] uppercase text-chrome-text-3 hover:text-chrome-text-2 transition-colors"
+                      title="Let the provider's first listed model decide"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setModelPickerOpen(false); onOpenSettings() }}
+                      className="text-[9px] tracking-[0.14em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+                    >
+                      Settings →
+                    </button>
+                  </div>
+                </div>
               )}
-              <span className="text-chrome-text-2 truncate max-w-[180px]">
-                {usable!.label}
-                <span className="text-chrome-text-3 normal-case mx-1">·</span>
-                {usable!.models[0]}
-              </span>
-            </button>
+            </div>
           ) : (
             <button
               type="button"

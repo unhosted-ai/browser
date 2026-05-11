@@ -84,8 +84,7 @@ const Icon = {
         stroke="currentColor"
         strokeWidth="1.4"
         strokeLinejoin="round"
-        fill="currentColor"
-        fillOpacity="0.18"
+        strokeLinecap="round"
       />
     </svg>
   ),

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>delta — no telemetry. no account.</title>
+  <meta name="description" content="how delta works without an account. the device is the identity. conversations, bookmarks, history live as flat json on your disk. quit deletes nothing; rm -rf does. backups via time machine, sync via syncthing, audit any time." />
+  <meta property="og:title" content="delta — no telemetry. no account." />
+  <meta property="og:description" content="device is the identity. conversations, bookmarks, history live as flat json on your disk. quit deletes nothing; rm -rf does." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/identity/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta"><a href="../" style="color:inherit; text-decoration:none;">delta</a></h1>
+    </div>
+    <nav class="nav">
+      <a href="../">home</a>
+      <a href="../#modes">how it works</a>
+      <a href="../brand/">brand</a>
+      <a href="https://github.com/Delta-Practice/Browser">github</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/><line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/><line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <section class="pitch">
+    <div class="lede">
+      <h2>no telemetry.<br/>no account.</h2>
+      <p class="sub">device is the identity. quit deletes nothing; <code>rm -rf</code> does.</p>
+    </div>
+  </section>
+
+  <div class="index-marker">identity</div>
+
+  <div class="ex-body">
+    <article class="ex-prose">
+      <p class="ex-crumb"><a href="../">← back to delta</a></p>
+      <p class="ex-lede">a browser with no signup, no profile, no remote anything. you don't have a delta account because there's nothing for you to have an account on.</p>
+
+      <h3>what lives where</h3>
+      <p>everything delta knows about you lives under one directory:</p>
+      <pre><code>~/Library/Application Support/Delta/   # macOS
+~/.config/Delta/                       # Linux
+%APPDATA%\Delta\                       # Windows</code></pre>
+      <p>inside that folder, every file is plain json that you can open in any editor:</p>
+      <ul>
+        <li><code>conversations/&lt;uuid&gt;.json</code> — one file per chat thread</li>
+        <li><code>bookmarks.json</code> — your saved urls</li>
+        <li><code>history.json</code> — your visit history (capped fifo)</li>
+        <li><code>downloads.json</code> — recent download metadata</li>
+        <li><code>settings.json</code> — preferences, custom endpoints, permission grants</li>
+        <li><code>privacy.json</code> — the rolling 30-day tracker counts</li>
+      </ul>
+
+      <h3>cloud keys are encrypted</h3>
+      <p>the only sensitive thing inside settings.json is the API keys for cloud providers, if you enable them. those aren't stored plaintext — they're encrypted via electron's <code>safeStorage</code>, which uses the os keychain (macOS keychain, gnome-keyring/kwallet on linux, dpapi on windows). only delta's main process can decrypt them; even another process running as your user can't read the bytes off disk.</p>
+
+      <h3>backups, sync, audit</h3>
+      <p>because everything is flat json in a known directory, the boring tools work:</p>
+      <ul>
+        <li><strong>backup</strong> — time machine, restic, rsync. snapshot the folder.</li>
+        <li><strong>sync across machines</strong> — point <a href="https://syncthing.net">syncthing</a> at the folder. now you have multi-device delta, owned by you.</li>
+        <li><strong>audit</strong> — grep, jq, your editor. nothing is in a proprietary blob.</li>
+        <li><strong>full reset</strong> — <code>rm -rf ~/Library/Application\ Support/Delta</code> and you're a fresh user.</li>
+      </ul>
+
+      <h3>the no-telemetry promise</h3>
+      <p>delta makes <em>zero</em> outbound requests to delta infrastructure. there is no analytics endpoint, no crash reporter, no update server (the project doesn't even ship signed installers yet — <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">see STATUS.md</a>). every outbound request originates from a page you visited, a model you configured, or an api key you pasted. you can verify this with little snitch, lulu, or by yanking your network cable: a model running locally + a tab on <code>localhost</code> will function indefinitely offline.</p>
+    </article>
+
+    <aside class="ex-aside">
+      <h4>look at the source</h4>
+      <ul>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/settings.ts">settings.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/conversations.ts">conversations.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/history.ts">history.ts</a></li>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/bookmarks.ts">bookmarks.ts</a></li>
+      </ul>
+      <h4>related reading</h4>
+      <ul>
+        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity.md (long form)</a></li>
+        <li><a href="../tracker-blocker/">tracker blocker</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <hr class="divider" />
+
+  <section class="ex-next">
+    <h4>next</h4>
+    <div class="ex-next-grid">
+      <a class="ex-next-card" href="../tracker-blocker/">
+        <p class="label">tracker blocker</p>
+        <p>~150 known trackers caught at the network layer. on-device 30-day report.</p>
+      </a>
+      <a class="ex-next-card" href="../local-llm/">
+        <p class="label">local llm by default</p>
+        <p>the only outbound traffic on a clean install is to your own llm at 127.0.0.1.</p>
+      </a>
+      <a class="ex-next-card" href="../permissions/">
+        <p class="label">permission gate</p>
+        <p>permission grants live in your settings.json. revocable, auditable, local.</p>
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="logo">
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"
+             stroke-linejoin="round" stroke-linecap="round" width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+      <div class="col">
+        <h4>articles</h4>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity model</a>
+        <a href="../brand/">brand</a>
+      </div>
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+      <div class="col">
+        <h4>legal</h4>
+        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+      </div>
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
+    });
+  </script>
+</body>
+</html>

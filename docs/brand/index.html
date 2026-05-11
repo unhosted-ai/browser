@@ -10,13 +10,26 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://delta-practice.github.io/Browser/brand/" />
   <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
-  <meta name="theme-color" content="#f5f5f0" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/svg+xml" href="../icon.svg" />
   <link rel="stylesheet" href="../styles.css" />
   <link rel="stylesheet" href="brand.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Theme boot — mirrors docs/index.html. Sets data-theme from
+       localStorage / prefers-color-scheme before first paint. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+      } catch (_) {}
+    })();
+  </script>
 
   <style>
     .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s cubic-bezier(0.32, 0.72, 0, 1), transform .6s cubic-bezier(0.32, 0.72, 0, 1); }
@@ -45,6 +58,24 @@
       <a href="#wild">in the wild</a>
       <a href="#downloads">downloads</a>
       <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/guidelines.md">guidelines.md</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/>
+            <line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/>
+            <line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/>
+            <line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/>
+            <line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
     </nav>
   </header>
 
@@ -91,7 +122,7 @@
         <img src="../../brand/exports/png/icon-256.png" alt="delta app icon" width="180" height="180"/>
       </div>
       <p class="mark-label">app icon</p>
-      <p class="mark-copy">Δ on a dark squircle, mint gradient. The dark canvas is part of the mark — don't strip it. Use for dock / taskbar / favicon at any size from 16 up.</p>
+      <p class="mark-copy">Pure line-art Δ + spark on a cream squircle. Same shape as the inline mark, just sized for dock / taskbar / favicon at any size from 16 up.</p>
       <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon.svg">brand/icon.svg</a></p>
     </article>
 
@@ -104,7 +135,7 @@
         </svg>
       </div>
       <p class="mark-label">line-art mark</p>
-      <p class="mark-copy">Companion to the app icon. No fills, single stroke-weight, <code>currentColor</code>. Use for headers, footers, READMEs, monogram avatars, and contexts where the gradient feels busy.</p>
+      <p class="mark-copy">The same glyph without a squircle. Single stroke-weight, <code>currentColor</code>. Use for headers, footers, READMEs, monogram avatars — anywhere you need the mark to inherit the surrounding text colour.</p>
       <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon-mark.svg">brand/icon-mark.svg</a></p>
     </article>
 
@@ -114,7 +145,7 @@
         <img src="../../brand/exports/png/wordmark-640.png" alt="delta wordmark" width="320" height="80"/>
       </div>
       <p class="mark-label">wordmark</p>
-      <p class="mark-copy">Δ + spark glyph + "Delta" in Instrument Serif italic. Two register variants — dark (white type on transparent) and cream (near-black type on cream). Use anywhere "Delta" appears next to the mark.</p>
+      <p class="mark-copy">Δ + spark glyph + "Delta" in Instrument Serif italic. Two register variants — dark (cream type on transparent) and cream (black type on cream). Use anywhere "Delta" appears next to the mark.</p>
       <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark.svg">wordmark.svg</a> + <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark-cream.svg">wordmark-cream.svg</a></p>
     </article>
 
@@ -128,17 +159,19 @@
   <div class="index-marker" id="clearspace">clearspace</div>
   <section class="b-clearspace">
     <div class="clearspace-art" aria-hidden="true">
-      <svg viewBox="0 0 320 240" width="100%" height="auto">
-        <!-- Clearspace bounding box -->
-        <rect x="40" y="20" width="240" height="200" fill="none" stroke="rgba(10,10,10,0.18)" stroke-dasharray="4 4" stroke-width="1"/>
-        <!-- "1×" labels on each side -->
-        <text x="160" y="14" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
-        <text x="160" y="234" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
-        <text x="34"  y="124" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
-        <text x="286" y="124" text-anchor="start" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
-        <!-- Mark itself, centred -->
-        <g transform="translate(120, 60)" stroke="#0a0a0a" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round">
-          <circle cx="40" cy="13" r="6" fill="#0a0a0a" stroke="none"/>
+      <!-- Inline SVG uses currentColor so it tints with the theme. The
+           outer wrapper sets color: var(--fg); the dashed box and "1×"
+           labels are explicit lower-opacity siblings of that colour. -->
+      <svg viewBox="0 0 320 240" width="100%" height="auto" style="color: var(--fg);">
+        <rect x="40" y="20" width="240" height="200" fill="none" stroke="currentColor" stroke-opacity="0.22" stroke-dasharray="4 4" stroke-width="1"/>
+        <g fill="currentColor" fill-opacity="0.5" font-family="JetBrains Mono, monospace" font-size="9">
+          <text x="160" y="14"  text-anchor="middle">1×</text>
+          <text x="160" y="234" text-anchor="middle">1×</text>
+          <text x="34"  y="124" text-anchor="end">1×</text>
+          <text x="286" y="124" text-anchor="start">1×</text>
+        </g>
+        <g transform="translate(120, 60)" stroke="currentColor" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round">
+          <circle cx="40" cy="13" r="6" fill="currentColor" stroke="none"/>
           <path d="M 40 24 L 76 96 L 4 96 Z"/>
         </g>
       </svg>
@@ -158,7 +191,7 @@
        ───────────────────────────────────────────────────────── -->
   <div class="index-marker" id="colors">colours</div>
   <section class="b-colors">
-    <p class="b-section-h">one accent (mint), one canvas (near-black or cream). everything else is neutral.</p>
+    <p class="b-section-h">black on cream, or cream on black. mint shows up inside the app as a ui accent only — never in the mark.</p>
     <div class="swatch-grid">
 
       <div class="reveal swatch swatch-mint-dark">
@@ -166,7 +199,7 @@
           <p class="swatch-label">signal mint — dark mode</p>
           <p class="swatch-vals"><span>hsl(135 55% 66%)</span><span>#85d693</span></p>
         </div>
-        <p class="swatch-use">Δ mark, AI button when active, loading bar, hover states.</p>
+        <p class="swatch-use">UI accent only: AI button when active, loading bar, hover states. Not part of the mark.</p>
       </div>
 
       <div class="reveal swatch swatch-mint-light">
@@ -281,14 +314,14 @@
         </svg>
       </div>
       <p class="dont-label">recolour the Δ</p>
-      <p class="dont-copy">The mint gradient is fixed. Pink / orange / etc. are not "themes" of the brand — they're a different brand.</p>
+      <p class="dont-copy">The mark is black on cream (or cream on black). Pink / orange / mint / etc. are not "themes" of the brand — they're a different brand.</p>
     </div>
 
     <div class="reveal dont-card">
       <div class="dont-art">
         <svg viewBox="0 0 120 120" width="80" height="80" fill="none">
-          <circle cx="60" cy="22" r="6" fill="#0a0a0a"/>
-          <path d="M 60 40 L 100 100 L 20 100 Z" fill="none" stroke="#0a0a0a" stroke-width="14" stroke-linejoin="round"/>
+          <circle cx="60" cy="22" r="6" fill="currentColor"/>
+          <path d="M 60 40 L 100 100 L 20 100 Z" fill="none" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/>
         </svg>
       </div>
       <p class="dont-label">change the stroke weight</p>
@@ -298,7 +331,7 @@
     <div class="reveal dont-card">
       <div class="dont-art">
         <svg viewBox="0 0 240 80" width="200" height="68">
-          <text x="0" y="58" font-family="ui-sans-serif, sans-serif" font-style="normal" font-weight="600" font-size="64" fill="#0a0a0a">Delta</text>
+          <text x="0" y="58" font-family="ui-sans-serif, sans-serif" font-style="normal" font-weight="600" font-size="64" fill="currentColor">Delta</text>
         </svg>
       </div>
       <p class="dont-label">typeset "Delta" in sans</p>
@@ -310,15 +343,15 @@
         <img src="../../brand/exports/png/icon-128.png" alt="" width="80" height="80"/>
       </div>
       <p class="dont-label">render on a coloured ground</p>
-      <p class="dont-copy">The mint Δ on saturated colour becomes illegible. The dark squircle is part of the icon — don't replace it with a host-app background.</p>
+      <p class="dont-copy">The mark on saturated colour looks like a different brand. Keep the cream squircle that ships with the icon, or invert to a near-black squircle for dark-only contexts.</p>
     </div>
 
     <div class="reveal dont-card">
       <div class="dont-art">
         <svg viewBox="0 0 240 80" width="200" height="68">
           <defs><filter id="bvl"><feGaussianBlur stdDeviation="1.5"/></filter></defs>
-          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="#0a0a0a" filter="url(#bvl)" opacity="0.4">Delta</text>
-          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="#0a0a0a">Delta</text>
+          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="currentColor" filter="url(#bvl)" opacity="0.4">Delta</text>
+          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="currentColor">Delta</text>
         </svg>
       </div>
       <p class="dont-label">drop-shadow the wordmark</p>
@@ -327,7 +360,7 @@
 
     <div class="reveal dont-card">
       <div class="dont-art">
-        <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 56px; letter-spacing: -0.02em; color: #0a0a0a; text-transform: uppercase;">DELTA</span>
+        <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 56px; letter-spacing: -0.02em; text-transform: uppercase;">DELTA</span>
       </div>
       <p class="dont-label">write it as DELTA</p>
       <p class="dont-copy">In long-form copy, the product is "Delta" — capital D, lowercase rest. Δ is a logomark, not a substitute for the letter.</p>
@@ -405,7 +438,7 @@
         </div>
       </div>
       <p class="wild-label">browser tab + favicon</p>
-      <p class="wild-copy">16px favicon stays legible at the smallest size. The mint Δ is the only colour cue you need.</p>
+      <p class="wild-copy">16px favicon stays legible at the smallest size. The Δ + spark silhouette is the only cue you need.</p>
     </article>
 
     <article class="reveal wild-card wild-og">
@@ -463,22 +496,22 @@
         <h3>line-art mark</h3>
         <ul>
           <li><a href="../../brand/exports/png/icon-mark-dark-512.png">dark-512.png</a> · <a href="../../brand/exports/jpg/icon-mark-dark-512.jpg">jpg</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-dark-256.png">dark-256.png</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-dark-128.png">dark-128.png</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-dark-64.png">dark-64.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-256.png">dark-256.png</a> · <a href="../../brand/exports/jpg/icon-mark-dark-256.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-128.png">dark-128.png</a> · <a href="../../brand/exports/jpg/icon-mark-dark-128.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-64.png">dark-64.png</a> · <a href="../../brand/exports/jpg/icon-mark-dark-64.jpg">jpg</a></li>
           <li><a href="../../brand/exports/png/icon-mark-light-512.png">light-512.png</a> · <a href="../../brand/exports/jpg/icon-mark-light-512.jpg">jpg</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-light-256.png">light-256.png</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-light-128.png">light-128.png</a></li>
-          <li><a href="../../brand/exports/png/icon-mark-light-64.png">light-64.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-256.png">light-256.png</a> · <a href="../../brand/exports/jpg/icon-mark-light-256.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-128.png">light-128.png</a> · <a href="../../brand/exports/jpg/icon-mark-light-128.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-64.png">light-64.png</a> · <a href="../../brand/exports/jpg/icon-mark-light-64.jpg">jpg</a></li>
         </ul>
       </div>
 
       <div class="downloads-col">
         <h3>wordmark</h3>
         <ul>
-          <li><a href="../../brand/exports/png/wordmark-1280.png">wordmark-1280.png</a> <span class="muted">(dark register)</span></li>
-          <li><a href="../../brand/exports/png/wordmark-640.png">wordmark-640.png</a></li>
-          <li><a href="../../brand/exports/png/wordmark-320.png">wordmark-320.png</a></li>
+          <li><a href="../../brand/exports/png/wordmark-1280.png">wordmark-1280.png</a> · <a href="../../brand/exports/jpg/wordmark-1280.jpg">jpg</a> <span class="muted">(dark register)</span></li>
+          <li><a href="../../brand/exports/png/wordmark-640.png">wordmark-640.png</a> · <a href="../../brand/exports/jpg/wordmark-640.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/wordmark-320.png">wordmark-320.png</a> · <a href="../../brand/exports/jpg/wordmark-320.jpg">jpg</a></li>
           <li><a href="../../brand/exports/png/wordmark-cream-1280.png">cream-1280.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-1280.jpg">jpg</a></li>
           <li><a href="../../brand/exports/png/wordmark-cream-640.png">cream-640.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-640.jpg">jpg</a></li>
           <li><a href="../../brand/exports/png/wordmark-cream-320.png">cream-320.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-320.jpg">jpg</a></li>
@@ -557,6 +590,15 @@
         inView(el, () => el.classList.add("is-in"), { amount: 0.2 });
       });
     }
+
+    // Theme toggle — same behaviour as docs/index.html.
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
+    });
   </script>
 </body>
 </html>

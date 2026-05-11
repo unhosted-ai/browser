@@ -4,24 +4,47 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>delta — a privacy-first ai browser</title>
-  <meta name="description" content="an electron browser with a built-in agent that runs against a local llm by default. no accounts. no telemetry. nothing leaves your machine." />
+  <meta name="description" content="an open-source ai browser. the assistant reads the page you're on and answers from a local llm — ollama, lm studio, llama.cpp, mlx. no accounts, no telemetry, opt-in cloud." />
+  <meta property="og:site_name" content="Delta" />
   <meta property="og:title" content="delta — a privacy-first ai browser" />
-  <meta property="og:description" content="local llm by default. the agent reads and acts on the active page. nothing leaves your machine." />
+  <meta property="og:description" content="the assistant sees what you're reading and answers from a local llm by default. ollama, lm studio, llama.cpp, mlx out of the box. cloud is opt-in, keys live in your os keychain, and nothing leaves your laptop unless you turn it on." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://delta-practice.github.io/Browser/" />
   <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Delta — black line-art triangle with a spark dot above, lockup with the word 'delta' in serif italic, on cream paper." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="delta — a privacy-first ai browser" />
-  <meta name="twitter:description" content="local llm by default. the agent reads and acts on the active page. nothing leaves your machine." />
+  <meta name="twitter:description" content="the assistant reads the page you're on and answers from a local llm. ollama, lm studio, llama.cpp, mlx out of the box. cloud is opt-in." />
   <meta name="twitter:image" content="https://delta-practice.github.io/Browser/og-image.png" />
-  <meta name="theme-color" content="#f5f5f0" />
+  <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Theme boot — runs synchronously before first paint so the page
+       renders in the right register from the start (no FOUC). Reads an
+       explicit user choice from localStorage; if none, follows the OS
+       via prefers-color-scheme. The .theme-toggle in .nav writes the
+       override; removing the override would let the OS take back over,
+       but the toggle currently sets a sticky preference. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("delta-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (_) {
+        /* localStorage may be blocked (private mode, embedded). Fall back
+           to whatever CSS :root defines, which is the light register. */
+      }
+    })();
+  </script>
 
   <!-- Initial hidden state for the elements motion.js will reveal on scroll.
        Inline so it applies before the script loads — avoids a flash of
@@ -37,9 +60,18 @@
 <body>
 
   <!-- ─────────────────────────────────────────────────────────
-       hero — giant wordmark slab + thin nav row underneath
+       hero — eyebrow + giant wordmark slab + thin nav row underneath
        ───────────────────────────────────────────────────────── -->
   <header class="hero">
+    <p class="hero-eyebrow">
+      <span>ai browser</span>
+      <span class="sep">·</span>
+      <span>open source</span>
+      <span class="sep">·</span>
+      <span>local-first</span>
+      <span class="sep">·</span>
+      <span class="live">v0 · macOS</span>
+    </p>
     <div class="wordmark-band">
       <h1 class="wordmark" aria-label="delta">delta</h1>
     </div>
@@ -51,6 +83,26 @@
       <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">prompt</a>
       <a href="https://github.com/Delta-Practice/Browser">github</a>
       <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
+        <!-- Moon (shown in light mode → click to go dark). -->
+        <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
+        </svg>
+        <!-- Sun (shown in dark mode → click to go light). -->
+        <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+            <line x1="8" y1="1.5" x2="8" y2="3"/>
+            <line x1="8" y1="13" x2="8" y2="14.5"/>
+            <line x1="1.5" y1="8" x2="3" y2="8"/>
+            <line x1="13" y1="8" x2="14.5" y2="8"/>
+            <line x1="3.4" y1="3.4" x2="4.5" y2="4.5"/>
+            <line x1="11.5" y1="11.5" x2="12.6" y2="12.6"/>
+            <line x1="3.4" y1="12.6" x2="4.5" y2="11.5"/>
+            <line x1="11.5" y1="4.5" x2="12.6" y2="3.4"/>
+          </g>
+        </svg>
+      </button>
     </nav>
   </header>
 
@@ -69,15 +121,26 @@
         </span>
       </h2>
       <p class="sub">an electron browser with a built-in agent that talks to whatever llm is sitting on your laptop. cloud is opt-in. keys live in your os keychain. nothing leaves the device unless you explicitly enable it.</p>
+      <div class="cta-row">
+        <a class="cta cta-primary" href="https://github.com/Delta-Practice/Browser">
+          view on github <span class="arrow">→</span>
+        </a>
+        <a class="cta cta-secondary" href="#quickstart">
+          quick start
+        </a>
+        <a class="cta cta-secondary" href="#modes">
+          how it works
+        </a>
+      </div>
     </div>
     <ul class="hardware-list" aria-label="works with">
-      <li>ollama</li>
-      <li>lm studio</li>
-      <li>llama.cpp</li>
-      <li>mlx</li>
-      <li>anthropic</li>
-      <li>openai</li>
-      <li>+ any openai-compatible</li>
+      <li><a href="https://ollama.com" target="_blank" rel="noopener noreferrer">ollama</a></li>
+      <li><a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer">lm studio</a></li>
+      <li><a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener noreferrer">llama.cpp</a></li>
+      <li><a href="https://github.com/ml-explore/mlx-lm" target="_blank" rel="noopener noreferrer">mlx</a></li>
+      <li><a href="https://www.anthropic.com" target="_blank" rel="noopener noreferrer">anthropic</a></li>
+      <li><a href="https://openai.com" target="_blank" rel="noopener noreferrer">openai</a></li>
+      <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md#providers" target="_blank" rel="noopener noreferrer">+ any openai-compatible</a></li>
     </ul>
   </section>
 
@@ -89,8 +152,11 @@
        ───────────────────────────────────────────────────────── -->
   <section class="bento" id="modes">
 
-    <!-- card-local: spans 2, inverted dark. the headline feature. -->
-    <article class="reveal card card-local">
+    <!-- card-local: spans 2, inverted dark. the headline feature. Each
+         card is a link to its own explainer page; the .card class is the
+         same so layout/hover treatment is shared with the old <article>. -->
+    <a class="reveal card card-local" href="local-llm/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <circle cx="50" cy="50" r="44" stroke-dasharray="2 6" opacity="0.25"/>
@@ -103,20 +169,20 @@
         <span class="label">local llm by default</span>
       </div>
       <p>auto-discovers ollama, lm studio, llama.cpp, mlx on 127.0.0.1. the model that reads your tabs sits on the same machine that opened them.</p>
-    </article>
+    </a>
 
-    <!-- card-untrusted: span 1 -->
-    <article class="reveal card card-untrusted">
+    <a class="reveal card card-untrusted" href="untrusted/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art art-text mono">&lt;/&gt;</div>
       <div class="meta">
         <span class="dot"></span>
         <span class="label">untrusted-content</span>
       </div>
       <p>page text wrapped in tags the system prompt frames as data, not instructions. malicious page can't hijack the agent.</p>
-    </article>
+    </a>
 
-    <!-- card-permission: span 1 -->
-    <article class="reveal card card-permission">
+    <a class="reveal card card-permission" href="permissions/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <rect x="14" y="22" width="72" height="56" rx="6"/>
@@ -128,30 +194,30 @@
         <span class="label">permission gate</span>
       </div>
       <p>every act-tool routes through a per-(origin, tool) gate that lives in the runtime, not the prompt.</p>
-    </article>
+    </a>
 
-    <!-- card-honest: span 1, BIG NUMBER ART -->
-    <article class="reveal card card-honest">
+    <a class="reveal card card-honest" href="tracker-blocker/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art art-text">78</div>
       <div class="meta">
         <span class="dot"></span>
         <span class="label">tracker blocker</span>
       </div>
       <p>~150 known trackers caught at the network layer from app boot. 30-day rolling stats. on-device only.</p>
-    </article>
+    </a>
 
-    <!-- card-open: span 2 -->
-    <article class="reveal card card-open">
+    <a class="reveal card card-open" href="tools/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art art-text mono">{ }</div>
       <div class="meta">
         <span class="dot"></span>
         <span class="label">read &amp; act tools</span>
       </div>
-      <p>read tools (list_tabs, read_active_page, read_tab) auto-run. act tools (navigate, open_tab) need explicit consent. tool registry is open in tools.ts. the prompt + schemas are mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a> for verification.</p>
-    </article>
+      <p>read tools (list_tabs, read_active_page, read_tab) auto-run. act tools (navigate, open_tab) need explicit consent. tool registry is open in tools.ts; prompt + schemas mirrored to huggingface for verification.</p>
+    </a>
 
-    <!-- card-private: span 1 -->
-    <article class="reveal card card-private">
+    <a class="reveal card card-private" href="identity/">
+      <span class="open-cue" aria-hidden="true">→</span>
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <circle cx="50" cy="50" r="34"/>
@@ -163,7 +229,7 @@
         <span class="label">no telemetry. no account.</span>
       </div>
       <p>device is the identity. conversations, bookmarks, history live as flat json on your disk. quit deletes nothing; rm -rf does.</p>
-    </article>
+    </a>
 
   </section>
 
@@ -312,6 +378,18 @@ hotjar.com            blocked across  8 sites
     // Any stray .reveal not inside a group (e.g. future additions).
     document.querySelectorAll(".reveal:not(.is-in)").forEach((el) => {
       if (!el.style.transitionDelay) inView(el, () => el.classList.add("is-in"), { amount: 0.2 });
+    });
+
+    // Theme toggle — flips data-theme on <html>, persists in localStorage.
+    // The boot script in <head> reads localStorage on next load. We don't
+    // wire prefers-color-scheme listeners here on purpose: once the user
+    // has made an explicit choice, that choice is sticky.
+    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("delta-theme", next); } catch (_) {}
+      });
     });
   </script>
 </body>
