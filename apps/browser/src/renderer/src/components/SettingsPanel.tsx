@@ -153,6 +153,8 @@ function SettingsBody({
         />
         <DefaultProviderSection settings={settings} providers={providers} />
         <AppLockSection settings={settings} />
+        <SecurityHardeningSection settings={settings} />
+        <UpdatesSection settings={settings} />
         <ExtendedTrackerListSection settings={settings} />
         <PrivacySection />
         <PrivacyNote />
@@ -197,6 +199,213 @@ function AppLockSection({ settings }: { settings: UserSettings }) {
           onChange={set}
           ariaLabel="Require biometric on launch"
         />
+      </div>
+    </section>
+  )
+}
+
+// ── Connection-layer security hardening ─────────────────────────────
+// Three orthogonal layers, each toggleable independently:
+//   1. HTTPS-only — rewrite top-level http:// to https:// before the
+//      request leaves the device. Per-host bypass for sites that don't
+//      have valid TLS (legacy intranet, localhost is auto-skipped).
+//   2. Strict referrer policy — strip path + query on cross-origin
+//      Referer headers.
+//   3. DNS-over-HTTPS — route all Chromium DNS through 1.1.1.1 / 9.9.9.9
+//      / 8.8.8.8 instead of the OS resolver. Takes effect next launch.
+function SecurityHardeningSection({ settings }: { settings: UserSettings }) {
+  const [bypassDraft, setBypassDraft] = useState("")
+  const setBool = <K extends "httpsOnly" | "strictReferrerPolicy" | "dnsOverHttps">(
+    kind: K,
+    value: boolean,
+  ) => void window.api.settings.update({ kind, value } as never)
+  const setDohProvider = (value: "cloudflare" | "quad9" | "google") =>
+    void window.api.settings.update({ kind: "dohProvider", value })
+  const addBypass = () => {
+    const host = bypassDraft.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0]
+    if (!host) return
+    void window.api.settings.update({ kind: "httpsOnlyBypassAdd", host })
+    setBypassDraft("")
+  }
+  const removeBypass = (host: string) =>
+    void window.api.settings.update({ kind: "httpsOnlyBypassRemove", host })
+
+  return (
+    <section>
+      <SectionHeader
+        label="Security"
+        hint="Connection-layer hardening. Each toggle is independent. DoH changes apply on next launch."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-3">
+        {/* HTTPS-only */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[12.5px] text-chrome-text font-medium leading-snug">HTTPS-only</p>
+            <p className="text-[11px] text-chrome-text-3 mt-0.5">
+              Rewrite plain http:// to https:// before it hits the network. localhost / private-IP ranges are always allowed http.
+            </p>
+          </div>
+          <Toggle
+            checked={settings.httpsOnly}
+            onChange={(v) => setBool("httpsOnly", v)}
+            ariaLabel="HTTPS-only"
+          />
+        </div>
+
+        {/* HTTPS bypass list — only shown when the toggle is on */}
+        {settings.httpsOnly && (
+          <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-2">
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-chrome-text-3">
+              Bypass for these hosts (allow http)
+            </p>
+            {settings.httpsOnlyBypass.length === 0 ? (
+              <p className="text-[11px] text-chrome-text-3">No exceptions.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-1.5">
+                {settings.httpsOnlyBypass.map((h) => (
+                  <li
+                    key={h}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-chrome-border bg-chrome-bg font-mono text-[11px] text-chrome-text"
+                  >
+                    {h}
+                    <button
+                      type="button"
+                      onClick={() => removeBypass(h)}
+                      className="text-chrome-text-3 hover:text-chrome-text"
+                      aria-label={`Remove ${h}`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={bypassDraft}
+                onChange={(e) => setBypassDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBypass() } }}
+                placeholder="legacy.example.com"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                className="flex-1 h-7 px-2 rounded-md bg-chrome-bg border border-chrome-border text-[11.5px] text-chrome-text font-mono placeholder:text-chrome-text-3 focus:outline-none focus:border-signal/50"
+              />
+              <button
+                type="button"
+                onClick={addBypass}
+                className="h-7 px-2.5 rounded-md border border-chrome-border bg-chrome-bg text-[11px] tracking-[0.06em] uppercase text-chrome-text-2 hover:text-signal hover:border-signal/50 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Strict referrer policy */}
+        <div className="flex items-start justify-between gap-3 pt-2 border-t border-chrome-border">
+          <div className="min-w-0">
+            <p className="text-[12.5px] text-chrome-text font-medium leading-snug">Strict referrer policy</p>
+            <p className="text-[11px] text-chrome-text-3 mt-0.5">
+              Strip path + query from cross-origin Referer headers. Same defaults as Firefox / Brave.
+            </p>
+          </div>
+          <Toggle
+            checked={settings.strictReferrerPolicy}
+            onChange={(v) => setBool("strictReferrerPolicy", v)}
+            ariaLabel="Strict referrer policy"
+          />
+        </div>
+
+        {/* DoH */}
+        <div className="flex items-start justify-between gap-3 pt-2 border-t border-chrome-border">
+          <div className="min-w-0">
+            <p className="text-[12.5px] text-chrome-text font-medium leading-snug">DNS-over-HTTPS</p>
+            <p className="text-[11px] text-chrome-text-3 mt-0.5">
+              Encrypt DNS lookups end-to-end. Closes the last unencrypted leak on most home networks. Takes effect next launch.
+            </p>
+          </div>
+          <Toggle
+            checked={settings.dnsOverHttps}
+            onChange={(v) => setBool("dnsOverHttps", v)}
+            ariaLabel="DNS-over-HTTPS"
+          />
+        </div>
+        {settings.dnsOverHttps && (
+          <div className="pl-3 border-l-2 border-chrome-border ml-1">
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-chrome-text-3 mb-1.5">
+              Provider
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {([
+                { id: "cloudflare", label: "Cloudflare 1.1.1.1" },
+                { id: "quad9",      label: "Quad9 9.9.9.9" },
+                { id: "google",     label: "Google 8.8.8.8" },
+              ] as const).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setDohProvider(p.id)}
+                  className={[
+                    "h-7 px-3 rounded-full border text-[11px] tracking-[0.02em] transition-colors",
+                    settings.dohProvider === p.id
+                      ? "bg-signal/15 border-signal/60 text-signal"
+                      : "border-chrome-border text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3",
+                  ].join(" ")}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Updates ─────────────────────────────────────────────────────────
+// Auto-check is off by default while the project ships unsigned. When
+// on, electron-updater hits GitHub Releases on app start; if there's a
+// newer version, a banner appears at the top of the window and the
+// user clicks through to download manually. Once signing is set up,
+// this will switch to a full hands-off install path.
+function UpdatesSection({ settings }: { settings: UserSettings }) {
+  const set = (value: boolean) =>
+    void window.api.settings.update({ kind: "autoUpdateCheck", value })
+  const checkNow = () => void window.api.updater.check()
+
+  return (
+    <section>
+      <SectionHeader
+        label="Updates"
+        hint="Auto-check uses electron-updater + GitHub Releases. Install is manual until signed builds ship."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] text-chrome-text leading-snug">
+            {settings.autoUpdateCheck ? "Checking GitHub on launch." : "Not checking."}
+          </p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5">
+            Manual install for now. Signed builds + hands-off install land with the Apple Developer ID cert.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {settings.autoUpdateCheck && (
+            <button
+              type="button"
+              onClick={checkNow}
+              className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+            >
+              Check now
+            </button>
+          )}
+          <Toggle
+            checked={settings.autoUpdateCheck}
+            onChange={set}
+            ariaLabel="Check for updates on launch"
+          />
+        </div>
       </div>
     </section>
   )

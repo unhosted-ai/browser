@@ -101,6 +101,37 @@ export type UserSettings = {
    * need; the curated short list keeps blocking the high-traffic ones.
    */
   useExtendedTrackerList: boolean
+  /**
+   * HTTPS-only: rewrite outgoing http:// top-level navigations to
+   * https:// before they leave the device. On by default. The user can
+   * still navigate to plain http via the per-host bypass set when a
+   * site genuinely can't do TLS.
+   */
+  httpsOnly: boolean
+  /** Hosts the user has explicitly allowed in http (e.g. localhost,
+   *  legacy intranet boxes). Suffix-matched the same way trackers are. */
+  httpsOnlyBypass: string[]
+  /**
+   * Strip Referer headers on cross-origin requests. Sets a strict
+   * `strict-origin-when-cross-origin` policy at the request layer so
+   * the URL + query never leak to third parties. On by default.
+   */
+  strictReferrerPolicy: boolean
+  /**
+   * Route all Chromium DNS lookups through DNS-over-HTTPS. Closes the
+   * last unencrypted privacy leak on most home networks. Off by default
+   * — flipping it on requires a re-launch to fully apply.
+   */
+  dnsOverHttps: boolean
+  /** Which DoH provider to use. cloudflare = 1.1.1.1, quad9 = 9.9.9.9. */
+  dohProvider: "cloudflare" | "quad9" | "google"
+  /**
+   * Check for new versions on launch via GitHub Releases. We show a
+   * non-blocking toast when a newer release exists; install is manual
+   * until the macOS Developer ID + Windows code-signing certs are in
+   * place (see STATUS.md). Off by default until signed builds ship.
+   */
+  autoUpdateCheck: boolean
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -119,6 +150,13 @@ export type SettingsUpdate =
   | { kind: "newtabFolder"; value: string | null }
   | { kind: "requireBiometric"; value: boolean }
   | { kind: "useExtendedTrackerList"; value: boolean }
+  | { kind: "httpsOnly"; value: boolean }
+  | { kind: "httpsOnlyBypassAdd"; host: string }
+  | { kind: "httpsOnlyBypassRemove"; host: string }
+  | { kind: "strictReferrerPolicy"; value: boolean }
+  | { kind: "dnsOverHttps"; value: boolean }
+  | { kind: "dohProvider"; value: "cloudflare" | "quad9" | "google" }
+  | { kind: "autoUpdateCheck"; value: boolean }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {
@@ -378,7 +416,17 @@ export type BrowserApi = {
     /** Open the native folder-picker. Returns the chosen path, or null on cancel. */
     pickFolder: () => Promise<string | null>
   }
+  updater: {
+    /** Trigger a check now. Honours the autoUpdateCheck setting. */
+    check: () => Promise<void>
+    /** Open the release notes / download page in the user's default browser. */
+    openRelease: (url: string) => Promise<void>
+    /** Subscribe to "an update is available" events from main. */
+    onAvailable: (cb: (info: { version: string; releaseDate?: string; releaseUrl: string }) => void) => () => void
+  }
 }
+
+export type UpdateAvailable = { version: string; releaseDate?: string; releaseUrl: string }
 
 declare global {
   interface Window {

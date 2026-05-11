@@ -133,6 +133,15 @@ const api: BrowserApi = {
   newtabBg: {
     pickFolder: () => ipcRenderer.invoke("newtabBg:pickFolder") as Promise<string | null>,
   },
+  updater: {
+    check:       () => ipcRenderer.invoke("updater:check") as Promise<void>,
+    openRelease: (url: string) => ipcRenderer.invoke("updater:openRelease", url) as Promise<void>,
+    onAvailable: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, info: { version: string; releaseDate?: string; releaseUrl: string }) => cb(info)
+      ipcRenderer.on("updater:available", listener)
+      return () => ipcRenderer.removeListener("updater:available", listener)
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

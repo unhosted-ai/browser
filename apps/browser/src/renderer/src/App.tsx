@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import type { ProviderInfo, TabsState } from "@shared/types"
+import type { ProviderInfo, TabsState, UpdateAvailable } from "@shared/types"
 import { TabStrip } from "./components/TabStrip"
 import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
 import { Sidebar } from "./components/Sidebar"
@@ -29,6 +29,13 @@ export function App() {
   // forwards a question (⌘↩ "continue in Assistant"). The key bumps each
   // time so re-seeding the same text still works.
   const [assistantSeed, setAssistantSeed] = useState<{ text: string; key: string } | null>(null)
+  // Surfaced from main when electron-updater reports a newer release.
+  // Rendered as a thin banner above the chrome until the user dismisses
+  // or clicks through to GitHub.
+  const [update, setUpdate] = useState<UpdateAvailable | null>(null)
+  useEffect(() => {
+    return window.api.updater.onAvailable((info) => setUpdate(info))
+  }, [])
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(() => {
     try { return localStorage.getItem("delta:leftNavCollapsed") === "1" } catch { return false }
   })
@@ -185,6 +192,34 @@ export function App() {
           left nav; main/tabs.ts subtracts the same width when positioning
           the active WebContentsView. */}
       <div className="flex-1 min-w-0 flex flex-col">
+        {/* Update banner — only renders when an update is available. Thin
+            strip above the chrome; doesn't displace the WebContentsView's
+            CHROME_TOP because it sits inside the chrome's header column. */}
+        {update && (
+          <div className="no-drag h-7 flex items-center justify-between gap-3 px-3 bg-signal/15 border-b border-signal/30 text-[11.5px] text-chrome-text font-mono tracking-[0.04em]">
+            <span className="truncate">
+              <span className="text-signal mr-2">●</span>
+              new release · v{update.version} available
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => void window.api.updater.openRelease(update.releaseUrl)}
+                className="uppercase tracking-[0.12em] text-signal hover:underline"
+              >
+                Get update →
+              </button>
+              <button
+                type="button"
+                onClick={() => setUpdate(null)}
+                className="text-chrome-text-3 hover:text-chrome-text"
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
         {/* Chrome strip — 80px tall, matches CHROME_TOP in main/tabs.ts */}
         <header className="drag h-[80px] flex flex-col border-b border-chrome-border">
           <TabStrip

@@ -41,6 +41,12 @@ const DEFAULTS: StoredSettings = {
   newtabFolder: null,
   requireBiometric: false,
   useExtendedTrackerList: true,
+  httpsOnly: true,
+  httpsOnlyBypass: [],
+  strictReferrerPolicy: true,
+  dnsOverHttps: false,
+  dohProvider: "cloudflare",
+  autoUpdateCheck: false,
 }
 
 function settingsPath(): string {
@@ -100,6 +106,12 @@ function toWire(s: StoredSettings): UserSettings {
     newtabFolder: s.newtabFolder ?? null,
     requireBiometric: s.requireBiometric ?? false,
     useExtendedTrackerList: s.useExtendedTrackerList ?? true,
+    httpsOnly: s.httpsOnly ?? true,
+    httpsOnlyBypass: s.httpsOnlyBypass ?? [],
+    strictReferrerPolicy: s.strictReferrerPolicy ?? true,
+    dnsOverHttps: s.dnsOverHttps ?? false,
+    dohProvider: s.dohProvider ?? "cloudflare",
+    autoUpdateCheck: s.autoUpdateCheck ?? false,
   }
 }
 
@@ -213,6 +225,33 @@ export class SettingsStore {
         break
       case "useExtendedTrackerList":
         this.state.useExtendedTrackerList = update.value
+        break
+      case "httpsOnly":
+        this.state.httpsOnly = update.value
+        break
+      case "httpsOnlyBypassAdd": {
+        const h = update.host.toLowerCase().trim()
+        if (h && !this.state.httpsOnlyBypass.includes(h)) {
+          this.state.httpsOnlyBypass = [...this.state.httpsOnlyBypass, h]
+        }
+        break
+      }
+      case "httpsOnlyBypassRemove":
+        this.state.httpsOnlyBypass = this.state.httpsOnlyBypass.filter(
+          (h) => h !== update.host.toLowerCase(),
+        )
+        break
+      case "strictReferrerPolicy":
+        this.state.strictReferrerPolicy = update.value
+        break
+      case "dnsOverHttps":
+        this.state.dnsOverHttps = update.value
+        break
+      case "dohProvider":
+        this.state.dohProvider = update.value
+        break
+      case "autoUpdateCheck":
+        this.state.autoUpdateCheck = update.value
         break
     }
     persist(this.state)

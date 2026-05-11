@@ -24,6 +24,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { mkdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { matchTracker, ownerOf } from "./tracker-list"
+import { applyHttpsUpgrade } from "./security"
 
 const VERSION = 1
 const RETENTION_DAYS = 30
@@ -304,6 +305,14 @@ export class TrackerBlocker {
     // top-frame origin.
     this.sess.webRequest.onBeforeRequest((details, callback) => {
       try {
+        // HTTPS-only upgrade fires first: top-level navigations get
+        // rewritten before they reach the network. The helper returns
+        // null when the upgrade doesn't apply (toggle off, sub-resource,
+        // localhost, bypass-listed host) — we fall through to the
+        // tracker check in that case.
+        const upgrade = applyHttpsUpgrade(details)
+        if (upgrade) return callback(upgrade)
+
         const u = new URL(details.url)
         const host = u.hostname
         const tracker = matchTracker(host)

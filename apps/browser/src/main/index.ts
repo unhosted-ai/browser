@@ -9,6 +9,14 @@ import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
 import { PrivacyStore, TrackerBlocker } from "./privacy"
 import { setExtendedTrackerListEnabled } from "./tracker-list"
+import {
+  bindReferrerPolicy,
+  configureDoH,
+  setHttpsOnly,
+  setHttpsOnlyBypass,
+  setStrictReferrer,
+} from "./security"
+import { setupAutoUpdater } from "./updater"
 import { BookmarkStore } from "./bookmarks"
 import { isReaderActive, toggleReader } from "./reader"
 import { isSpeaking, startSpeaking, stopSpeaking } from "./tts"
@@ -93,6 +101,11 @@ function createWindow(): void {
   // Open one tab on first paint — defaults to delta://newtab.
   mainWindow.webContents.once("did-finish-load", () => {
     tabs?.create()
+    // Update check kicks off after first paint so it doesn't compete
+    // with the initial UI. Toggle-gated and unsigned-build-safe.
+    if (settings?.get().autoUpdateCheck) {
+      setupAutoUpdater({ enabled: true, win: mainWindow })
+    }
   })
 }
 
@@ -196,6 +209,15 @@ function registerIpc(): void {
   ipcMain.handle("agent:cancel", (_e, taskId: string) => agent?.cancel(taskId))
   ipcMain.handle("agent:respondToPermission", (_e, permissionId: string, decision: "allow" | "block" | "always_allow") => agent?.resolvePermission(permissionId, decision))
 
+  ipcMain.handle("updater:openRelease", (_e, url: string) => {
+    void import("./updater").then(({ openReleasePage }) => openReleasePage(url))
+  })
+  ipcMain.handle("updater:check", () => {
+    if (settings?.get().autoUpdateCheck) {
+      setupAutoUpdater({ enabled: true, win: mainWindow })
+    }
+  })
+
   // Push tab state changes to the renderer.
   t.onUpdate((state) => {
     mainWindow?.webContents.send("tabs:update", state)
@@ -252,8 +274,21 @@ app.whenReady().then(async () => {
   // request. Without this, the blocker binds before settings exist and
   // the user's "off" preference wouldn't apply until the next launch.
   settings = new SettingsStore()
-  setExtendedTrackerListEnabled(settings.get().useExtendedTrackerList)
-  settings.onChange((s) => setExtendedTrackerListEnabled(s.useExtendedTrackerList))
+  const initial = settings.get()
+  setExtendedTrackerListEnabled(initial.useExtendedTrackerList)
+  setHttpsOnly(initial.httpsOnly)
+  setHttpsOnlyBypass(initial.httpsOnlyBypass)
+  setStrictReferrer(initial.strictReferrerPolicy)
+  // DoH must be configured BEFORE the session is touched, which means
+  // before the TrackerBlocker binds. Subsequent toggles take effect on
+  // next launch — Chromium doesn't hot-swap the resolver mode.
+  configureDoH({ enabled: initial.dnsOverHttps, provider: initial.dohProvider })
+  settings.onChange((s) => {
+    setExtendedTrackerListEnabled(s.useExtendedTrackerList)
+    setHttpsOnly(s.httpsOnly)
+    setHttpsOnlyBypass(s.httpsOnlyBypass)
+    setStrictReferrer(s.strictReferrerPolicy)
+  })
 
   // Privacy: build the store + bind the blocker to the default session
   // BEFORE any window is created, so the very first request through any
@@ -261,6 +296,10 @@ app.whenReady().then(async () => {
   // reads `privacy.getReport()` to render the inline stat card.
   privacy = new PrivacyStore()
   blocker = new TrackerBlocker(privacy)
+  // Strict referrer policy lives on its own listener slot
+  // (onBeforeSendHeaders) so it composes with the blocker rather than
+  // having to share onBeforeRequest.
+  bindReferrerPolicy()
   bookmarks = new BookmarkStore()
   history = new HistoryStore()
   downloads = new DownloadsManager()
