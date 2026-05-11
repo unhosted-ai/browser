@@ -39,6 +39,7 @@ const DEFAULTS: StoredSettings = {
   permissionGrants: [],
   newtabBackground: "procedural",
   newtabFolder: null,
+  requireBiometric: false,
 }
 
 function settingsPath(): string {
@@ -96,6 +97,7 @@ function toWire(s: StoredSettings): UserSettings {
     permissionGrants: s.permissionGrants ?? [],
     newtabBackground: s.newtabBackground ?? "procedural",
     newtabFolder: s.newtabFolder ?? null,
+    requireBiometric: s.requireBiometric ?? false,
   }
 }
 
@@ -203,6 +205,9 @@ export class SettingsStore {
         break
       case "newtabFolder":
         this.state.newtabFolder = update.value
+        break
+      case "requireBiometric":
+        this.state.requireBiometric = update.value
         break
     }
     persist(this.state)

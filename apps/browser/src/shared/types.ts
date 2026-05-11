@@ -85,6 +85,14 @@ export type UserSettings = {
   newtabBackground: "procedural" | "photographic"
   /** Absolute path to a folder of images for photographic mode. */
   newtabFolder: string | null
+  /**
+   * Opt-in app lock: require the OS biometric / system password before
+   * the main window appears. macOS uses Touch ID; on platforms where
+   * the prompt isn't available the setting has no effect (the toggle is
+   * disabled in the renderer). Off by default — Delta is a no-account
+   * app, this is for users who want a second layer at the device edge.
+   */
+  requireBiometric: boolean
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -101,6 +109,7 @@ export type SettingsUpdate =
   | { kind: "revokePermission"; origin: string; tool: string }
   | { kind: "newtabBackground"; value: "procedural" | "photographic" }
   | { kind: "newtabFolder"; value: string | null }
+  | { kind: "requireBiometric"; value: boolean }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {

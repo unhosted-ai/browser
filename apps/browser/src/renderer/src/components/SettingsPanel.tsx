@@ -152,10 +152,52 @@ function SettingsBody({
           onRefresh={onRefreshProviders}
         />
         <DefaultProviderSection settings={settings} providers={providers} />
+        <AppLockSection settings={settings} />
         <PrivacySection />
         <PrivacyNote />
       </div>
     </div>
+  )
+}
+
+// ── App lock (biometric / system password on launch) ────────────────
+// Opt-in: when on, Delta prompts for Touch ID before the main window
+// appears. Off by default — the app is no-account, this is for users
+// who want a second layer at the device edge (shared laptop, family
+// machine, etc.). The toggle stays writable on non-macOS platforms,
+// but the main process logs a warning and fails open there until
+// Windows Hello / polkit support lands.
+function AppLockSection({ settings }: { settings: UserSettings }) {
+  const isMac = typeof navigator !== "undefined" && /Mac/.test(navigator.platform)
+  const set = (value: boolean) =>
+    void window.api.settings.update({ kind: "requireBiometric", value })
+
+  return (
+    <section>
+      <SectionHeader
+        label="App lock"
+        hint={isMac
+          ? "Require Touch ID before Delta opens. Off by default."
+          : "Require your OS biometric / password before Delta opens. macOS Touch ID only for now — toggle still saves on other platforms."}
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] text-chrome-text leading-snug">
+            {settings.requireBiometric ? "Locked — Touch ID required on launch." : "Unlocked — opens straight to your tabs."}
+          </p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5">
+            {isMac
+              ? "Uses systemPreferences.promptTouchID. Cancels quit Delta."
+              : "Touch ID prompt is macOS-only; this preference is harmless on your platform."}
+          </p>
+        </div>
+        <Toggle
+          checked={settings.requireBiometric}
+          onChange={set}
+          ariaLabel="Require biometric on launch"
+        />
+      </div>
+    </section>
   )
 }
 

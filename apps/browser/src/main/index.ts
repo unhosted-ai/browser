@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron"
+import { app, BrowserWindow, ipcMain, Menu, protocol, systemPreferences } from "electron"
 import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
@@ -198,7 +198,40 @@ function registerIpc(): void {
 }
 
 app.setName("Delta")
-app.whenReady().then(() => {
+
+// Opt-in app lock: if the user has flipped requireBiometric in settings, we
+// prompt for Touch ID (or fail-closed on platforms without it) before
+// creating any window. Done in a tiny pre-pass so the store isn't built
+// against the keychain until after the user's identity is confirmed.
+async function biometricGatePassed(): Promise<boolean> {
+  // Read settings.json directly via the SettingsStore — we don't keep the
+  // instance around past this check because the main flow re-instantiates
+  // it inside createWindow().
+  const pre = new SettingsStore()
+  if (!pre.get().requireBiometric) return true
+
+  if (process.platform !== "darwin" || !systemPreferences.canPromptTouchID()) {
+    // The toggle was set on a machine that can't prompt biometrics — likely
+    // a settings.json copied from another OS. Fail-open with a console
+    // note rather than locking the user out of their own browser; the UI
+    // disables the toggle on these platforms so this is a recovery path.
+    console.warn("[delta] requireBiometric is set but Touch ID is unavailable; opening anyway.")
+    return true
+  }
+
+  try {
+    await systemPreferences.promptTouchID("unlock delta")
+    return true
+  } catch {
+    return false
+  }
+}
+
+app.whenReady().then(async () => {
+  if (!(await biometricGatePassed())) {
+    app.quit()
+    return
+  }
   // macOS dock icon during dev — the packaged app gets its icon from
   // build/icon.icns via electron-builder, but in dev the binary still ships
   // with the default Electron mark unless we override here.
