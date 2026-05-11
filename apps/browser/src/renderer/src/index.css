@@ -45,6 +45,24 @@
   color-scheme: light;
 }
 
+:root.paper {
+  /* Paper register — the cream / near-black palette from the GitHub
+     Pages site. Same surface tokens as light mode but lifted onto the
+     paper-coloured canvas (#f5f5f0) for editorial feel. Pairs well with
+     the wordmark-cream variants of the brand assets. */
+  --chrome-bg:        60 19% 95%;    /* #f5f5f0 — paper */
+  --chrome-surface:   0  0% 100%;    /* white cards on paper */
+  --chrome-surface-2: 60 19% 97%;    /* warmer-than-paper for nested surfaces */
+  --chrome-border:    60 8% 82%;     /* hairline on paper */
+  --chrome-text:      0  0% 4%;      /* near-black ink */
+  --chrome-text-2:    0  0% 28%;
+  --chrome-text-3:    0  0% 48%;
+  --signal:           135 48% 36%;   /* same deep mint as light mode */
+  --signal-dim:       135 25% 80%;
+  --signal-trace:     60 12% 86%;
+  color-scheme: light;
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -60,6 +78,34 @@ html, body, #root {
 /* Drag region for the chrome top strip on macOS hiddenInset titlebar */
 .drag    { -webkit-app-region: drag; }
 .no-drag { -webkit-app-region: no-drag; }
+
+/* ── Focus rings (a11y + intuitiveness) ─────────────────
+   Every interactive element gets a visible signal-mint focus ring on
+   keyboard navigation. Suppressed for mouse clicks via :focus-visible. */
+
+button:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--chrome-bg)),
+              0 0 0 4px hsl(var(--signal) / 0.55);
+  border-radius: 8px;
+}
+
+/* Press feedback — icon-sized buttons feel like real targets when
+   tapped. Skips on touch devices where this would conflict with hover
+   intent. */
+@media (hover: hover) {
+  button:active:not(:disabled),
+  [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform .08s ease-out;
+  }
+}
 
 /* ── Motion ──────────────────────────────────────────── */
 

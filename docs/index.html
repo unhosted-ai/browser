@@ -22,6 +22,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Initial hidden state for the elements motion.js will reveal on scroll.
+       Inline so it applies before the script loads — avoids a flash of
+       fully-rendered content followed by a re-animate. -->
+  <style>
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s cubic-bezier(0.32, 0.72, 0, 1), transform .6s cubic-bezier(0.32, 0.72, 0, 1); }
+    .reveal.is-in { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal.is-in { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
 </head>
 <body>
 
@@ -36,6 +47,7 @@
       <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
       <a href="#modes">how it works</a>
       <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent</a>
+      <a href="brand/">brand</a>
       <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">prompt</a>
       <a href="https://github.com/Delta-Practice/Browser">github</a>
       <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
@@ -78,7 +90,7 @@
   <section class="bento" id="modes">
 
     <!-- card-local: spans 2, inverted dark. the headline feature. -->
-    <article class="card card-local">
+    <article class="reveal card card-local">
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <circle cx="50" cy="50" r="44" stroke-dasharray="2 6" opacity="0.25"/>
@@ -94,7 +106,7 @@
     </article>
 
     <!-- card-untrusted: span 1 -->
-    <article class="card card-untrusted">
+    <article class="reveal card card-untrusted">
       <div class="art art-text mono">&lt;/&gt;</div>
       <div class="meta">
         <span class="dot"></span>
@@ -104,7 +116,7 @@
     </article>
 
     <!-- card-permission: span 1 -->
-    <article class="card card-permission">
+    <article class="reveal card card-permission">
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <rect x="14" y="22" width="72" height="56" rx="6"/>
@@ -119,7 +131,7 @@
     </article>
 
     <!-- card-honest: span 1, BIG NUMBER ART -->
-    <article class="card card-honest">
+    <article class="reveal card card-honest">
       <div class="art art-text">78</div>
       <div class="meta">
         <span class="dot"></span>
@@ -129,7 +141,7 @@
     </article>
 
     <!-- card-open: span 2 -->
-    <article class="card card-open">
+    <article class="reveal card card-open">
       <div class="art art-text mono">{ }</div>
       <div class="meta">
         <span class="dot"></span>
@@ -139,7 +151,7 @@
     </article>
 
     <!-- card-private: span 1 -->
-    <article class="card card-private">
+    <article class="reveal card card-private">
       <div class="art">
         <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <circle cx="50" cy="50" r="34"/>
@@ -168,7 +180,7 @@
     </div>
     <div class="cards">
 
-      <article class="story">
+      <article class="reveal story">
         <div class="meta">
           <span class="dot"></span>
           <span class="label">phase 1 — chat</span>
@@ -183,7 +195,7 @@ the article argues that...</code></pre>
         <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts" class="more">read source →</a>
       </article>
 
-      <article class="story">
+      <article class="reveal story">
         <div class="meta">
           <span class="dot"></span>
           <span class="label">phase 2 + 3 — read &amp; act</span>
@@ -199,7 +211,7 @@ the article argues that...</code></pre>
         <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts" class="more">read source →</a>
       </article>
 
-      <article class="story">
+      <article class="reveal story">
         <div class="meta">
           <span class="dot"></span>
           <span class="label">tracker blocker + privacy report</span>
@@ -214,7 +226,7 @@ hotjar.com            blocked across  8 sites
         <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/privacy.ts" class="more">read source →</a>
       </article>
 
-      <article class="story">
+      <article class="reveal story">
         <div class="meta">
           <span class="dot"></span>
           <span class="label">phase 4 — designed, not started</span>
@@ -275,5 +287,32 @@ hotjar.com            blocked across  8 sites
     <div class="copy">© 2026 delta practice</div>
   </footer>
 
+  <!-- ─────────────────────────────────────────────────────────
+       motion — vanilla bundle from esm.sh. inView() flips the
+       .is-in class on each .reveal element as it scrolls into
+       view. We stagger by grid order via a small group-index map.
+       ───────────────────────────────────────────────────────── -->
+  <script type="module">
+    import { inView } from "https://esm.sh/motion@12.38.0";
+
+    // Group elements that should stagger together. Each group's index
+    // becomes a multiplier for the per-item delay.
+    const groups = [
+      { sel: ".bento .reveal",     step: 80 },
+      { sel: ".milestones .reveal", step: 100 },
+    ];
+
+    for (const g of groups) {
+      document.querySelectorAll(g.sel).forEach((el, i) => {
+        el.style.transitionDelay = (i * g.step) + "ms";
+        inView(el, () => { el.classList.add("is-in"); }, { amount: 0.2 });
+      });
+    }
+
+    // Any stray .reveal not inside a group (e.g. future additions).
+    document.querySelectorAll(".reveal:not(.is-in)").forEach((el) => {
+      if (!el.style.transitionDelay) inView(el, () => el.classList.add("is-in"), { amount: 0.2 });
+    });
+  </script>
 </body>
 </html>

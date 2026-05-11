@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import type { Bookmark, DownloadEntry, HistoryEntry } from "@shared/types"
 
 type Props = {
@@ -42,14 +43,20 @@ export function ChromeMenu({ open, onClose, onOpenUrl, onOpenSettings }: Props) 
     }
   }, [open, onClose])
 
-  if (!open) return null
-
   return (
-    <div
-      ref={ref}
-      role="menu"
-      className="absolute right-3 top-[72px] z-50 w-[360px] max-h-[520px] flex flex-col rounded-[14px] border border-chrome-border bg-chrome-bg shadow-[0_20px_60px_-10px_rgba(0,0,0,0.45)] no-drag"
-    >
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          ref={ref}
+          role="menu"
+          key="chrome-menu"
+          initial={{ opacity: 0, scale: 0.96, y: -8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.97, y: -4 }}
+          transition={{ duration: 0.16, ease: [0.32, 0.72, 0, 1] }}
+          style={{ transformOrigin: "top right" }}
+          className="absolute right-3 top-[72px] z-50 w-[360px] max-h-[520px] flex flex-col rounded-[14px] border border-chrome-border bg-chrome-bg shadow-[0_20px_60px_-10px_rgba(0,0,0,0.45)] no-drag"
+        >
       <div className="flex items-center gap-1 px-1.5 pt-1.5">
         <TabBtn label="Bookmarks" active={tab === "bookmarks"} onClick={() => setTab("bookmarks")} />
         <TabBtn label="History"   active={tab === "history"}   onClick={() => setTab("history")} />
@@ -85,7 +92,9 @@ export function ChromeMenu({ open, onClose, onOpenUrl, onOpenSettings }: Props) 
           </>
         )}
       </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

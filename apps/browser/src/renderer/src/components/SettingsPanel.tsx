@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import type { PrivacyReport, ProviderInfo, UserSettings } from "@shared/types"
 import { useTheme } from "../hooks/useTheme"
 
@@ -26,30 +27,43 @@ export function SettingsPanel({ open, onClose, providers, onRefreshProviders }: 
     return () => window.removeEventListener("keydown", onKey)
   }, [open, onClose])
 
-  if (!open) return null
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-40 no-drag"
-      />
-      {/* Panel — slides in from the right; same width as the AI sidebar but
-          doesn't share its IPC. Lives over the WebContentsView. */}
-      <aside
-        className="absolute right-0 top-0 bottom-0 w-[420px] bg-chrome-bg border-l border-chrome-border z-50 no-drag overflow-y-auto"
-      >
-        {settings
-          ? <SettingsBody
-              settings={settings}
-              onClose={onClose}
-              providers={providers}
-              onRefreshProviders={onRefreshProviders}
-            />
-          : <Loading />}
-      </aside>
-    </>
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop — fades. Click anywhere outside the panel to close. */}
+          <motion.div
+            key="settings-backdrop"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-40 no-drag"
+          />
+          {/* Panel — slides in from the right; same width as the AI
+              sidebar but doesn't share its IPC. Lives over the
+              WebContentsView. */}
+          <motion.aside
+            key="settings-panel"
+            initial={{ x: 420, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 420, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            className="absolute right-0 top-0 bottom-0 w-[420px] bg-chrome-bg border-l border-chrome-border z-50 no-drag overflow-y-auto"
+          >
+            {settings
+              ? <SettingsBody
+                  settings={settings}
+                  onClose={onClose}
+                  providers={providers}
+                  onRefreshProviders={onRefreshProviders}
+                />
+              : <Loading />}
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -368,23 +382,31 @@ function ConnectionSection({
 
 function AppearanceSection() {
   const { theme, setTheme } = useTheme()
+  // Paper mode is the cream / editorial register — same palette as the
+  // GitHub Pages site. Sits between dark and light in the cycle.
+  const themes: Array<{ id: "dark" | "light" | "paper"; label: string; hint: string }> = [
+    { id: "dark",  label: "Dark",  hint: "the app default" },
+    { id: "light", label: "Light", hint: "warm beige" },
+    { id: "paper", label: "Paper", hint: "cream + ink, editorial" },
+  ]
   return (
     <section>
-      <SectionHeader label="Appearance" hint="Light or dark — also togglable from the address bar." />
-      <div className="flex gap-2">
-        {(["dark", "light"] as const).map((t) => (
+      <SectionHeader label="Appearance" hint="Three registers. Also togglable from the address bar." />
+      <div className="flex gap-2 flex-wrap">
+        {themes.map((t) => (
           <button
-            key={t}
+            key={t.id}
             type="button"
-            onClick={() => setTheme(t)}
+            onClick={() => setTheme(t.id)}
+            title={t.hint}
             className={[
-              "h-9 px-4 rounded-full border text-[12px] tracking-[0.02em] capitalize transition-colors duration-150",
-              theme === t
+              "h-9 px-4 rounded-full border text-[12px] tracking-[0.02em] transition-colors duration-150",
+              theme === t.id
                 ? "bg-signal/15 border-signal/60 text-signal"
                 : "border-chrome-border text-chrome-text-2 hover:text-chrome-text hover:border-chrome-text-3",
             ].join(" ")}
           >
-            {t} mode
+            {t.label}
           </button>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { motion } from "motion/react"
 import type {
   AgentEvent,
   AgentMessage,
@@ -511,16 +512,31 @@ function MessageBubble({ message }: { message: AgentMessage }) {
   const hasPending = (message.pendingPermissions?.length ?? 0) > 0
   const showThinking = message.streaming && !message.text && !hasTools && !hasPending
 
+  // Both user + assistant bubbles fade-and-slide-up on entry. The
+  // transition is gentle (160ms) so a streaming response of many tokens
+  // doesn't feel jumpy — only the wrapper animates, not each token.
+  const enter = {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] as const },
+  }
+
   if (isUser) {
     return (
-      <li className="self-end max-w-[90%] text-[13px] leading-[1.6] whitespace-pre-wrap px-3 py-2 rounded-lg bg-chrome-surface-2 text-chrome-text rounded-tr-sm">
+      <motion.li
+        {...enter}
+        className="self-end max-w-[90%] text-[13px] leading-[1.6] whitespace-pre-wrap px-3 py-2 rounded-lg bg-chrome-surface-2 text-chrome-text rounded-tr-sm"
+      >
         {message.text}
-      </li>
+      </motion.li>
     )
   }
 
   return (
-    <li className="self-start max-w-[95%] flex flex-col gap-2">
+    <motion.li
+      {...enter}
+      className="self-start max-w-[95%] flex flex-col gap-2"
+    >
       {hasTools && (
         <ul className="flex flex-col gap-1.5">
           {message.toolCalls!.map((c) => <ToolCallCard key={c.id} call={c} />)}
@@ -545,7 +561,7 @@ function MessageBubble({ message }: { message: AgentMessage }) {
           )}
         </div>
       )}
-    </li>
+    </motion.li>
   )
 }
 

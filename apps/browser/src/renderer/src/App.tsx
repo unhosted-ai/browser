@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import type { ProviderInfo, TabsState } from "@shared/types"
 import { TabStrip } from "./components/TabStrip"
 import { AddressBar, type AddressBarHandle } from "./components/AddressBar"
@@ -210,22 +211,32 @@ export function App() {
             and the React sidebar. The page content is positioned absolutely by main;
             we only render the sidebar here so it composites above the WebContentsView. */}
         <div className="relative flex-1">
-          {sidebarOpen && (
-            <aside
-              className="absolute right-0 top-0 bottom-0 border-l border-chrome-border bg-chrome-surface no-drag"
-              style={{ width: SIDEBAR_WIDTH }}
-            >
-              <Sidebar
-                providers={providers}
-                onRefresh={refreshProviders}
-                activeUrl={active?.url ?? null}
-                activeTitle={active?.title ?? null}
-                onOpenSettings={openSettings}
-                historyOpen={sidebarHistoryOpen}
-                onHistoryOpenChange={setSidebarHistoryOpen}
-              />
-            </aside>
-          )}
+          {/* Sidebar — slides in from the right with a gentle decelerate
+              curve. AnimatePresence keeps the unmount visible for the exit
+              transition. */}
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.aside
+                key="sidebar"
+                initial={{ x: SIDEBAR_WIDTH, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: SIDEBAR_WIDTH, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                className="absolute right-0 top-0 bottom-0 border-l border-chrome-border bg-chrome-surface no-drag"
+                style={{ width: SIDEBAR_WIDTH }}
+              >
+                <Sidebar
+                  providers={providers}
+                  onRefresh={refreshProviders}
+                  activeUrl={active?.url ?? null}
+                  activeTitle={active?.title ?? null}
+                  onOpenSettings={openSettings}
+                  historyOpen={sidebarHistoryOpen}
+                  onHistoryOpenChange={setSidebarHistoryOpen}
+                />
+              </motion.aside>
+            )}
+          </AnimatePresence>
           <SettingsPanel
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
@@ -251,13 +262,24 @@ export function App() {
           Earlier rendering inside `relative flex-1` only blocked the page
           area, which let users click the address-bar cog or LeftNav rows
           *behind* the welcome card and end up with two overlapping panels. */}
-      {showOnboarding && (
-        <Onboarding
-          onClose={dismissOnboarding}
-          onOpenSettings={() => { openSettings(); dismissOnboarding() }}
-          onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
-        />
-      )}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            key="onboarding"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+            className="fixed inset-0 z-[60] no-drag"
+          >
+            <Onboarding
+              onClose={dismissOnboarding}
+              onOpenSettings={() => { openSettings(); dismissOnboarding() }}
+              onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

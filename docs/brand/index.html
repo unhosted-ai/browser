@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>delta — brand guidelines</title>
+  <meta name="description" content="how to use the delta mark, wordmark, colours, and typography. live previews; the page is its own brand demo." />
+  <meta property="og:title" content="delta — brand guidelines" />
+  <meta property="og:description" content="how to use the delta mark, wordmark, colours, and typography." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://delta-practice.github.io/Browser/brand/" />
+  <meta property="og:image" content="https://delta-practice.github.io/Browser/og-image.png" />
+  <meta name="theme-color" content="#f5f5f0" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="brand.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s cubic-bezier(0.32, 0.72, 0, 1), transform .6s cubic-bezier(0.32, 0.72, 0, 1); }
+    .reveal.is-in { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal.is-in { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─────────────────────────────────────────────────────────
+       hero — same big-wordmark pattern as the home page so the
+       brand doc visually matches the brand it documents.
+       ───────────────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="delta">delta</h1>
+    </div>
+    <nav class="nav">
+      <a href="../">home</a>
+      <a href="#marks">marks</a>
+      <a href="#colors">colours</a>
+      <a href="#typography">typography</a>
+      <a href="#dont">don't</a>
+      <a href="#wild">in the wild</a>
+      <a href="#downloads">downloads</a>
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/guidelines.md">guidelines.md</a>
+    </nav>
+  </header>
+
+  <!-- pitch -->
+  <section class="pitch">
+    <div class="lede">
+      <h2>brand <br/>guidelines</h2>
+      <p class="sub">working guidelines, not finished house style. the repo is public — if you're using the mark for something we haven't anticipated, <a href="https://github.com/Delta-Practice/Browser/issues/new/choose">open an issue</a> rather than guessing.</p>
+    </div>
+    <ul class="hardware-list" aria-label="contents">
+      <li><a href="#voice">voice</a></li>
+      <li><a href="#marks">marks</a></li>
+      <li><a href="#colors">colours</a></li>
+      <li><a href="#typography">typography</a></li>
+      <li><a href="#dont">don't</a></li>
+      <li><a href="#wild">in the wild</a></li>
+      <li><a href="#naming">naming</a></li>
+      <li><a href="#downloads">downloads</a></li>
+    </ul>
+  </section>
+
+  <div class="index-marker">voice</div>
+
+  <!-- ─────────────────────────────────────────────────────────
+       voice — one-line statement, big serif italic.
+       ───────────────────────────────────────────────────────── -->
+  <section class="b-voice" id="voice">
+    <p class="voice-line">
+      <em>a privacy-first ai browser. local llm by default, the agent reads and acts on the active page, nothing leaves your machine.</em>
+    </p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       marks — three variants shown at usable sizes, each
+       with usage notes underneath.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="marks">marks</div>
+  <section class="b-marks">
+
+    <article class="reveal mark-card">
+      <div class="mark-art mark-art-icon">
+        <img src="../../brand/exports/png/icon-256.png" alt="delta app icon" width="180" height="180"/>
+      </div>
+      <p class="mark-label">app icon</p>
+      <p class="mark-copy">Δ on a dark squircle, mint gradient. The dark canvas is part of the mark — don't strip it. Use for dock / taskbar / favicon at any size from 16 up.</p>
+      <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon.svg">brand/icon.svg</a></p>
+    </article>
+
+    <article class="reveal mark-card">
+      <div class="mark-art mark-art-line">
+        <svg viewBox="0 0 200 200" width="180" height="180" fill="none" stroke="currentColor"
+             stroke-width="6" stroke-linejoin="round" stroke-linecap="round" aria-label="line-art mark">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+      <p class="mark-label">line-art mark</p>
+      <p class="mark-copy">Companion to the app icon. No fills, single stroke-weight, <code>currentColor</code>. Use for headers, footers, READMEs, monogram avatars, and contexts where the gradient feels busy.</p>
+      <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon-mark.svg">brand/icon-mark.svg</a></p>
+    </article>
+
+    <article class="reveal mark-card mark-card-wide">
+      <div class="mark-art mark-art-wordmark">
+        <!-- Wordmark on the unified dark tile → dark-register source. -->
+        <img src="../../brand/exports/png/wordmark-640.png" alt="delta wordmark" width="320" height="80"/>
+      </div>
+      <p class="mark-label">wordmark</p>
+      <p class="mark-copy">Δ + spark glyph + "Delta" in Instrument Serif italic. Two register variants — dark (white type on transparent) and cream (near-black type on cream). Use anywhere "Delta" appears next to the mark.</p>
+      <p class="mark-meta">source: <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark.svg">wordmark.svg</a> + <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark-cream.svg">wordmark-cream.svg</a></p>
+    </article>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       clearspace — visual rule, drawn live in svg.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="clearspace">clearspace</div>
+  <section class="b-clearspace">
+    <div class="clearspace-art" aria-hidden="true">
+      <svg viewBox="0 0 320 240" width="100%" height="auto">
+        <!-- Clearspace bounding box -->
+        <rect x="40" y="20" width="240" height="200" fill="none" stroke="rgba(10,10,10,0.18)" stroke-dasharray="4 4" stroke-width="1"/>
+        <!-- "1×" labels on each side -->
+        <text x="160" y="14" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
+        <text x="160" y="234" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
+        <text x="34"  y="124" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
+        <text x="286" y="124" text-anchor="start" font-family="JetBrains Mono, monospace" font-size="9" fill="#737373">1×</text>
+        <!-- Mark itself, centred -->
+        <g transform="translate(120, 60)" stroke="#0a0a0a" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round">
+          <circle cx="40" cy="13" r="6" fill="#0a0a0a" stroke="none"/>
+          <path d="M 40 24 L 76 96 L 4 96 Z"/>
+        </g>
+      </svg>
+    </div>
+    <div class="clearspace-copy">
+      <p class="b-h">at least 1× the height of the Δ on every side.</p>
+      <p>In practice: leave the full vertical space of the triangle clear of other graphics on every edge. Don't crop the squircle in the app icon. Don't let interface chrome cut into the wordmark's serif tails.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       colours — swatches with hex. dark + light register
+       both shown. interactive in the sense that the swatches
+       actually use the colours.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="colors">colours</div>
+  <section class="b-colors">
+    <p class="b-section-h">one accent (mint), one canvas (near-black or cream). everything else is neutral.</p>
+    <div class="swatch-grid">
+
+      <div class="reveal swatch swatch-mint-dark">
+        <div class="swatch-chip">
+          <p class="swatch-label">signal mint — dark mode</p>
+          <p class="swatch-vals"><span>hsl(135 55% 66%)</span><span>#85d693</span></p>
+        </div>
+        <p class="swatch-use">Δ mark, AI button when active, loading bar, hover states.</p>
+      </div>
+
+      <div class="reveal swatch swatch-mint-light">
+        <div class="swatch-chip">
+          <p class="swatch-label">signal mint — light mode</p>
+          <p class="swatch-vals"><span>hsl(135 48% 36%)</span><span>#308a4a</span></p>
+        </div>
+        <p class="swatch-use">Same role, deeper for AA-ish contrast on cream paper.</p>
+      </div>
+
+      <div class="reveal swatch swatch-bg-dark">
+        <div class="swatch-chip">
+          <p class="swatch-label">canvas — dark</p>
+          <p class="swatch-vals"><span>hsl(240 4% 5%)</span><span>#0c0c0e</span></p>
+        </div>
+        <p class="swatch-use">App canvas, dark variants of the icon + wordmark.</p>
+      </div>
+
+      <div class="reveal swatch swatch-bg-light">
+        <div class="swatch-chip">
+          <p class="swatch-label">canvas — light</p>
+          <p class="swatch-vals"><span>hsl(40 10% 90%)</span><span>#e8e6e1</span></p>
+        </div>
+        <p class="swatch-use">App canvas in light mode. Slightly warm beige, not pure white.</p>
+      </div>
+
+      <div class="reveal swatch swatch-paper">
+        <div class="swatch-chip">
+          <p class="swatch-label">paper — github pages</p>
+          <p class="swatch-vals"><span>hsl(60 19% 95%)</span><span>#f5f5f0</span></p>
+        </div>
+        <p class="swatch-use">Web register only — creamier than the app's light canvas, lifted from the unhosted reference.</p>
+      </div>
+
+      <div class="reveal swatch swatch-text-dark">
+        <div class="swatch-chip">
+          <p class="swatch-label">text — dark on cream</p>
+          <p class="swatch-vals"><span>hsl(0 0% 4%)</span><span>#0a0a0a</span></p>
+        </div>
+        <p class="swatch-use">Primary type colour on light surfaces.</p>
+      </div>
+
+    </div>
+    <p class="b-cta">
+      Token names + chrome-surface variants live in
+      <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/renderer/src/index.css">apps/browser/src/renderer/src/index.css</a>
+      — use those tokens, never hex literals, when building UI.
+    </p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       typography — three families, big live samples in the
+       actual fonts (loaded above).
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="typography">typography</div>
+  <section class="b-type">
+
+    <div class="reveal type-row">
+      <div class="type-meta">
+        <p class="type-name">inter</p>
+        <p class="type-weights">400 / 500 / 600 / 700 / 900</p>
+      </div>
+      <div class="type-sample type-sample-display">delta</div>
+      <p class="type-use">Display + body sans on the GitHub Pages site. Weight 900 for mega-wordmarks, 500–600 for body, 400 for footnotes.</p>
+    </div>
+
+    <div class="reveal type-row">
+      <div class="type-meta">
+        <p class="type-name">geist sans</p>
+        <p class="type-weights">400 / 500 / 600</p>
+      </div>
+      <div class="type-sample type-sample-geist">delta — your model. your machine.</div>
+      <p class="type-use">Default sans inside the app: tabs, buttons, body copy, settings. Same character as Inter; we keep both because the app shipped with Geist before this site existed.</p>
+    </div>
+
+    <div class="reveal type-row">
+      <div class="type-meta">
+        <p class="type-name">instrument serif</p>
+        <p class="type-weights">400, 400 italic</p>
+      </div>
+      <div class="type-sample type-sample-serif"><em>Delta — change at the edge.</em></div>
+      <p class="type-use">The "Delta" wordmark, hero titles, editorial accents in the sidebar (e.g. <em>quietly</em>, <em>delta practice</em>). Italic only — never roman.</p>
+    </div>
+
+    <div class="reveal type-row">
+      <div class="type-meta">
+        <p class="type-name">jetbrains mono</p>
+        <p class="type-weights">400 / 500</p>
+      </div>
+      <div class="type-sample type-sample-mono">$ pnpm delta:dev</div>
+      <p class="type-use">Numbers, hashes, status labels, the date stamp on the new tab page, code blocks. Site-side. The app uses Geist Mono internally — same role.</p>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       don't — visual list. Six common mistakes shown as
+       wrong-and-marked-wrong, paired with a one-line reason.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="dont">don't</div>
+  <section class="b-dont">
+
+    <div class="reveal dont-card">
+      <div class="dont-art">
+        <svg viewBox="0 0 120 120" width="80" height="80" fill="none" stroke="#c2185b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+          <circle cx="60" cy="22" r="6" fill="#c2185b" stroke="none"/>
+          <path d="M 60 40 L 100 100 L 20 100 Z"/>
+        </svg>
+      </div>
+      <p class="dont-label">recolour the Δ</p>
+      <p class="dont-copy">The mint gradient is fixed. Pink / orange / etc. are not "themes" of the brand — they're a different brand.</p>
+    </div>
+
+    <div class="reveal dont-card">
+      <div class="dont-art">
+        <svg viewBox="0 0 120 120" width="80" height="80" fill="none">
+          <circle cx="60" cy="22" r="6" fill="#0a0a0a"/>
+          <path d="M 60 40 L 100 100 L 20 100 Z" fill="none" stroke="#0a0a0a" stroke-width="14" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p class="dont-label">change the stroke weight</p>
+      <p class="dont-copy">Outlining the Δ in a heavier stroke or different weight breaks the visual family across all sizes.</p>
+    </div>
+
+    <div class="reveal dont-card">
+      <div class="dont-art">
+        <svg viewBox="0 0 240 80" width="200" height="68">
+          <text x="0" y="58" font-family="ui-sans-serif, sans-serif" font-style="normal" font-weight="600" font-size="64" fill="#0a0a0a">Delta</text>
+        </svg>
+      </div>
+      <p class="dont-label">typeset "Delta" in sans</p>
+      <p class="dont-copy">"Delta" is always Instrument Serif italic. Fall back to a system serif italic when the font isn't available — never sans.</p>
+    </div>
+
+    <div class="reveal dont-card">
+      <div class="dont-art" style="background:#ff7e3b;">
+        <img src="../../brand/exports/png/icon-128.png" alt="" width="80" height="80"/>
+      </div>
+      <p class="dont-label">render on a coloured ground</p>
+      <p class="dont-copy">The mint Δ on saturated colour becomes illegible. The dark squircle is part of the icon — don't replace it with a host-app background.</p>
+    </div>
+
+    <div class="reveal dont-card">
+      <div class="dont-art">
+        <svg viewBox="0 0 240 80" width="200" height="68">
+          <defs><filter id="bvl"><feGaussianBlur stdDeviation="1.5"/></filter></defs>
+          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="#0a0a0a" filter="url(#bvl)" opacity="0.4">Delta</text>
+          <text x="0" y="58" font-family="'Instrument Serif', serif" font-style="italic" font-weight="400" font-size="64" fill="#0a0a0a">Delta</text>
+        </svg>
+      </div>
+      <p class="dont-label">drop-shadow the wordmark</p>
+      <p class="dont-copy">Bevels, shadows, glows — none of it. The mark is meant to read flat against its background.</p>
+    </div>
+
+    <div class="reveal dont-card">
+      <div class="dont-art">
+        <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 56px; letter-spacing: -0.02em; color: #0a0a0a; text-transform: uppercase;">DELTA</span>
+      </div>
+      <p class="dont-label">write it as DELTA</p>
+      <p class="dont-copy">In long-form copy, the product is "Delta" — capital D, lowercase rest. Δ is a logomark, not a substitute for the letter.</p>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       naming — short rules section.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="naming">naming</div>
+  <section class="b-naming">
+    <div class="naming-grid">
+      <div>
+        <p class="b-h">product</p>
+        <p>The product is <strong>Delta</strong> (capital D, no accent on the "e"). Don't write it as ∆, △, or DELTA in long-form copy. Use the Δ glyph only as a logomark, not inline in sentences.</p>
+      </div>
+      <div>
+        <p class="b-h">repo</p>
+        <p>The repository is <code>Delta-Practice/Browser</code> on github. Renaming to <code>delta</code> is a one-line change in repo settings whenever the maintainer wants to.</p>
+      </div>
+      <div>
+        <p class="b-h">org</p>
+        <p>The github org is <strong>Delta-Practice</strong>. The HF account is <code>sinhaankur</code> (personal, not org). Both link back to the same project.</p>
+      </div>
+      <div>
+        <p class="b-h">forks</p>
+        <p>Don't ship a fork called "Delta" with the same Δ + spark mark. Pick your own name and your own brand. The guidelines + SVGs are MIT-spirited for screenshots, talks, write-ups, and "see this thing I'm building on top of Delta" demos — they aren't a commercial license to ship a product called Delta.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       in the wild — mockups of the brand at real scale.
+       Trust-builder: shows the marks doing real work, not just
+       sitting on a swatch.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="wild">in the wild</div>
+  <section class="b-wild">
+
+    <article class="reveal wild-card wild-dock">
+      <div class="wild-art">
+        <div class="wild-dock-bar">
+          <span class="wild-dock-item wild-dock-other" style="background:#3478f6">M</span>
+          <span class="wild-dock-item wild-dock-other" style="background:#3a3a3c">F</span>
+          <span class="wild-dock-item wild-dock-other" style="background:#34c759">N</span>
+          <span class="wild-dock-item wild-dock-other" style="background:#ff9500">C</span>
+          <span class="wild-dock-item wild-dock-delta">
+            <img src="../../brand/exports/png/icon-128.png" alt="" width="56" height="56"/>
+          </span>
+          <span class="wild-dock-item wild-dock-other" style="background:#5856d6">S</span>
+          <span class="wild-dock-item wild-dock-other" style="background:#af52de">T</span>
+        </div>
+      </div>
+      <p class="wild-label">macos dock</p>
+      <p class="wild-copy">Δ + spark reads at 56pt against generic squircles. The mint accent does the lifting.</p>
+    </article>
+
+    <article class="reveal wild-card wild-tab">
+      <div class="wild-art">
+        <div class="wild-tab-strip">
+          <span class="wild-tab-item">
+            <img src="../../brand/exports/png/icon-16.png" alt="" width="14" height="14"/>
+            <span>delta — privacy-first ai browser</span>
+            <span class="wild-tab-x">×</span>
+          </span>
+          <span class="wild-tab-item wild-tab-inactive">
+            <span class="wild-favicon"></span>
+            <span>another tab</span>
+          </span>
+        </div>
+      </div>
+      <p class="wild-label">browser tab + favicon</p>
+      <p class="wild-copy">16px favicon stays legible at the smallest size. The mint Δ is the only colour cue you need.</p>
+    </article>
+
+    <article class="reveal wild-card wild-og">
+      <div class="wild-art">
+        <img src="../../brand/exports/png/og-image.png" alt="delta open graph preview" class="wild-og-img"/>
+      </div>
+      <p class="wild-label">link unfurl</p>
+      <p class="wild-copy">The og-image card shown by X / Slack / Discord / iMessage when someone pastes the project URL. Dark canvas matches the app.</p>
+    </article>
+
+    <article class="reveal wild-card wild-readme">
+      <div class="wild-art">
+        <div class="wild-readme-mock">
+          <div class="wild-readme-row">
+            <img src="../../brand/exports/png/icon-mark-dark-64.png" alt="" width="22" height="22"/>
+            <span class="wild-readme-h"># delta</span>
+          </div>
+          <p class="wild-readme-line"><strong>a privacy-first ai browser.</strong></p>
+          <p class="wild-readme-line wild-readme-mute"><em>local llm by default. the agent reads and acts on the active page. nothing leaves your machine.</em></p>
+          <p class="wild-readme-line wild-readme-mono">$ pnpm delta:dev</p>
+        </div>
+      </div>
+      <p class="wild-label">readme header</p>
+      <p class="wild-copy">Line-art mark inline next to the H1. Use the dark-stroke variant on github's light theme; light-stroke when readers force dark mode.</p>
+    </article>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────────────────────────────────────────────────────────
+       downloads — direct links to PNG + JPG of every asset,
+       so people don't have to clone the repo to grab a logo.
+       ───────────────────────────────────────────────────────── -->
+  <div class="index-marker" id="downloads">downloads</div>
+  <section class="b-downloads">
+    <p class="b-section-h">all assets are pre-rendered in <a href="https://github.com/Delta-Practice/Browser/tree/main/brand/exports">brand/exports/</a> — link directly or right-click → save.</p>
+
+    <div class="downloads-grid">
+      <div class="downloads-col">
+        <h3>app icon</h3>
+        <ul>
+          <li><a href="../../brand/exports/png/icon-1024.png">icon-1024.png</a> · <a href="../../brand/exports/jpg/icon-1024.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-512.png">icon-512.png</a> · <a href="../../brand/exports/jpg/icon-512.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-256.png">icon-256.png</a> · <a href="../../brand/exports/jpg/icon-256.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-128.png">icon-128.png</a> · <a href="../../brand/exports/jpg/icon-128.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-64.png">icon-64.png</a> · <a href="../../brand/exports/jpg/icon-64.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-48.png">icon-48.png</a> · <a href="../../brand/exports/jpg/icon-48.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-32.png">icon-32.png</a> · <a href="../../brand/exports/jpg/icon-32.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-16.png">icon-16.png</a> · <a href="../../brand/exports/jpg/icon-16.jpg">jpg</a></li>
+        </ul>
+      </div>
+
+      <div class="downloads-col">
+        <h3>line-art mark</h3>
+        <ul>
+          <li><a href="../../brand/exports/png/icon-mark-dark-512.png">dark-512.png</a> · <a href="../../brand/exports/jpg/icon-mark-dark-512.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-256.png">dark-256.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-128.png">dark-128.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-dark-64.png">dark-64.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-512.png">light-512.png</a> · <a href="../../brand/exports/jpg/icon-mark-light-512.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-256.png">light-256.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-128.png">light-128.png</a></li>
+          <li><a href="../../brand/exports/png/icon-mark-light-64.png">light-64.png</a></li>
+        </ul>
+      </div>
+
+      <div class="downloads-col">
+        <h3>wordmark</h3>
+        <ul>
+          <li><a href="../../brand/exports/png/wordmark-1280.png">wordmark-1280.png</a> <span class="muted">(dark register)</span></li>
+          <li><a href="../../brand/exports/png/wordmark-640.png">wordmark-640.png</a></li>
+          <li><a href="../../brand/exports/png/wordmark-320.png">wordmark-320.png</a></li>
+          <li><a href="../../brand/exports/png/wordmark-cream-1280.png">cream-1280.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-1280.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/wordmark-cream-640.png">cream-640.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-640.jpg">jpg</a></li>
+          <li><a href="../../brand/exports/png/wordmark-cream-320.png">cream-320.png</a> · <a href="../../brand/exports/jpg/wordmark-cream-320.jpg">jpg</a></li>
+        </ul>
+      </div>
+
+      <div class="downloads-col">
+        <h3>open graph card</h3>
+        <ul>
+          <li><a href="../../brand/exports/png/og-image.png">og-image.png</a> <span class="muted">(1200×630)</span></li>
+          <li><a href="../../brand/exports/jpg/og-image.jpg">og-image.jpg</a></li>
+          <li><a href="../../brand/exports/png/og-image@2x.png">og-image@2x.png</a> <span class="muted">(2400×1260)</span></li>
+          <li><a href="../../brand/exports/jpg/og-image@2x.jpg">og-image@2x.jpg</a></li>
+        </ul>
+        <h3>svg sources</h3>
+        <ul>
+          <li><a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon.svg">icon.svg</a></li>
+          <li><a href="https://github.com/Delta-Practice/Browser/blob/main/brand/icon-mark.svg">icon-mark.svg</a></li>
+          <li><a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark.svg">wordmark.svg</a></li>
+          <li><a href="https://github.com/Delta-Practice/Browser/blob/main/brand/wordmark-cream.svg">wordmark-cream.svg</a></li>
+          <li><a href="https://github.com/Delta-Practice/Browser/blob/main/brand/og-image.svg">og-image.svg</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────
+       footer — same as the home page.
+       ───────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-grid">
+
+      <div class="logo">
+        <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"
+             stroke-linejoin="round" stroke-linecap="round" width="80" height="80" aria-label="delta">
+          <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
+          <path d="M 100 60 L 168 168 L 32 168 Z"/>
+        </svg>
+      </div>
+
+      <div class="col">
+        <h4>more</h4>
+        <a href="../">home</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+        <a href="https://github.com/Delta-Practice/Browser/blob/main/brand/guidelines.md">guidelines.md (raw)</a>
+      </div>
+
+      <div class="col">
+        <h4>follow</h4>
+        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. issues + PRs welcome.</p>
+        <p>prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+      </div>
+
+      <div class="col">
+        <h4>legal</h4>
+        <p>brand assets are <strong>mit-spirited</strong>. screenshots, write-ups, and "built on top of delta" demos: yes. shipping a fork called delta with the same mark: no.</p>
+      </div>
+
+    </div>
+    <div class="copy">© 2026 delta practice</div>
+  </footer>
+
+  <script type="module">
+    import { inView } from "https://esm.sh/motion@12.38.0";
+    const groups = [
+      { sel: ".b-marks .reveal",    step: 80 },
+      { sel: ".swatch-grid .reveal", step: 60 },
+      { sel: ".b-type .reveal",      step: 80 },
+      { sel: ".b-dont .reveal",      step: 60 },
+      { sel: ".b-wild .reveal",      step: 80 },
+    ];
+    for (const g of groups) {
+      document.querySelectorAll(g.sel).forEach((el, i) => {
+        el.style.transitionDelay = (i * g.step) + "ms";
+        inView(el, () => el.classList.add("is-in"), { amount: 0.2 });
+      });
+    }
+  </script>
+</body>
+</html>

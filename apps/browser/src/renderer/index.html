@@ -9,11 +9,12 @@
     <script>
       // Theme bootstrap — runs before React mounts so we never paint with the
       // wrong palette. Reads the user's saved choice; falls back to system.
+      // Valid themes: "dark" | "light" | "paper".
       (function () {
         try {
           var saved = localStorage.getItem("delta:theme");
           var sys = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-          var theme = saved === "light" || saved === "dark" ? saved : sys;
+          var theme = (saved === "light" || saved === "dark" || saved === "paper") ? saved : sys;
           document.documentElement.classList.add(theme);
         } catch (e) {
           document.documentElement.classList.add("dark");

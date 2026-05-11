@@ -1,0 +1,552 @@
+/* ==========================================================================
+   delta — brand guidelines page
+   Builds on docs/styles.css with sections specific to the brand doc:
+   marks row, clearspace illustration, swatch grid, type rows, don't grid,
+   downloads grid.
+   ========================================================================== */
+
+/* The brand page reuses the same .hero / .pitch / .nav / .index-marker
+   primitives as the home page. New sections below all use a `.b-` prefix
+   to keep them clearly scoped. */
+
+.b-section-h {
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.5rem;
+  max-width: 60ch;
+  padding: 0 var(--pad);
+  max-width: var(--max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.b-h {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+
+.b-cta {
+  font-size: 14px;
+  color: var(--mute);
+  margin: 1.5rem auto 0;
+  padding: 0 var(--pad);
+  max-width: var(--max);
+}
+.b-cta a { color: var(--fg); }
+
+/* ── voice ────────────────────────────────────────────────── */
+.b-voice {
+  padding: 64px var(--pad);
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.voice-line {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-size: clamp(28px, 3.6vw, 44px);
+  line-height: 1.25;
+  font-weight: 400;
+  margin: 0;
+  max-width: 32ch;
+  letter-spacing: -0.005em;
+}
+.voice-line em {
+  font-style: italic;
+  color: var(--fg);
+}
+
+/* ── marks row ───────────────────────────────────────────── */
+/* All three mark cards share one treatment: same dark display tile so
+   the icon, line-art mark, and wordmark sit at equal visual weight.
+   The dark tile also lets the line-art mark switch to its light variant
+   without inventing a third register. */
+.b-marks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.mark-card {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+.mark-card-wide { grid-column: span 1; }
+.mark-art {
+  height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+  /* Unified dark display tile across all three mark variants. */
+  background: #0c0c0e;
+}
+.mark-art-line { color: #f5f5f0; }      /* line-art tints cream on dark */
+.mark-art-wordmark { padding: 0 1.5rem; }
+.mark-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.mark-copy {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg);
+  margin: 0;
+}
+.mark-meta {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--mute);
+  margin: 0;
+  padding-top: 4px;
+  border-top: 1px solid var(--card-line);
+}
+
+/* ── clearspace ──────────────────────────────────────────── */
+.b-clearspace {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 64px;
+  padding: 32px var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+  align-items: center;
+}
+.clearspace-art {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  padding: 24px;
+}
+.clearspace-copy p {
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--fg);
+  margin: 0;
+}
+.clearspace-copy p + p { margin-top: 1rem; color: var(--mute); }
+
+/* ── colours / swatches ─────────────────────────────────── */
+/* Stripe/Linear-style: each swatch is a single tall tile filled with
+   the colour. Hex + label are rendered IN the tile, in a contrast-safe
+   version of the colour itself. Use-note sits below the tile in
+   neutral type so the eye reads colour-first. */
+.b-colors {
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.swatch { display: flex; flex-direction: column; gap: 14px; }
+.swatch-chip {
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  padding: 22px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  overflow: hidden;
+  /* A 1px hairline so light tiles don't disappear against cream paper. */
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+}
+.swatch-chip .swatch-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.swatch-chip .swatch-vals {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  margin: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  opacity: 0.78;
+}
+.swatch-use {
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--mute);
+}
+/* Per-swatch fill + on-tile type colour. */
+.swatch-mint-dark  .swatch-chip { background: hsl(135 55% 66%); color: hsl(135 60% 12%); }
+.swatch-mint-light .swatch-chip { background: hsl(135 48% 36%); color: hsl(135 60% 92%); }
+.swatch-bg-dark    .swatch-chip { background: #0c0c0e; color: hsl(135 55% 78%); }
+.swatch-bg-light   .swatch-chip { background: #e8e6e1; color: #0a0a0a; }
+.swatch-paper      .swatch-chip { background: #f5f5f0; color: #0a0a0a; }
+.swatch-text-dark  .swatch-chip { background: #0a0a0a; color: #f5f5f0; }
+
+/* ── typography rows ────────────────────────────────────── */
+.b-type {
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: 32px;
+}
+.type-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+}
+.type-meta { display: flex; flex-direction: column; gap: 6px; }
+.type-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.type-weights {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--mute);
+  margin: 0;
+}
+.type-sample {
+  color: var(--fg);
+  line-height: 1;
+}
+.type-sample-display {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(48px, 6vw, 88px);
+  letter-spacing: -0.04em;
+}
+.type-sample-geist {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+.type-sample-serif {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-style: italic;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.15;
+  font-weight: 400;
+}
+.type-sample-mono {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 500;
+}
+.type-use {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mute);
+  margin: 0;
+}
+
+/* ── don't grid ─────────────────────────────────────────── */
+/* Each card shows one mistake. The mistake is in a neutral art tile;
+   a small red corner badge labels it as wrong without slashing the
+   whole thing. The label below carries the rule itself in red. */
+.b-dont {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.dont-card {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  padding: 22px;
+  display: flex; flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+.dont-art {
+  height: 140px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f0efe9;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+/* Small red × badge top-right of the card — designer-y, not heavy-handed. */
+.dont-card::before {
+  content: "";
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #c2185b;
+  background-image:
+    linear-gradient(45deg, transparent 44%, #fff 44%, #fff 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, #fff 44%, #fff 56%, transparent 56%);
+  z-index: 2;
+}
+.dont-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #c2185b;
+  letter-spacing: -0.005em;
+}
+.dont-copy {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--fg);
+  margin: 0;
+}
+
+/* ── naming grid ─────────────────────────────────────────── */
+.b-naming {
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.naming-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+.naming-grid > div {
+  padding: 22px;
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  background: var(--card);
+}
+.naming-grid p {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--fg);
+  margin: 0;
+}
+.naming-grid strong { font-weight: 600; }
+.naming-grid code {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--card-line);
+}
+
+/* ── in the wild ────────────────────────────────────────── */
+/* Four mockup cards showing the marks doing real work: macOS dock,
+   browser tab strip, link unfurl, README header. Each art tile is a
+   simulated context the brand actually appears in. */
+.b-wild {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 0 var(--pad) 32px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.wild-card {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+.wild-art {
+  height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #e8e6e1;     /* macOS-ish wallpaper neutral */
+  padding: 18px;
+}
+.wild-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.wild-copy {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--mute);
+  margin: 0;
+}
+
+/* macOS dock mockup */
+.wild-dock .wild-art { background: linear-gradient(135deg, #b8c7e0 0%, #d4c4dc 100%); }
+.wild-dock-bar {
+  display: flex; align-items: end; gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.wild-dock-item {
+  width: 48px; height: 48px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+.wild-dock-delta {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+.wild-dock-delta img { display: block; border-radius: 11px; }
+
+/* Browser tab + favicon mockup */
+.wild-tab .wild-art {
+  background: #f5f5f0;
+  padding: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.wild-tab-strip {
+  width: 100%;
+  display: flex; align-items: end; gap: 4px;
+  padding: 14px 14px 0;
+  background: #d6d4cc;
+  height: 100%;
+}
+.wild-tab-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px 10px;
+  background: #f5f5f0;
+  border-radius: 10px 10px 0 0;
+  font-size: 12px;
+  color: #0a0a0a;
+  max-width: 220px;
+  white-space: nowrap; overflow: hidden;
+}
+.wild-tab-inactive {
+  background: rgba(245, 245, 240, 0.55);
+  color: var(--mute);
+}
+.wild-tab-x {
+  margin-left: 6px;
+  opacity: 0.5;
+  font-size: 14px;
+}
+.wild-favicon {
+  display: inline-block;
+  width: 14px; height: 14px;
+  background: #999;
+  border-radius: 3px;
+}
+
+/* OG card thumbnail */
+.wild-og .wild-art {
+  background: #0c0c0e;
+  padding: 14px;
+}
+.wild-og-img {
+  width: 100%; height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* README header mockup */
+.wild-readme .wild-art {
+  background: #ffffff;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 20px 24px;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+.wild-readme-mock { width: 100%; }
+.wild-readme-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.wild-readme-h {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0a0a0a;
+}
+.wild-readme-line {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0 0 6px;
+  color: #1f2328;
+}
+.wild-readme-mute { color: #57606a; font-family: 'Instrument Serif', serif; font-size: 14px; }
+.wild-readme-mono {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 8px;
+  color: #1f2328;
+}
+
+/* ── downloads grid ─────────────────────────────────────── */
+.b-downloads {
+  padding: 0 var(--pad) 96px;
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.downloads-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.downloads-col h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+}
+.downloads-col h3 + ul + h3 { margin-top: 1.5rem; }
+.downloads-col ul {
+  list-style: none; padding: 0; margin: 0 0 0.5rem;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.downloads-col li {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 12px;
+}
+.downloads-col li a { color: var(--fg); }
+.downloads-col li a:hover { color: var(--accent); }
+.downloads-col .muted { color: var(--mute); }
+
+/* ── responsive ─────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .b-marks { grid-template-columns: 1fr; }
+  .b-clearspace { grid-template-columns: 1fr; gap: 24px; }
+  .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+  .type-row { grid-template-columns: 1fr; gap: 16px; }
+  .b-dont { grid-template-columns: repeat(2, 1fr); }
+  .b-wild { grid-template-columns: 1fr; }
+  .naming-grid { grid-template-columns: 1fr; }
+  .downloads-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .swatch-grid { grid-template-columns: 1fr; }
+  .b-dont { grid-template-columns: 1fr; }
+  .downloads-grid { grid-template-columns: 1fr; }
+}
