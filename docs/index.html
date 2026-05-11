@@ -70,7 +70,7 @@
       <span class="sep">·</span>
       <span>local-first</span>
       <span class="sep">·</span>
-      <span class="live">v0 · macOS</span>
+      <span class="live">v0 · early access</span>
     </p>
     <div class="wordmark-band">
       <h1 class="wordmark" aria-label="delta">delta</h1>
@@ -231,6 +231,30 @@
       <p>device is the identity. conversations, bookmarks, history live as flat json on your disk. quit deletes nothing; rm -rf does.</p>
     </a>
 
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────
+       quickstart — the smallest "you can be running in 3 commands"
+       answer for someone clicking the home page's "quick start" CTA.
+       Anchor target is #quickstart so the CTA actually lands here.
+       ───────────────────────────────────────────────────────── -->
+  <section class="quickstart" id="quickstart">
+    <div class="quickstart-card">
+      <div>
+        <h3>three commands.<br>no account.</h3>
+        <p>install ollama, pull a model, clone delta. the assistant auto-detects the local llm on first launch.</p>
+      </div>
+      <pre><code><span class="c"># 1. install ollama (mac/linux/windows)</span>
+brew install ollama
+
+<span class="c"># 2. pull a small model + start the server</span>
+ollama pull llama3.2
+ollama serve
+
+<span class="c"># 3. clone + run delta — auto-detects ollama</span>
+git clone https://github.com/Delta-Practice/Browser
+cd Browser <span class="k">&amp;&amp;</span> pnpm install <span class="k">&amp;&amp;</span> pnpm delta:dev</code></pre>
+    </div>
   </section>
 
   <hr class="divider">
