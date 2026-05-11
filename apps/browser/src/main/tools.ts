@@ -11,6 +11,7 @@
 // later just push onto TOOLS; the registry is otherwise self-contained.
 import type { ToolDef } from "@shared/types"
 import type { TabManager } from "./tabs"
+import { clickElement, getInteractiveElements, typeIntoElement, type Criteria } from "./page-agent"
 
 const MAX_PAGE_CHARS_DEFAULT = 16_000
 
@@ -157,8 +158,99 @@ const open_tab: Tool = {
   },
 }
 
+// ── Phase 3.1: click + type (content-script driven) ───────────────────
+// These let the agent actually push buttons and fill fields on the active
+// page. Each goes through the per-(origin, tool) permission gate, and the
+// sensitive-site classifier auto-blocks them on banking / gov / payment /
+// wallet / healthcare hosts. Password and file inputs are refused even
+// on whitelisted sites — see page-agent.ts.
+//
+// The agent typically calls get_interactive_elements first so it knows
+// what the page exposes (labels, types, indices). Click and type then
+// accept a criteria object: { index } for the freshest snapshot, { text }
+// for a visible-label match, or { selector } for an explicit CSS path.
+
+function _activeView(ctx: ToolContext) {
+  const state = ctx.tabs.getState()
+  if (!state.activeId) return null
+  return ctx.tabs.getView(state.activeId)
+}
+
+const get_interactive_elements: Tool = {
+  def: {
+    name: "get_interactive_elements",
+    description:
+      "Snapshot every visible button, link, input, select, textarea, and ARIA-interactive element on the active tab. Returns an indexed list with labels — call this before click/type so you know what's on the page and how to refer to it.",
+    schema: { type: "object", properties: {} },
+    side: "read",
+  },
+  handler: async (_args, ctx) => {
+    const view = _activeView(ctx)
+    if (!view) return { error: "no_active_tab" }
+    return await getInteractiveElements(view)
+  },
+}
+
+const click: Tool = {
+  def: {
+    name: "click",
+    description:
+      "Click an interactive element on the active tab. Pass ONE of: { index: number } (from a recent get_interactive_elements snapshot), { text: string } (a visible-label / aria-label substring match), or { selector: string } (raw CSS selector). Permissioned — the user is asked to allow each (origin, click) pair the first time. Sensitive sites auto-block.",
+    schema: {
+      type: "object",
+      properties: {
+        index:    { type: "number", description: "Index from get_interactive_elements." },
+        text:     { type: "string", description: "Visible-label / aria-label substring. Case-insensitive." },
+        selector: { type: "string", description: "Raw CSS selector. Use only when index/text isn't enough." },
+      },
+    },
+    side: "act",
+  },
+  handler: async (args, ctx) => {
+    const view = _activeView(ctx)
+    if (!view) return { error: "no_active_tab" }
+    const criteria = _criteriaFrom(args)
+    if (!criteria) return { error: "invalid_args", message: "Pass one of: index, text, selector." }
+    return await clickElement(view, criteria)
+  },
+}
+
+const type_tool: Tool = {
+  def: {
+    name: "type",
+    description:
+      "Type text into a form field on the active tab. Same matcher shape as click (index | text | selector), plus `value: string`. Refuses password fields and file inputs unconditionally. Permissioned + sensitive-site auto-block.",
+    schema: {
+      type: "object",
+      properties: {
+        index:    { type: "number", description: "Index from get_interactive_elements." },
+        text:     { type: "string", description: "Visible-label / placeholder / name match." },
+        selector: { type: "string", description: "Raw CSS selector." },
+        value:    { type: "string", description: "The text to type into the field." },
+      },
+      required: ["value"],
+    },
+    side: "act",
+  },
+  handler: async (args, ctx) => {
+    const view = _activeView(ctx)
+    if (!view) return { error: "no_active_tab" }
+    const criteria = _criteriaFrom(args)
+    if (!criteria) return { error: "invalid_args", message: "Pass one of: index, text, selector." }
+    if (typeof args?.value !== "string") return { error: "invalid_args", message: "value (string) is required." }
+    return await typeIntoElement(view, criteria, args.value)
+  },
+}
+
+function _criteriaFrom(args: any): Criteria | null {
+  if (args && typeof args.index === "number") return { index: args.index }
+  if (args && typeof args.text === "string" && args.text.length) return { text: args.text }
+  if (args && typeof args.selector === "string" && args.selector.length) return { selector: args.selector }
+  return null
+}
+
 // ── Registry ────────────────────────────────────────────────────────────
-const TOOLS: Tool[] = [list_tabs, read_active_page, read_tab, navigate, open_tab]
+const TOOLS: Tool[] = [list_tabs, read_active_page, read_tab, navigate, open_tab, get_interactive_elements, click, type_tool]
 const BY_NAME: Record<string, Tool> = Object.fromEntries(TOOLS.map((t) => [t.def.name, t]))
 
 /** All tool definitions, in the shape providers expect to see. */

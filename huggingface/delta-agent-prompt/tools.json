@@ -73,6 +73,43 @@
         },
         "required": ["url"]
       }
+    },
+    {
+      "name": "get_interactive_elements",
+      "side": "read",
+      "description": "Snapshot every visible button, link, input, select, textarea, and ARIA-interactive element on the active tab. Returns an indexed list with labels — call this before click/type so you know what's on the page and how to refer to it.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "click",
+      "side": "act",
+      "description": "Click an interactive element on the active tab. Pass ONE of: { index } (from a recent get_interactive_elements snapshot), { text } (a visible-label / aria-label substring match), or { selector } (raw CSS selector). Permissioned per (origin, click). Sensitive sites auto-block.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "index":    { "type": "number", "description": "Index from get_interactive_elements." },
+          "text":     { "type": "string", "description": "Visible-label / aria-label substring. Case-insensitive." },
+          "selector": { "type": "string", "description": "Raw CSS selector. Use only when index/text isn't enough." }
+        }
+      }
+    },
+    {
+      "name": "type",
+      "side": "act",
+      "description": "Type text into a form field on the active tab. Same matcher shape as click (index | text | selector), plus `value`. Refuses password fields and file inputs unconditionally. Permissioned + sensitive-site auto-block.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "index":    { "type": "number", "description": "Index from get_interactive_elements." },
+          "text":     { "type": "string", "description": "Visible-label / placeholder / name match." },
+          "selector": { "type": "string", "description": "Raw CSS selector." },
+          "value":    { "type": "string", "description": "The text to type into the field." }
+        },
+        "required": ["value"]
+      }
     }
   ],
   "page_content_envelope": {
