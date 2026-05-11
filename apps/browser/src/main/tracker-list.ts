@@ -201,14 +201,27 @@ export const TRACKERS: readonly TrackerEntry[] = [
   { domain: "app.adjust.com",              owner: "Adjust",      category: "ads" },
 ] as const
 
-// Normalise to a Set for O(1) exact-match lookup, and keep a sorted array
-// of suffixes for the host-suffix path.
-const TRACKER_DOMAINS = new Set(TRACKERS.map((t) => t.domain.split("/")[0]))
+// Curated set — owners and categories are rich, the list is small.
+const CURATED_DOMAINS = new Set(TRACKERS.map((t) => t.domain.split("/")[0]))
 const TRACKER_OWNER = new Map(TRACKERS.map((t) => [t.domain.split("/")[0], t.owner] as const))
+
+// Extended set — pulled from EasyPrivacy at build time. ~40k+ entries with no
+// per-host owner/category metadata. We can flip it off at runtime via
+// SettingsStore.useExtendedTrackerList in case a user hits a false positive.
+import { EASYPRIVACY_HOSTS } from "./tracker-list.easyprivacy"
+const EXTENDED_DOMAINS = new Set<string>(EASYPRIVACY_HOSTS)
+
+// Module-level kill switch — flipped by privacy.ts based on the user's
+// setting. Default ON; the bulk import is what makes the privacy report
+// comparable to uBlock Origin's coverage.
+let extendedEnabled = true
+export function setExtendedTrackerListEnabled(on: boolean): void {
+  extendedEnabled = on
+}
 
 /**
  * Returns the matched tracker domain if `host` is, or is a subdomain of, a
- * known tracker. Returns null otherwise.
+ * known tracker. Curated set wins on ties so we keep the rich owner label.
  *
  * Match rules:
  *   "googletagmanager.com"          → "googletagmanager.com"
@@ -217,13 +230,15 @@ const TRACKER_OWNER = new Map(TRACKERS.map((t) => [t.domain.split("/")[0], t.own
  */
 export function matchTracker(host: string): string | null {
   const h = host.toLowerCase()
-  if (TRACKER_DOMAINS.has(h)) return h
+  if (CURATED_DOMAINS.has(h)) return h
+  if (extendedEnabled && EXTENDED_DOMAINS.has(h)) return h
   // Walk back labels — `a.b.c.example.com` checks `b.c.example.com`,
   // `c.example.com`, `example.com`. Stops as soon as a match is found.
   let dot = h.indexOf(".")
   while (dot !== -1) {
     const tail = h.slice(dot + 1)
-    if (TRACKER_DOMAINS.has(tail)) return tail
+    if (CURATED_DOMAINS.has(tail)) return tail
+    if (extendedEnabled && EXTENDED_DOMAINS.has(tail)) return tail
     dot = h.indexOf(".", dot + 1)
   }
   return null
@@ -231,4 +246,13 @@ export function matchTracker(host: string): string | null {
 
 export function ownerOf(domain: string): string {
   return TRACKER_OWNER.get(domain) ?? domain
+}
+
+/** Total number of hostnames the matcher knows about — useful for the
+ *  privacy section's "blocking ~N trackers" honesty line. */
+export function trackerListSize(): { curated: number; extended: number } {
+  return {
+    curated: CURATED_DOMAINS.size,
+    extended: extendedEnabled ? EXTENDED_DOMAINS.size : 0,
+  }
 }

@@ -40,6 +40,7 @@ const DEFAULTS: StoredSettings = {
   newtabBackground: "procedural",
   newtabFolder: null,
   requireBiometric: false,
+  useExtendedTrackerList: true,
 }
 
 function settingsPath(): string {
@@ -98,6 +99,7 @@ function toWire(s: StoredSettings): UserSettings {
     newtabBackground: s.newtabBackground ?? "procedural",
     newtabFolder: s.newtabFolder ?? null,
     requireBiometric: s.requireBiometric ?? false,
+    useExtendedTrackerList: s.useExtendedTrackerList ?? true,
   }
 }
 
@@ -208,6 +210,9 @@ export class SettingsStore {
         break
       case "requireBiometric":
         this.state.requireBiometric = update.value
+        break
+      case "useExtendedTrackerList":
+        this.state.useExtendedTrackerList = update.value
         break
     }
     persist(this.state)

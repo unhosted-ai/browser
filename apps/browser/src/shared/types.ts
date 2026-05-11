@@ -93,6 +93,14 @@ export type UserSettings = {
    * app, this is for users who want a second layer at the device edge.
    */
   requireBiometric: boolean
+  /**
+   * Use the bundled EasyPrivacy host list (~42k known trackers) on top
+   * of the curated short list. On by default — this is what makes the
+   * tracker blocker comparable with uBlock Origin's coverage. Flip OFF
+   * if the broad list ever catches a legitimate first-party request you
+   * need; the curated short list keeps blocking the high-traffic ones.
+   */
+  useExtendedTrackerList: boolean
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -110,6 +118,7 @@ export type SettingsUpdate =
   | { kind: "newtabBackground"; value: "procedural" | "photographic" }
   | { kind: "newtabFolder"; value: string | null }
   | { kind: "requireBiometric"; value: boolean }
+  | { kind: "useExtendedTrackerList"; value: boolean }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {

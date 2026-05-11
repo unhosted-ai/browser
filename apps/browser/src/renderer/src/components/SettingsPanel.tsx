@@ -153,6 +153,7 @@ function SettingsBody({
         />
         <DefaultProviderSection settings={settings} providers={providers} />
         <AppLockSection settings={settings} />
+        <ExtendedTrackerListSection settings={settings} />
         <PrivacySection />
         <PrivacyNote />
       </div>
@@ -195,6 +196,43 @@ function AppLockSection({ settings }: { settings: UserSettings }) {
           checked={settings.requireBiometric}
           onChange={set}
           ariaLabel="Require biometric on launch"
+        />
+      </div>
+    </section>
+  )
+}
+
+// ── Extended tracker list (EasyPrivacy) ─────────────────────────────
+// Default on. The ~42k-entry community list is what makes the privacy
+// report comparable with uBlock Origin's coverage. The toggle is here
+// so the user can flip it off if the broad list ever catches a
+// legitimate first-party request they need — the curated short list
+// keeps blocking the high-traffic ones regardless.
+function ExtendedTrackerListSection({ settings }: { settings: UserSettings }) {
+  const set = (value: boolean) =>
+    void window.api.settings.update({ kind: "useExtendedTrackerList", value })
+  return (
+    <section>
+      <SectionHeader
+        label="Extended tracker list"
+        hint="Use the bundled EasyPrivacy list (~42k known trackers) on top of the curated short list. Recommended on."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] text-chrome-text leading-snug">
+            {settings.useExtendedTrackerList
+              ? "On — EasyPrivacy + curated list active."
+              : "Off — only the curated short list (~150) blocks."}
+          </p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5">
+            Updated by rerunning <code className="font-mono">apps/browser/scripts/build-tracker-list.mjs</code>.
+            Source: <span className="text-chrome-text-2">easylist.to</span> · GPL-3.0 / CC-BY-SA-3.0.
+          </p>
+        </div>
+        <Toggle
+          checked={settings.useExtendedTrackerList}
+          onChange={set}
+          ariaLabel="Use extended tracker list"
         />
       </div>
     </section>

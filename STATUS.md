@@ -11,7 +11,7 @@ table when the two disagree.
 ### The browser
 - Tabs, address bar, find-in-page, native menu, ⌘T / ⌘W / ⌘L / ⌘R / ⌘F / ⌘⇧T / ⌘1..⌘9
 - Safety badges in the address bar (GOV / EDU / ORG / WEB / BLOCK)
-- Tracker blocker active from app boot — ~150 known tracker domains
+- Tracker blocker active from app boot — ~42k known tracker domains (curated short list + EasyPrivacy, toggleable in Settings)
 - 30-day privacy report (Settings → Privacy + new-tab chip)
 - Bookmarks (local JSON, no sync), history (5,000-entry cap, search), downloads (live progress, pause/resume/cancel)
 - Reader mode (Mozilla Readability injected into the active tab)
@@ -56,7 +56,7 @@ table when the two disagree.
 | TTS voice picker | Small | Currently uses the system default; macOS Premium voices need to be selectable. |
 | Reader-mode failure toast | Small | Silent failure today on pages Readability can't parse. |
 | "Send feedback" in the ☰ menu | Small | Pre-filled GitHub issue link. |
-| Tracker-list growth | Ongoing | Pulling in EasyPrivacy / DDG Tracker Radar takes us from ~150 to thousands. |
+| Tracker-list growth | Shipped 2026-05-11 — ~42k via EasyPrivacy, plus the curated short list | Refresh via `apps/browser/scripts/build-tracker-list.mjs`. DDG Tracker Radar import for richer owner attribution is the next bump. |
 | macOS notarization | Blocked on Apple Developer cert | The `.dmg` builds today; signing is one config flip away once the cert is in place. |
 | BYO-sync docs (iCloud Drive / Syncthing on `userData/`) | Two-paragraph docs change | The "no sync" answer for users who want cross-device. |
 

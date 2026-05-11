@@ -8,6 +8,7 @@ import { ConversationStore } from "./conversations"
 import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
 import { PrivacyStore, TrackerBlocker } from "./privacy"
+import { setExtendedTrackerListEnabled } from "./tracker-list"
 import { BookmarkStore } from "./bookmarks"
 import { isReaderActive, toggleReader } from "./reader"
 import { isSpeaking, startSpeaking, stopSpeaking } from "./tts"
@@ -69,7 +70,10 @@ function createWindow(): void {
   }
 
   tabs = new TabManager(mainWindow)
-  settings = new SettingsStore()
+  // settings is already constructed in app.whenReady (before the tracker
+  // blocker binds). We assert non-null here — the createWindow path
+  // can't run without it.
+  if (!settings) throw new Error("settings store wasn't initialised before createWindow")
   conversations = new ConversationStore()
   agent = new Agent({
     emit: (event) => mainWindow?.webContents.send("agent:event", event),
@@ -243,6 +247,14 @@ app.whenReady().then(async () => {
       // Best-effort; if the icon file isn't present, just skip.
     }
   }
+  // Settings — lifted ahead of the tracker blocker so the extended-list
+  // toggle (useExtendedTrackerList) is honoured from the very first
+  // request. Without this, the blocker binds before settings exist and
+  // the user's "off" preference wouldn't apply until the next launch.
+  settings = new SettingsStore()
+  setExtendedTrackerListEnabled(settings.get().useExtendedTrackerList)
+  settings.onChange((s) => setExtendedTrackerListEnabled(s.useExtendedTrackerList))
+
   // Privacy: build the store + bind the blocker to the default session
   // BEFORE any window is created, so the very first request through any
   // WebContentsView is already filtered. The newtab protocol handler
