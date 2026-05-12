@@ -23,7 +23,21 @@ type Tab = "bookmarks" | "history" | "downloads"
 export function ChromeMenu({ open, onClose, onOpenUrl, onOpenSettings }: Props) {
   const [tab, setTab] = useState<Tab>("bookmarks")
   const [confirmClear, setConfirmClear] = useState(false)
+  const [cacheBusy, setCacheBusy] = useState(false)
+  const [cacheDone, setCacheDone] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const clearCacheNow = async () => {
+    if (cacheBusy) return
+    setCacheBusy(true)
+    try {
+      await window.api.data.clear({ cache: true })
+      setCacheDone(true)
+      setTimeout(() => setCacheDone(false), 1200)
+    } finally {
+      setCacheBusy(false)
+    }
+  }
 
   // Close on click-outside and on Escape.
   useEffect(() => {
@@ -74,13 +88,24 @@ export function ChromeMenu({ open, onClose, onOpenUrl, onOpenSettings }: Props) 
           <ClearBrowsingDataInline onDone={() => { setConfirmClear(false) }} onCancel={() => setConfirmClear(false)} />
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => setConfirmClear(true)}
-              className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text px-2 py-1 rounded transition-colors"
-            >
-              Clear browsing data…
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={clearCacheNow}
+                disabled={cacheBusy}
+                title="Drop the HTTP / image / GPU shader cache for every site. Cookies, history, and logins are untouched."
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text disabled:opacity-50 px-2 py-1 rounded transition-colors"
+              >
+                {cacheBusy ? "Clearing…" : cacheDone ? "Cleared ✓" : "Clear cache"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmClear(true)}
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text px-2 py-1 rounded transition-colors"
+              >
+                More…
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => { onOpenSettings(); onClose() }}
