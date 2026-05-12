@@ -18,17 +18,17 @@
   </style>
   <defs>
     <clipPath id="squircle-clip">
-      <rect width="1024" height="1024" rx="232" ry="232"/>
+      <rect width="1024" height="1024" rx="186" ry="186"/>
     </clipPath>
   </defs>
   <g clip-path="url(#squircle-clip)">
     <rect class="canvas" width="1024" height="1024"/>
-    <circle class="mark" cx="512" cy="164" r="46"/>
+    <circle class="mark" cx="512" cy="148" r="56"/>
     <path
       class="mark"
-      d="M 512 307 L 860 860 L 164 860 Z"
+      d="M 512 276 L 896 896 L 128 896 Z"
       fill="none"
-      stroke-width="30"
+      stroke-width="36"
       stroke-linejoin="round"
       stroke-linecap="round"
     />

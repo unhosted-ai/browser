@@ -2,18 +2,17 @@
 <!--
   Delta — application icon. 1024×1024 master.
 
-  Concept: pure line-art Δ with a small spark dot above the apex, set on
-  a cream squircle. The composition is the same as brand/icon-mark.svg —
-  one mark, two registers (this one for dock/squircle contexts, the
-  unbounded line-art for inline use). Cream + black, no gradient, no
-  shadow, no glow: the icon reads the same at 16px and 1024px.
+  Composition: pure line-art Δ with a small spark dot above the apex, set
+  on a cream squircle. The squircle fills the canvas edge-to-edge (no
+  Apple-style 100px padding) so the icon reads at full dock-cell size
+  alongside third-party icons like Slack and VS Code. Corner radius
+  186/1024 (18.2%) matches the tighter, third-party-app convention.
+  The triangle + spark composition takes ~84% of the canvas height so
+  the icon feels filled at every size from 16 up.
 
-  Apple HIG: ~100pt of breathing room around the artwork inside an 824
-  safe area on a 1024 grid. The Δ + spark composition sits inside that.
-
-  No SVG filters — only paths/rects — so every iconset size from 16 up
-  rasterises edge-clean. Transparency outside the squircle relies on a
-  renderer that respects SVG alpha (rsvg-convert; brand/scripts/
+  No SVG filters — only paths/rects — so every iconset size from 16 to
+  1024 rasterises edge-clean. Transparency outside the squircle relies
+  on a renderer that respects SVG alpha (rsvg-convert; brand/scripts/
   build-icons.sh prefers it over qlmanage for that reason).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
@@ -21,7 +20,7 @@
 
   <defs>
     <clipPath id="squircle-clip">
-      <rect width="1024" height="1024" rx="232" ry="232"/>
+      <rect width="1024" height="1024" rx="186" ry="186"/>
     </clipPath>
   </defs>
 
@@ -33,20 +32,24 @@
     <!--
       Spark — small filled black dot above the apex of the Δ. Same
       proportional placement as brand/icon-mark.svg so the mark family
-      stays visually coherent across registers.
+      stays visually coherent across registers. Bumped 20% larger here
+      so the dot reads at 16px and 32px favicon sizes too.
     -->
-    <circle cx="512" cy="164" r="46" fill="#0a0a0a"/>
+    <circle cx="512" cy="148" r="56" fill="#0a0a0a"/>
 
     <!--
-      Δ — line-art triangle, single stroke weight. Scaled from the 200
-      viewBox source: stroke-width 6 there → ~30 here. Linejoin round
-      keeps the apex from punching through the safe area.
+      Δ — line-art triangle, single stroke weight. Scaled to occupy
+      roughly the lower 2/3 of the squircle: apex at y=276, base at
+      y=896 (876 wide), centred. Linejoin/cap round keeps the apex
+      from punching through the safe area visually. Stroke 36px so
+      the lines read clean at small sizes without overpowering the
+      dot.
     -->
     <path
-      d="M 512 307 L 860 860 L 164 860 Z"
+      d="M 512 276 L 896 896 L 128 896 Z"
       fill="none"
       stroke="#0a0a0a"
-      stroke-width="30"
+      stroke-width="36"
       stroke-linejoin="round"
       stroke-linecap="round"
     />
