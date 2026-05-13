@@ -46,6 +46,10 @@ export function App() {
   const onboarding = useOnboardingState()
   const [showOnboarding, setShowOnboarding] = useState(onboarding.open)
   const dismissOnboarding = () => { onboarding.dismiss(); setShowOnboarding(false) }
+  // Re-open the welcome card from anywhere (e.g. profile chip → Sign in).
+  // Doesn't reset the onboarded flag — this is a runtime re-open, not a
+  // first-launch event.
+  const openWelcome = () => setShowOnboarding(true)
 
   useEffect(() => {
     void window.api.tabs.list().then(setState)
@@ -186,6 +190,7 @@ export function App() {
         onNewTab={() => window.api.tabs.create()}
         onOpenSettings={toggleSettings}
         onOpenHistory={openHistory}
+        onOpenSignIn={openWelcome}
       />
 
       {/* Main column — chrome + content area. Sits to the right of the
@@ -301,27 +306,17 @@ export function App() {
       />
 
       {/* Onboarding is a TRUE app-level overlay: rendered last in the tree
-          so it's at the top of stacking order, and uses fixed inset-0 so it
-          covers the chrome and the left nav (not just the content area).
-          Earlier rendering inside `relative flex-1` only blocked the page
-          area, which let users click the address-bar cog or LeftNav rows
-          *behind* the welcome card and end up with two overlapping panels. */}
+          so it's at the top of stacking order. The Onboarding component
+          owns its own fixed-inset positioning and entry/exit animations
+          (backdrop fade + card scale-and-lift). */}
       <AnimatePresence>
         {showOnboarding && (
-          <motion.div
+          <Onboarding
             key="onboarding"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-0 z-[60] no-drag"
-          >
-            <Onboarding
-              onClose={dismissOnboarding}
-              onOpenSettings={() => { openSettings(); dismissOnboarding() }}
-              onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
-            />
-          </motion.div>
+            onClose={dismissOnboarding}
+            onOpenSettings={() => { openSettings(); dismissOnboarding() }}
+            onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
+          />
         )}
       </AnimatePresence>
     </div>

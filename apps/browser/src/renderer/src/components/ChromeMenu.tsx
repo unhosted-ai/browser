@@ -270,6 +270,7 @@ function ClearBrowsingDataInline({ onDone, onCancel }: { onDone: () => void; onC
     cache: true,
     history: true,
     downloads: false,
+    identity: false,
   })
   const [busy, setBusy] = useState(false)
 
@@ -284,7 +285,7 @@ function ClearBrowsingDataInline({ onDone, onCancel }: { onDone: () => void; onC
   return (
     <div className="w-full text-[11px]">
       <div className="flex flex-wrap gap-2 px-1 py-1">
-        {(["cookies", "cache", "history", "downloads"] as const).map((k) => (
+        {(["cookies", "cache", "history", "downloads", "identity"] as const).map((k) => (
           <label key={k} className="flex items-center gap-1.5 text-chrome-text-2 cursor-pointer">
             <input
               type="checkbox"

@@ -292,6 +292,29 @@ export type ClearScope = {
   cache?: boolean
   history?: boolean
   downloads?: boolean
+  /** Wipe the locally-imported identity (handle, name, avatar). */
+  identity?: boolean
+}
+
+// ── Local identity (personalisation only, never leaves the device) ─
+//
+// Delta has no remote account — see docs/identity.md. The user can
+// optionally tag their local profile with a public handle from GitHub
+// or an email from Google/Gmail, purely to personalise the chip in
+// the left nav. No OAuth, no tokens, no sync; we make a single
+// public-profile lookup at sign-in time and discard everything else.
+export type IdentityProvider = "github" | "google"
+
+export type Identity = {
+  provider: IdentityProvider
+  /** "@handle" for GitHub, email for Google. Display only. */
+  handle: string
+  /** Public display name. Falls back to handle. */
+  displayName: string
+  /** Public avatar URL — github avatar_url or gravatar. */
+  avatarUrl: string | null
+  /** Unix ms — when the import happened. Nothing else is recorded. */
+  importedAt: number
 }
 
 // ── Privacy report (last 30 days, in-memory aggregate) ─────────
@@ -411,6 +434,22 @@ export type BrowserApi = {
   }
   data: {
     clear: (scope: ClearScope) => Promise<void>
+  }
+  identity: {
+    /** Currently-signed-in identity, or null in default mode. */
+    get: () => Promise<Identity | null>
+    /**
+     * Import a public profile from GitHub or Google. Performs one HTTPS
+     * request to the provider's public endpoint (api.github.com for
+     * GitHub, gravatar for Google) and stores name + avatar locally.
+     * Throws on unknown handle / network error so the renderer can
+     * show inline feedback.
+     */
+    signIn: (input: { provider: IdentityProvider; handle: string }) => Promise<Identity>
+    /** Wipe the locally-stored identity. Returns to "Default profile". */
+    signOut: () => Promise<void>
+    /** Subscribe to changes (sign in / sign out from any surface). */
+    onChange: (cb: (identity: Identity | null) => void) => () => void
   }
   newtabBg: {
     /** Open the native folder-picker. Returns the chosen path, or null on cancel. */

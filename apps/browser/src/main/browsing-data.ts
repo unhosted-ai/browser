@@ -9,17 +9,23 @@
 import { session } from "electron"
 import type { HistoryStore } from "./history"
 import type { DownloadsManager } from "./downloads"
+import type { IdentityStore } from "./identity"
 
 export type ClearScope = {
   cookies?: boolean
   cache?: boolean
   history?: boolean
   downloads?: boolean
+  identity?: boolean
 }
 
 export async function clearBrowsingData(
   scope: ClearScope,
-  ctx: { history: HistoryStore | null; downloads: DownloadsManager | null },
+  ctx: {
+    history: HistoryStore | null
+    downloads: DownloadsManager | null
+    identity?: IdentityStore | null
+  },
 ): Promise<void> {
   const sess = session.defaultSession
 
@@ -46,5 +52,8 @@ export async function clearBrowsingData(
   }
   if (scope.downloads) {
     ctx.downloads?.clear()
+  }
+  if (scope.identity) {
+    ctx.identity?.signOut()
   }
 }

@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
+import type { Identity } from "@shared/types"
 import { DeltaLogo } from "./DeltaLogo"
 
 type Props = {
@@ -7,6 +9,8 @@ type Props = {
   onNewTab: () => void
   onOpenSettings: () => void
   onOpenHistory: () => void
+  /** Re-open the welcome / sign-in card so the user can switch modes. */
+  onOpenSignIn: () => void
 }
 
 // Two widths — full and rail. Both end up reserved by main/tabs.ts so the
@@ -25,7 +29,7 @@ export const LEFT_NAV_WIDTH_RAIL = 88
 // first 32px stay empty so they don't sit on top of nav buttons.
 const TRAFFIC_LIGHT_RESERVATION = 32
 
-export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenSettings, onOpenHistory }: Props) {
+export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenSettings, onOpenHistory, onOpenSignIn }: Props) {
   const width = collapsed ? LEFT_NAV_WIDTH_RAIL : LEFT_NAV_WIDTH_FULL
 
   return (
@@ -113,7 +117,7 @@ export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenS
       </nav>
 
       {/* Footer — profile chip (per docs/identity.md, this is a local profile) */}
-      <ProfileChip collapsed={collapsed} />
+      <ProfileChip collapsed={collapsed} onOpenSignIn={onOpenSignIn} />
 
       {/* Expand button when collapsed */}
       {collapsed && (
@@ -172,37 +176,153 @@ function NavRow({
   )
 }
 
-function ProfileChip({ collapsed }: { collapsed: boolean }) {
-  // No login. The chip is informational — it says "this device IS the
-  // account." Per docs/identity.md: profiles will be local-only when they
-  // ship; there is never a remote Delta account. The tooltip explains
-  // that so users don't expect a sign-in flow that doesn't exist.
-  const tooltip =
-    "Default profile · stored locally on this device.\n" +
-    "Delta has no account — your settings and history live on this machine.\n" +
-    "Multi-profile support is coming."
+function ProfileChip({ collapsed, onOpenSignIn }: { collapsed: boolean; onOpenSignIn: () => void }) {
+  // Two states, one chip:
+  //   - default: anonymous, no remote account (the original docs/identity.md design)
+  //   - signed-in: a public handle from GitHub or Google, stored as a
+  //     plain-JSON file on this device. There is still no remote
+  //     account; this is personalisation only. Click the chip to open a
+  //     small menu with "Sign out" — the only writable action.
+  const [identity, setIdentity] = useState<Identity | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [avatarOk, setAvatarOk] = useState(true)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    void window.api.identity.get().then((id) => { setIdentity(id); setAvatarOk(true) })
+    return window.api.identity.onChange((id) => { setIdentity(id); setAvatarOk(true) })
+  }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false) }
+    const t = setTimeout(() => window.addEventListener("mousedown", onDown), 0)
+    window.addEventListener("keydown", onKey)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener("mousedown", onDown)
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [menuOpen])
+
+  const signedIn = !!identity
+  const initials = signedIn ? initialsFor(identity!.displayName) : "D"
+  const tooltip = signedIn
+    ? `${identity!.displayName} (${identity!.handle})\nProvider: ${identity!.provider}\nStored locally · no remote account · no sync`
+    : "Default profile · stored locally on this device.\n" +
+      "Delta has no account — your settings and history live on this machine."
+
   return (
-    <div className="no-drag p-3 border-t border-chrome-border">
-      <div
+    <div ref={ref} className="no-drag p-3 border-t border-chrome-border relative">
+      <button
+        type="button"
         title={tooltip}
+        onClick={() => setMenuOpen((v) => !v)}
         className={[
-          "rounded-full flex items-center cursor-default",
+          "rounded-full flex items-center transition-colors duration-150 hover:bg-chrome-surface",
           collapsed ? "h-8 w-8 justify-center" : "w-full h-9 px-1.5 gap-2",
         ].join(" ")}
       >
-        <span
-          className="h-7 w-7 grid place-items-center rounded-full bg-signal/15 text-signal font-mono text-[11px] tracking-wide shrink-0"
-          aria-hidden
-        >D</span>
+        {signedIn && identity!.avatarUrl && avatarOk ? (
+          <img
+            src={identity!.avatarUrl}
+            alt=""
+            onError={() => setAvatarOk(false)}
+            className="h-7 w-7 rounded-full object-cover shrink-0 bg-chrome-surface"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span
+            className="h-7 w-7 grid place-items-center rounded-full bg-signal/15 text-signal font-mono text-[11px] tracking-wide shrink-0"
+            aria-hidden
+          >{initials}</span>
+        )}
         {!collapsed && (
           <div className="min-w-0 flex-1 text-left">
-            <p className="text-[12px] text-chrome-text truncate leading-tight">Default profile</p>
-            <p className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3 leading-tight">local · no account</p>
+            <p className="text-[12px] text-chrome-text truncate leading-tight">
+              {signedIn ? identity!.displayName : "Default profile"}
+            </p>
+            <p className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3 leading-tight truncate">
+              {signedIn ? `${identity!.handle} · local` : "local · no account"}
+            </p>
           </div>
         )}
-      </div>
+      </button>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            key="profile-menu"
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{    opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.14, ease: [0.32, 0.72, 0, 1] }}
+            style={{ transformOrigin: collapsed ? "bottom left" : "bottom left" }}
+            className="absolute left-3 right-3 bottom-[58px] z-40 rounded-xl border border-chrome-border bg-chrome-bg shadow-[0_20px_50px_-10px_rgba(0,0,0,0.5)] py-1 overflow-hidden"
+          >
+            {signedIn ? (
+              <>
+                <MenuRow
+                  label="Sign out"
+                  hint="Wipes the local identity file. Cookies + history stay."
+                  destructive
+                  onClick={async () => { await window.api.identity.signOut(); setMenuOpen(false) }}
+                />
+                <MenuRow
+                  label="Sign out + clear cache"
+                  hint="Local identity wipe + drop HTTP / image cache."
+                  destructive
+                  onClick={async () => {
+                    await window.api.data.clear({ identity: true, cache: true })
+                    setMenuOpen(false)
+                  }}
+                />
+              </>
+            ) : (
+              <MenuRow
+                label="Sign in with GitHub or Gmail"
+                hint="Personalise this local profile. Nothing leaves your device."
+                onClick={() => { setMenuOpen(false); onOpenSignIn() }}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
+}
+
+function MenuRow({
+  label, hint, destructive, onClick,
+}: {
+  label: string
+  hint?: string
+  destructive?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "w-full text-left px-3 py-2 hover:bg-chrome-surface transition-colors",
+        destructive ? "text-[hsl(0_70%_75%)] hover:text-[hsl(0_70%_82%)]" : "text-chrome-text",
+      ].join(" ")}
+    >
+      <p className="text-[12px] leading-snug">{label}</p>
+      {hint && <p className="font-mono text-[10px] text-chrome-text-3 mt-0.5 leading-tight">{hint}</p>}
+    </button>
+  )
+}
+
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
 }
 
 // ── Icons (kept inline so the sidebar is self-contained) ─────────────────

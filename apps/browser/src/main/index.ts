@@ -24,7 +24,15 @@ import { HistoryStore } from "./history"
 import { DownloadsManager } from "./downloads"
 import { clearBrowsingData } from "./browsing-data"
 import { pickFolder } from "./newtab-bg"
-import type { AgentMessage, AgentSendInput, ClearScope, SettingsUpdate, TabId } from "@shared/types"
+import { IdentityStore } from "./identity"
+import type {
+  AgentMessage,
+  AgentSendInput,
+  ClearScope,
+  IdentityProvider,
+  SettingsUpdate,
+  TabId,
+} from "@shared/types"
 
 const isDev = !app.isPackaged
 
@@ -49,6 +57,7 @@ let blocker: TrackerBlocker | null = null
 let bookmarks: BookmarkStore | null = null
 let history: HistoryStore | null = null
 let downloads: DownloadsManager | null = null
+let identity: IdentityStore | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -191,10 +200,22 @@ function registerIpc(): void {
   ipcMain.handle("downloads:removeOne", (_e, id: string) => { downloads?.removeOne(id) })
   ipcMain.handle("downloads:clear",     () => { downloads?.clear() })
 
-  // Clear browsing data (cookies / cache / history / downloads).
+  // Clear browsing data (cookies / cache / history / downloads / identity).
   ipcMain.handle("data:clear", async (_e, scope: ClearScope) => {
-    await clearBrowsingData(scope, { history, downloads })
+    await clearBrowsingData(scope, { history, downloads, identity })
   })
+
+  // Identity — local profile personalisation, no remote account.
+  // See docs/identity.md and main/identity.ts.
+  ipcMain.handle("identity:get", () => identity?.get() ?? null)
+  ipcMain.handle(
+    "identity:signIn",
+    async (_e, input: { provider: IdentityProvider; handle: string }) => {
+      if (!identity) throw new Error("identity store not ready")
+      return identity.signIn(input.provider, input.handle)
+    },
+  )
+  ipcMain.handle("identity:signOut", () => { identity?.signOut() })
 
   // New-tab background folder picker — opens a native dialog and returns
   // the chosen path. The renderer then writes it via settings:update.
@@ -303,6 +324,8 @@ app.whenReady().then(async () => {
   bookmarks = new BookmarkStore()
   history = new HistoryStore()
   downloads = new DownloadsManager()
+  identity = new IdentityStore()
+  identity.onChange((id) => mainWindow?.webContents.send("identity:change", id))
   registerNewtabProtocol(
     () => privacy?.getReport() ?? null,
     () => {

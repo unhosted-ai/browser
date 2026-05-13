@@ -10,6 +10,8 @@ import type {
   ConversationSummary,
   DownloadEntry,
   HistoryEntry,
+  Identity,
+  IdentityProvider,
   PrivacyReport,
   ProviderInfo,
   SettingsUpdate,
@@ -129,6 +131,17 @@ const api: BrowserApi = {
   },
   data: {
     clear: (scope: ClearScope) => ipcRenderer.invoke("data:clear", scope) as Promise<void>,
+  },
+  identity: {
+    get:     () => ipcRenderer.invoke("identity:get") as Promise<Identity | null>,
+    signIn:  (input: { provider: IdentityProvider; handle: string }) =>
+      ipcRenderer.invoke("identity:signIn", input) as Promise<Identity>,
+    signOut: () => ipcRenderer.invoke("identity:signOut") as Promise<void>,
+    onChange: (cb: (id: Identity | null) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, id: Identity | null) => cb(id)
+      ipcRenderer.on("identity:change", listener)
+      return () => ipcRenderer.removeListener("identity:change", listener)
+    },
   },
   newtabBg: {
     pickFolder: () => ipcRenderer.invoke("newtabBg:pickFolder") as Promise<string | null>,

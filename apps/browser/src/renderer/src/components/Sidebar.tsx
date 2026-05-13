@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { motion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
 import type {
   AgentEvent,
   AgentMessage,
@@ -396,8 +396,14 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
                 </svg>
               </button>
 
+              <AnimatePresence>
               {modelPickerOpen && (
-                <div
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{    opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.14, ease: [0.32, 0.72, 0, 1] }}
+                  style={{ transformOrigin: "bottom left" }}
                   className="absolute bottom-full mb-2 left-0 min-w-[220px] max-w-[300px] rounded-xl border border-chrome-border bg-chrome-bg shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)] py-1.5 z-30"
                   role="menu"
                 >
@@ -446,8 +452,9 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
                       Settings →
                     </button>
                   </div>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           ) : (
             <button
