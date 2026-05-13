@@ -53,9 +53,21 @@ export class IdentityStore {
     try {
       if (!existsSync(FILE())) return null
       const raw = readFileSync(FILE(), "utf8")
-      const parsed = JSON.parse(raw) as Identity | null
-      if (!parsed || !parsed.provider || !parsed.handle) return null
-      return parsed
+      const parsed = JSON.parse(raw) as Partial<Identity> | null
+      if (!parsed) return null
+      const { provider, handle, displayName, avatarUrl, importedAt } = parsed
+      if (provider !== "github" && provider !== "google") return null
+      if (typeof handle !== "string" || !handle) return null
+      // Fill in defensible defaults for any missing fields rather than
+      // returning null — a hand-edited file shouldn't lock the user out
+      // of their own profile chip.
+      return {
+        provider,
+        handle,
+        displayName: typeof displayName === "string" && displayName ? displayName : handle,
+        avatarUrl: typeof avatarUrl === "string" ? avatarUrl : null,
+        importedAt: typeof importedAt === "number" ? importedAt : Date.now(),
+      }
     } catch {
       return null
     }

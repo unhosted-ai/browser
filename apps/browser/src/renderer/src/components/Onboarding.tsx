@@ -69,7 +69,10 @@ export function Onboarding({ onClose, onOpenSettings, onToggleAssistant }: Props
         // Animate the card itself, not just the wrapper. The previous
         // version only opacity-faded the wrapper, which made the card
         // pop in abruptly. Scale + lift gives it a proper entry.
-        key={view}
+        // NOTE: no `key={view}` here — the inner AnimatePresence handles
+        // the lateral slide between choose/signin. Keying the outer card
+        // by view would re-mount it on every toggle and double up the
+        // entry animation.
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1,    y: 0 }}
         exit={{    opacity: 0, scale: 0.98, y: 6 }}

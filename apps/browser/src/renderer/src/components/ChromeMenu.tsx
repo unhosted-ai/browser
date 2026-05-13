@@ -273,6 +273,14 @@ function ClearBrowsingDataInline({ onDone, onCancel }: { onDone: () => void; onC
     identity: false,
   })
   const [busy, setBusy] = useState(false)
+  // Only offer the identity checkbox when there's a signed-in identity
+  // on disk — clearing "nothing" would be confusing UI noise. Defaults
+  // closed; the chip menu is the primary sign-out surface.
+  const [hasIdentity, setHasIdentity] = useState(false)
+  useEffect(() => {
+    void window.api.identity.get().then((id) => setHasIdentity(!!id))
+    return window.api.identity.onChange((id) => setHasIdentity(!!id))
+  }, [])
 
   const submit = async () => {
     setBusy(true)
@@ -282,10 +290,15 @@ function ClearBrowsingDataInline({ onDone, onCancel }: { onDone: () => void; onC
     } finally { setBusy(false) }
   }
 
+  const fields = (hasIdentity
+    ? ["cookies", "cache", "history", "downloads", "identity"]
+    : ["cookies", "cache", "history", "downloads"]
+  ) as Array<keyof typeof scope>
+
   return (
     <div className="w-full text-[11px]">
       <div className="flex flex-wrap gap-2 px-1 py-1">
-        {(["cookies", "cache", "history", "downloads", "identity"] as const).map((k) => (
+        {fields.map((k) => (
           <label key={k} className="flex items-center gap-1.5 text-chrome-text-2 cursor-pointer">
             <input
               type="checkbox"
