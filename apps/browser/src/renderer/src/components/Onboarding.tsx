@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import type { Identity, IdentityProvider } from "@shared/types"
+import type { Identity, IdentityProvider, ProviderInfo } from "@shared/types"
 import { DeltaLogo } from "./DeltaLogo"
 
 const STORAGE_KEY = "delta:onboarded"
@@ -164,15 +164,7 @@ function ChooseView({
         />
       </div>
 
-      <div className="px-7 pt-2 pb-4">
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
-        >
-          Connect a local model →
-        </button>
-      </div>
+      <LocalModelStatus onOpenSettings={onOpenSettings} />
 
       <ShortcutFootnote />
     </motion.div>
@@ -396,7 +388,92 @@ function ShortcutFootnote() {
       <ShortcutHint k="⌘," what="Settings" />
       <ShortcutHint k="⌘T" what="New tab" />
       <ShortcutHint k="⌘L" what="URL bar" />
+      <ShortcutHint k="⌘K" what="Search bar" />
       <ShortcutHint k="⌘F" what="Find on page" />
+    </div>
+  )
+}
+
+// Probes the main process for a live local provider so the user knows,
+// at the moment they pick a mode, whether the Assistant will actually
+// answer. If nothing is online we surface the one-line Ollama recipe
+// — same content as README quickstart, just rendered where the user
+// will read it.
+function LocalModelStatus({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const [state, setState] = useState<"probing" | "online" | "offline">("probing")
+  const [modelName, setModelName] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const probe = async () => {
+      try {
+        const list: ProviderInfo[] = await window.api.providers.refresh()
+        if (cancelled) return
+        const live = list.find(
+          (p) => p.status === "online" && !p.authed && p.endpoint.includes("127.0.0.1"),
+        )
+        if (live) {
+          setState("online")
+          setModelName(live.models[0] ?? live.label)
+        } else {
+          setState("offline")
+        }
+      } catch {
+        if (!cancelled) setState("offline")
+      }
+    }
+    void probe()
+    return () => { cancelled = true }
+  }, [])
+
+  if (state === "probing") {
+    return (
+      <div className="px-7 pt-3 pb-4">
+        <p className="font-mono text-[10px] tracking-[0.08em] uppercase text-chrome-text-3">
+          Checking for a local model…
+        </p>
+      </div>
+    )
+  }
+
+  if (state === "online") {
+    return (
+      <div className="px-7 pt-3 pb-4 flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-signal" aria-hidden />
+        <p className="font-mono text-[10px] tracking-[0.08em] uppercase text-chrome-text-2">
+          Local model online{modelName ? ` · ${modelName}` : ""}
+        </p>
+      </div>
+    )
+  }
+
+  // Offline — give the one-liner that gets to "online" fastest. Same
+  // recipe as README quickstart so the surfaces don't drift.
+  return (
+    <div className="px-7 pt-3 pb-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-chrome-text-3" aria-hidden />
+        <p className="font-mono text-[10px] tracking-[0.08em] uppercase text-chrome-text-3">
+          No local model yet · the Assistant needs one
+        </p>
+      </div>
+      <pre className="font-mono text-[10.5px] leading-[1.55] text-chrome-text-2 bg-chrome-surface border border-chrome-border rounded-md px-3 py-2 overflow-x-auto">
+{`brew install ollama
+ollama serve &
+ollama pull llama3.2`}
+      </pre>
+      <div className="flex items-center justify-between pt-0.5">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+        >
+          Connect a local model →
+        </button>
+        <span className="font-mono text-[9.5px] tracking-[0.1em] text-chrome-text-3">
+          Or use cloud later in Settings
+        </span>
+      </div>
     </div>
   )
 }

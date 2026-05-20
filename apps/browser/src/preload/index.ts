@@ -8,13 +8,21 @@ import type {
   ClearScope,
   ConversationRecord,
   ConversationSummary,
+  CredentialImportPreview,
+  CredentialImportSelection,
+  ExtensionEntry,
   DownloadEntry,
   HistoryEntry,
   Identity,
   IdentityProvider,
   PrivacyReport,
   ProviderInfo,
+  SavedCredential,
+  ScheduledTask,
+  ScheduledTaskAction,
+  ScheduledTaskInput,
   SettingsUpdate,
+  MemorySample,
   TabId,
   TabsState,
   UserSettings,
@@ -34,6 +42,13 @@ const api: BrowserApi = {
       const listener = (_e: Electron.IpcRendererEvent, state: TabsState) => cb(state)
       ipcRenderer.on("tabs:update", listener)
       return () => ipcRenderer.removeListener("tabs:update", listener)
+    },
+    sampleMemory:    () => ipcRenderer.invoke("tabs:sampleMemory") as Promise<MemorySample>,
+    discardAllIdle:  () => ipcRenderer.invoke("tabs:discardAllIdle") as Promise<number>,
+    onMemorySample:  (cb: (sample: MemorySample) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, sample: MemorySample) => cb(sample)
+      ipcRenderer.on("tabs:memory", listener)
+      return () => ipcRenderer.removeListener("tabs:memory", listener)
     },
   },
   layout: {
@@ -154,6 +169,62 @@ const api: BrowserApi = {
       ipcRenderer.on("updater:available", listener)
       return () => ipcRenderer.removeListener("updater:available", listener)
     },
+  },
+  accountLock: {
+    requiresUnlock: () => ipcRenderer.invoke("accountLock:requiresUnlock") as Promise<boolean>,
+    verify:         (secret: string) => ipcRenderer.invoke("accountLock:verify", secret) as Promise<boolean>,
+  },
+  schedules: {
+    list:   () => ipcRenderer.invoke("schedules:list") as Promise<ScheduledTask[]>,
+    create: (input: ScheduledTaskInput) => ipcRenderer.invoke("schedules:create", input) as Promise<ScheduledTask>,
+    update: (id: string, patch: Partial<ScheduledTaskInput> & { enabled?: boolean }) =>
+      ipcRenderer.invoke("schedules:update", id, patch) as Promise<ScheduledTask>,
+    delete: (id: string) => ipcRenderer.invoke("schedules:delete", id) as Promise<void>,
+    runNow: (id: string) => ipcRenderer.invoke("schedules:runNow", id) as Promise<void>,
+    onChange: (cb: (tasks: ScheduledTask[]) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, tasks: ScheduledTask[]) => cb(tasks)
+      ipcRenderer.on("schedules:list", listener)
+      return () => ipcRenderer.removeListener("schedules:list", listener)
+    },
+    onFired: (cb: (info: { id: string; label: string; action: ScheduledTaskAction }) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, info: { id: string; label: string; action: ScheduledTaskAction }) => cb(info)
+      ipcRenderer.on("schedules:fired", listener)
+      return () => ipcRenderer.removeListener("schedules:fired", listener)
+    },
+  },
+  credentials: {
+    pickAndPreview: () => ipcRenderer.invoke("credentials:pickAndPreview") as Promise<CredentialImportPreview | null>,
+    importSelected: (selection: CredentialImportSelection) => ipcRenderer.invoke("credentials:importSelected", selection) as Promise<number>,
+    list:           () => ipcRenderer.invoke("credentials:list") as Promise<SavedCredential[]>,
+    listForOrigin:  (origin: string) => ipcRenderer.invoke("credentials:listForOrigin", origin) as Promise<SavedCredential[]>,
+    remove:         (id: string) => ipcRenderer.invoke("credentials:remove", id) as Promise<void>,
+    fillActive:     (id: string) => ipcRenderer.invoke("credentials:fillActive", id) as Promise<boolean>,
+    onChange: (cb: (creds: SavedCredential[]) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, creds: SavedCredential[]) => cb(creds)
+      ipcRenderer.on("credentials:change", listener)
+      return () => ipcRenderer.removeListener("credentials:change", listener)
+    },
+  },
+  defaultBrowser: {
+    isDefault:  () => ipcRenderer.invoke("defaultBrowser:isDefault") as Promise<boolean>,
+    setDefault: () => ipcRenderer.invoke("defaultBrowser:setDefault") as Promise<boolean>,
+  },
+  extensions: {
+    list:       () => ipcRenderer.invoke("extensions:list") as Promise<ExtensionEntry[]>,
+    pickAndAdd: () => ipcRenderer.invoke("extensions:pickAndAdd") as Promise<ExtensionEntry | null>,
+    remove:     (id: string) => ipcRenderer.invoke("extensions:remove", id) as Promise<void>,
+    reload:     (id: string) => ipcRenderer.invoke("extensions:reload", id) as Promise<ExtensionEntry>,
+    onChange: (cb: (list: ExtensionEntry[]) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, list: ExtensionEntry[]) => cb(list)
+      ipcRenderer.on("extensions:change", listener)
+      return () => ipcRenderer.removeListener("extensions:change", listener)
+    },
+  },
+  secondBrain: {
+    pickAndInit: () => ipcRenderer.invoke("secondBrain:pickAndInit") as Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>,
+    reinit:      () => ipcRenderer.invoke("secondBrain:reinit") as Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>,
+    status:      () => ipcRenderer.invoke("secondBrain:status") as Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>,
+    defaultPath: () => ipcRenderer.invoke("secondBrain:defaultPath") as Promise<string>,
   },
 }
 

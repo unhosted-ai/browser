@@ -1,6 +1,6 @@
-import { BrowserWindow, WebContentsView } from "electron"
+import { app, BrowserWindow, WebContentsView } from "electron"
 import { randomUUID } from "node:crypto"
-import type { Tab, TabId, TabsState } from "@shared/types"
+import type { MemorySample, Tab, TabId, TabsState } from "@shared/types"
 import { clearReaderState } from "./reader"
 import { clearSpeakingState } from "./tts"
 import type { HistoryStore } from "./history"
@@ -10,7 +10,8 @@ const CHROME_TOP = 80          // tab strip + address bar height
 
 type Entry = {
   id: TabId
-  view: WebContentsView
+  /** Live WebContentsView, or null while the tab is discarded. */
+  view: WebContentsView | null
   title: string
   url: string
   loading: boolean
@@ -18,6 +19,12 @@ type Entry = {
   canGoForward: boolean
   /** Reset to 0 on each top-level navigation; bumped by TrackerBlocker. */
   trackersBlocked: number
+  /** Unix ms of the most recent activation. Drives the auto-discard sweep. */
+  lastActiveAt: number
+  /** True iff the WebContentsView was torn down to free memory. The tab
+   *  metadata (url, title, ids) is still here; activating it again will
+   *  rebuild a fresh view and re-navigate to `url`. */
+  discarded: boolean
 }
 
 export class TabManager {
@@ -36,9 +43,118 @@ export class TabManager {
    *  app.whenReady alongside the other stores). */
   private history: HistoryStore | null = null
 
+  // Auto-discard. Default 30 minutes; 0 disables. Renderer can flip via
+  // a future settings toggle — for now we expose the setter and run on
+  // a 60s tick. Discarding does NOT touch the active tab.
+  private discardAfterMs = 30 * 60 * 1000
+  private discardTimer: NodeJS.Timeout | null = null
+  // Soft cap on live (non-discarded) tabs. 0 = unlimited. Enforced after
+  // create + revive-on-activate + when the setter tightens the cap.
+  // Oldest non-active live tabs get discarded until the count is back
+  // within range.
+  private maxLiveTabs = 0
+
   constructor(win: BrowserWindow) {
     this.win = win
     win.on("resize", () => this.relayoutActive())
+    // Cheap 60s sweep — the discard threshold is in minutes, not seconds,
+    // so we don't need fine granularity. unref() so this doesn't hold
+    // the event loop open.
+    this.discardTimer = setInterval(() => this.discardSweep(), 60_000)
+    this.discardTimer.unref?.()
+  }
+
+  /** How long a tab must be inactive before the sweep discards its WebContentsView.
+   *  Pass 0 to disable. Wired to settings.tabDiscardMinutes. */
+  setDiscardAfterMinutes(minutes: number): void {
+    this.discardAfterMs = Math.max(0, Math.floor(minutes)) * 60 * 1000
+  }
+
+  /** Set the max-live-tabs soft cap. 0 = unlimited. Tightening enforces
+   *  immediately by discarding the oldest non-active live tabs. */
+  setMaxLiveTabs(n: number): void {
+    this.maxLiveTabs = Math.max(0, Math.floor(n))
+    this.enforceTabCap()
+  }
+
+  /** Discard oldest non-active live tabs until the live count is at or
+   *  below maxLiveTabs. No-op when the cap is 0 (unlimited). */
+  private enforceTabCap(): void {
+    if (this.maxLiveTabs <= 0) return
+    const live = [...this.entries.values()].filter((e) => !e.discarded && e.id !== this.activeId)
+    let over = (live.length + (this.activeId ? 1 : 0)) - this.maxLiveTabs
+    if (over <= 0) return
+    // Oldest first by last activation.
+    live.sort((a, b) => a.lastActiveAt - b.lastActiveAt)
+    for (const e of live) {
+      if (over <= 0) break
+      this.discard(e.id)
+      over -= 1
+    }
+  }
+
+  /** Discard every non-active, non-already-discarded tab. Used by the
+   *  RAM-pip "Discard idle tabs" button. Returns the number of tabs
+   *  actually discarded so the UI can show a confirmation. */
+  discardAllIdle(): number {
+    let n = 0
+    for (const e of this.entries.values()) {
+      if (e.id === this.activeId) continue
+      if (e.discarded) continue
+      this.discard(e.id)
+      n += 1
+    }
+    return n
+  }
+
+  /** Snapshot of process memory across this window's tabs + the main process.
+   *  Uses app.getAppMetrics which is cheap (Chromium exposes it via IPC the
+   *  same way Task Manager does). Per-tab attribution by matching the
+   *  WebContents OS pid to the metrics entries.
+   *
+   *  Notes:
+   *  - Memory units in getAppMetrics are KB (Electron docs); we report MB.
+   *  - On macOS we sum workingSetSize + privateBytes-equivalent (the
+   *    "Memory" column Activity Monitor shows). On other platforms we fall
+   *    back to workingSetSize.
+   *  - Discarded tabs contribute 0 — their WebContents is gone. */
+  sampleMemory(): MemorySample {
+    let total = 0
+    let main = 0
+    let tabs = 0
+    let discarded = 0
+
+    const metrics = app.getAppMetrics()
+    const pidBytes = new Map<number, number>()
+    for (const m of metrics) {
+      const kb = (m.memory?.workingSetSize ?? 0) + (m.memory?.privateBytes ?? 0)
+      pidBytes.set(m.pid, kb * 1024)
+      if (m.type === "Browser") main += kb * 1024
+      total += kb * 1024
+    }
+
+    const perTab: MemorySample["perTab"] = []
+    for (const e of this.entries.values()) {
+      if (e.discarded || !e.view || e.view.webContents.isDestroyed()) {
+        discarded += e.discarded ? 1 : 0
+        perTab.push({ id: e.id, title: e.title || "New tab", url: e.url, bytes: 0, discarded: e.discarded })
+        continue
+      }
+      const pid = e.view.webContents.getOSProcessId()
+      const bytes = pid ? (pidBytes.get(pid) ?? 0) : 0
+      tabs += bytes
+      perTab.push({ id: e.id, title: e.title || "New tab", url: e.url, bytes, discarded: false })
+    }
+
+    return {
+      sampledAt: Date.now(),
+      totalBytes: total,
+      mainBytes: main,
+      tabsBytes: tabs,
+      tabCount: this.entries.size,
+      discardedCount: discarded,
+      perTab,
+    }
   }
 
   setHistoryStore(h: HistoryStore): void {
@@ -74,24 +190,36 @@ export class TabManager {
 
   create(url = "delta://newtab"): Tab {
     const id = randomUUID()
-    const view = new WebContentsView({
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
-    })
     const entry: Entry = {
       id,
-      view,
+      view: null,                  // filled by buildView
       title: "New tab",
       url,
       loading: true,
       canGoBack: false,
       canGoForward: false,
       trackersBlocked: 0,
+      lastActiveAt: Date.now(),
+      discarded: false,
     }
     this.entries.set(id, entry)
+    entry.view = this.buildView(entry, url)
+    this.activate(id)
+    // activate() updates lastActiveAt, so the cap can rely on it to pick
+    // the oldest *idle* tab when the new one pushes us over.
+    this.enforceTabCap()
+    return this.toTab(entry)
+  }
 
+  /** Build a fresh WebContentsView and attach all the lifecycle
+   *  handlers. Used by both create() and revive(). */
+  private buildView(entry: Entry, url: string): WebContentsView {
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    })
     const wc = view.webContents
     wc.on("page-title-updated", (_e, title) => {
       entry.title = title
@@ -161,8 +289,40 @@ export class TabManager {
     })
 
     void wc.loadURL(url)
-    this.activate(id)
-    return this.toTab(entry)
+    return view
+  }
+
+  /** Tear down a tab's WebContentsView to free its renderer process,
+   *  but keep the Entry so the tab strip still shows it. The next
+   *  activate() will rebuild from `entry.url`. The active tab is
+   *  never auto-discarded. */
+  discard(id: TabId): void {
+    const entry = this.entries.get(id)
+    if (!entry) return
+    if (entry.discarded) return
+    if (id === this.activeId) return
+    if (entry.view && !this.win.isDestroyed()) {
+      try { this.win.contentView.removeChildView(entry.view) } catch { /* destroyed */ }
+    }
+    if (entry.view && !entry.view.webContents.isDestroyed()) {
+      try { entry.view.webContents.close() } catch { /* gone */ }
+    }
+    entry.view = null
+    entry.discarded = true
+    entry.loading = false
+    this.emit()
+  }
+
+  /** Periodic sweep — discard tabs that have been inactive longer than
+   *  discardAfterMs. Cheap (the inner loop just compares timestamps). */
+  private discardSweep(): void {
+    if (this.discardAfterMs <= 0) return
+    const cutoff = Date.now() - this.discardAfterMs
+    for (const e of this.entries.values()) {
+      if (e.discarded) continue
+      if (e.id === this.activeId) continue
+      if (e.lastActiveAt < cutoff) this.discard(e.id)
+    }
   }
 
   close(id: TabId): void {
@@ -175,8 +335,15 @@ export class TabManager {
         this.closedStack.shift()
       }
     }
-    this.win.contentView.removeChildView(entry.view)
-    entry.view.webContents.close()
+    // Same window-close race as relayoutActive — once the BrowserWindow
+    // is gone, contentView is destroyed and removeChildView throws.
+    // The renderer can fire one extra tabs:close on shutdown.
+    if (entry.view && !this.win.isDestroyed()) {
+      try { this.win.contentView.removeChildView(entry.view) } catch { /* destroyed */ }
+    }
+    if (entry.view && !entry.view.webContents.isDestroyed()) {
+      try { entry.view.webContents.close() } catch { /* already gone */ }
+    }
     this.entries.delete(id)
 
     if (this.activeId === id) {
@@ -192,41 +359,71 @@ export class TabManager {
   activate(id: TabId): void {
     const entry = this.entries.get(id)
     if (!entry) return
+    if (this.win.isDestroyed()) return
+
+    // Revive a discarded tab on the fly — the renderer-side click on
+    // a tab strip entry will trigger activate(); rebuilding here keeps
+    // the discard machinery invisible to the caller.
+    const revived = entry.discarded || !entry.view
+    if (revived) {
+      entry.view = this.buildView(entry, entry.url)
+      entry.discarded = false
+      entry.loading = true
+    }
+    if (entry.view!.webContents.isDestroyed()) return
 
     // Detach previous active view
     if (this.activeId && this.activeId !== id) {
       const prev = this.entries.get(this.activeId)
-      if (prev) this.win.contentView.removeChildView(prev.view)
+      if (prev?.view && !prev.view.webContents.isDestroyed()) {
+        try { this.win.contentView.removeChildView(prev.view) } catch { /* destroyed */ }
+      }
     }
 
     this.activeId = id
-    this.win.contentView.addChildView(entry.view)
+    entry.lastActiveAt = Date.now()
+    try { this.win.contentView.addChildView(entry.view!) } catch { return }
     this.relayoutActive()
+    // A revive added one more live renderer — enforce the cap so the
+    // oldest non-active live tab gets pushed out. Bypass when no revive
+    // happened to keep activate cheap on the hot path.
+    if (revived) this.enforceTabCap()
     this.emit()
   }
 
   navigate(id: TabId, url: string): void {
     const entry = this.entries.get(id)
     if (!entry) return
+    // Discarded — revive then navigate. We update the entry's url so
+    // revive lands on the new destination, not the old one.
+    if (entry.discarded || !entry.view) {
+      entry.url = url
+      this.activate(id)
+      return
+    }
     void entry.view.webContents.loadURL(url)
   }
 
   back(id: TabId): void {
     const entry = this.entries.get(id)
-    if (entry?.view.webContents.navigationHistory.canGoBack()) {
+    if (entry?.view && entry.view.webContents.navigationHistory.canGoBack()) {
       entry.view.webContents.navigationHistory.goBack()
     }
   }
 
   forward(id: TabId): void {
     const entry = this.entries.get(id)
-    if (entry?.view.webContents.navigationHistory.canGoForward()) {
+    if (entry?.view && entry.view.webContents.navigationHistory.canGoForward()) {
       entry.view.webContents.navigationHistory.goForward()
     }
   }
 
   reload(id: TabId): void {
-    this.entries.get(id)?.view.webContents.reload()
+    const entry = this.entries.get(id)
+    if (!entry) return
+    // Reloading a discarded tab = reviving it; that already does a loadURL.
+    if (entry.discarded || !entry.view) { this.activate(id); return }
+    entry.view.webContents.reload()
   }
 
   /** Re-open the most recently-closed tab. ⌘⇧T. No-op when the stack is empty. */
@@ -249,7 +446,7 @@ export class TabManager {
   startFindInActive(query: string, opts?: { forward?: boolean; findNext?: boolean }): void {
     if (!this.activeId) return
     const entry = this.entries.get(this.activeId)
-    if (!entry || !query) return
+    if (!entry?.view || !query) return
     entry.view.webContents.findInPage(query, {
       forward: opts?.forward ?? true,
       findNext: opts?.findNext ?? false,
@@ -259,7 +456,7 @@ export class TabManager {
   stopFindInActive(): void {
     if (!this.activeId) return
     const entry = this.entries.get(this.activeId)
-    if (!entry) return
+    if (!entry?.view) return
     entry.view.webContents.stopFindInPage("clearSelection")
   }
 
@@ -273,10 +470,12 @@ export class TabManager {
     return this.readTabPage(this.activeId)
   }
 
-  /** Read a specific tab's rendered text by id. */
+  /** Read a specific tab's rendered text by id. Returns null for
+   *  discarded tabs — the agent should call activate() first to revive
+   *  if it needs the live text. */
   async readTabPage(id: TabId): Promise<{ title: string; url: string; text: string } | null> {
     const entry = this.entries.get(id)
-    if (!entry) return null
+    if (!entry?.view) return null
     try {
       const text = (await entry.view.webContents.executeJavaScript(
         "document.body && document.body.innerText || ''",
@@ -293,6 +492,14 @@ export class TabManager {
     if (!this.activeId) return
     const entry = this.entries.get(this.activeId)
     if (!entry) return
+    if (!entry.view) return                 // discarded — nothing to lay out
+    // Late IPC + window-close race: the renderer can fire one more
+    // layout:setRightReservation after the BrowserWindow + its
+    // WebContentsViews are torn down. Touching getContentBounds() or
+    // view.setBounds() then throws "Object has been destroyed". Skip
+    // silently — there is nothing to lay out.
+    if (this.win.isDestroyed()) return
+    if (entry.view.webContents.isDestroyed()) return
     const { width, height } = this.win.getContentBounds()
     const right = this.rightReservation
     const leftNav = this.leftNavWidth
@@ -312,6 +519,7 @@ export class TabManager {
     canGoBack: e.canGoBack,
     canGoForward: e.canGoForward,
     trackersBlocked: e.trackersBlocked,
+    discarded: e.discarded || undefined,
   })
 
   /**
@@ -321,7 +529,7 @@ export class TabManager {
    */
   recordTrackerBlock(webContentsId: number): void {
     for (const entry of this.entries.values()) {
-      if (entry.view.webContents.id === webContentsId) {
+      if (entry.view && entry.view.webContents.id === webContentsId) {
         entry.trackersBlocked += 1
         this.emit()
         return
@@ -329,7 +537,9 @@ export class TabManager {
     }
   }
 
-  /** Used by reader / TTS / bookmark IPC handlers to find the underlying view. */
+  /** Used by reader / TTS / bookmark IPC handlers to find the underlying view.
+   *  Returns null for discarded tabs — callers must handle that (or call
+   *  activate() first to revive). */
   getView(id: TabId): WebContentsView | null {
     return this.entries.get(id)?.view ?? null
   }

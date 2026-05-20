@@ -211,48 +211,167 @@ const TRACKER_OWNER = new Map(TRACKERS.map((t) => [t.domain.split("/")[0], t.own
 import { EASYPRIVACY_HOSTS } from "./tracker-list.easyprivacy"
 const EXTENDED_DOMAINS = new Set<string>(EASYPRIVACY_HOSTS)
 
-// Module-level kill switch — flipped by privacy.ts based on the user's
-// setting. Default ON; the bulk import is what makes the privacy report
+// ── Ad-blocking ───────────────────────────────────────────────────────
+// Curated, ~70 well-known display/video/header-bidding/native-ad
+// networks. Separate from the tracker list so we can:
+//   - count "ads blocked" and "trackers blocked" separately in the UI
+//   - let users toggle ad-blocking independently of tracker-blocking
+//   - keep the tracker counts honest (EasyPrivacy is analytics-leaning;
+//     EasyList is ad-leaning; we don't conflate)
+//
+// Many of these also appear in the EasyPrivacy extended list — that's
+// fine: ad-blocking flips first in matchBlocked(), so when a domain
+// matches both we count it as an ad (more user-friendly label).
+//
+// Bulk EasyList import is a planned follow-up: a build script will
+// extract domains from the `||example.com^` rules into a sibling
+// `tracker-list.easylist.ts`, same shape as easyprivacy.
+const AD_NETWORKS: ReadonlyArray<{ domain: string; owner: string }> = [
+  // Display + retargeting
+  { domain: "criteo.com",            owner: "Criteo" },
+  { domain: "criteo.net",            owner: "Criteo" },
+  { domain: "adsrvr.org",            owner: "The Trade Desk" },
+  { domain: "rubiconproject.com",    owner: "Magnite" },
+  { domain: "openx.net",             owner: "OpenX" },
+  { domain: "pubmatic.com",          owner: "PubMatic" },
+  { domain: "casalemedia.com",       owner: "Index Exchange" },
+  { domain: "indexww.com",           owner: "Index Exchange" },
+  { domain: "adnxs.com",             owner: "Xandr (Microsoft)" },
+  { domain: "adform.net",            owner: "Adform" },
+  { domain: "adsymptotic.com",       owner: "Drawbridge" },
+  { domain: "smartadserver.com",     owner: "Equativ" },
+  { domain: "yieldmo.com",           owner: "Yieldmo" },
+  { domain: "yieldlab.net",          owner: "Yieldlab" },
+  { domain: "outbrain.com",          owner: "Outbrain" },
+  { domain: "taboola.com",           owner: "Taboola" },
+  { domain: "revcontent.com",        owner: "Revcontent" },
+  { domain: "mgid.com",              owner: "MGID" },
+  { domain: "media.net",             owner: "Media.net" },
+  { domain: "adcolony.com",          owner: "Digital Turbine" },
+  { domain: "applovin.com",          owner: "AppLovin" },
+  { domain: "supersonicads.com",     owner: "ironSource" },
+  { domain: "vungle.com",            owner: "Liftoff" },
+  { domain: "appodeal.com",          owner: "Appodeal" },
+  { domain: "moatads.com",           owner: "Oracle Moat" },
+  { domain: "atemda.com",            owner: "Atemda" },
+  { domain: "advertising.com",       owner: "Yahoo (Verizon Media)" },
+  { domain: "yldbt.com",             owner: "Yieldbot" },
+  { domain: "33across.com",          owner: "33Across" },
+  { domain: "lijit.com",             owner: "Sovrn" },
+  { domain: "sovrn.com",             owner: "Sovrn" },
+  { domain: "onetag.com",            owner: "OneTag" },
+  { domain: "districtm.io",          owner: "District M" },
+  { domain: "gumgum.com",            owner: "GumGum" },
+  { domain: "tribalfusion.com",      owner: "Exponential" },
+  { domain: "exponential.com",       owner: "Exponential" },
+  { domain: "smaato.net",            owner: "Smaato" },
+  { domain: "adform.com",            owner: "Adform" },
+  // Video / connected TV
+  { domain: "spotxchange.com",       owner: "SpotX" },
+  { domain: "freewheel.tv",          owner: "FreeWheel" },
+  { domain: "fwmrm.net",             owner: "FreeWheel" },
+  { domain: "innovid.com",           owner: "Innovid" },
+  { domain: "imrworldwide.com",      owner: "Nielsen" },
+  { domain: "adsafeprotected.com",   owner: "IAS" },
+  { domain: "doubleverify.com",      owner: "DoubleVerify" },
+  // ID providers / cookie sync
+  { domain: "rlcdn.com",             owner: "LiveRamp" },
+  { domain: "liveramp.com",          owner: "LiveRamp" },
+  { domain: "id5-sync.com",          owner: "ID5" },
+  { domain: "btloader.com",          owner: "Burst Loader" },
+  { domain: "agkn.com",              owner: "Neustar" },
+  { domain: "tapad.com",             owner: "Tapad" },
+  // Pubs' own ad CDNs
+  { domain: "adlightning.com",       owner: "Ad Lightning" },
+  { domain: "cootlogix.com",         owner: "Cootlogix" },
+  { domain: "yellowblue.io",         owner: "YellowBlue" },
+  { domain: "measureadv.com",        owner: "Adelaide" },
+  { domain: "nextmillmedia.com",     owner: "NextMillennium" },
+  // Header bidding / SSP
+  { domain: "prebid.org",            owner: "Prebid" },
+  { domain: "amazon-adsystem.com",   owner: "Amazon Ads" },
+  { domain: "krushmedia.com",        owner: "Krushmedia" },
+  { domain: "vidazoo.com",           owner: "Vidazoo" },
+  { domain: "engageya.com",          owner: "Engageya" },
+  { domain: "ssp.disqus.com",        owner: "Disqus" },
+  { domain: "ssum-sec.casalemedia.com", owner: "Index Exchange" },
+  // Native + social ads
+  { domain: "sharethrough.com",      owner: "Sharethrough" },
+  { domain: "districtm.ca",          owner: "District M" },
+  { domain: "smartyads.com",         owner: "SmartyAds" },
+  { domain: "adriver.ru",            owner: "AdRiver" },
+  { domain: "between-exchange.com",  owner: "Between Exchange" },
+  // Affiliate / coupon
+  { domain: "viglink.com",           owner: "Sovrn Commerce" },
+  { domain: "skimresources.com",     owner: "Sovrn Commerce" },
+]
+const AD_DOMAINS = new Set(AD_NETWORKS.map((a) => a.domain))
+const AD_OWNER = new Map(AD_NETWORKS.map((a) => [a.domain, a.owner] as const))
+
+// Module-level kill switches — flipped by privacy.ts based on the user's
+// settings. The extended list is what makes the privacy report
 // comparable to uBlock Origin's coverage.
 let extendedEnabled = true
+let adBlockEnabled = true
 export function setExtendedTrackerListEnabled(on: boolean): void {
   extendedEnabled = on
 }
+export function setAdBlockEnabled(on: boolean): void {
+  adBlockEnabled = on
+}
+
+export type BlockKind = "tracker" | "ad"
+export type BlockMatch = { kind: BlockKind; domain: string }
 
 /**
- * Returns the matched tracker domain if `host` is, or is a subdomain of, a
- * known tracker. Curated set wins on ties so we keep the rich owner label.
- *
- * Match rules:
- *   "googletagmanager.com"          → "googletagmanager.com"
- *   "www.googletagmanager.com"      → "googletagmanager.com"
- *   "googletagmanager.com.evil.com" → null  (must be a real suffix)
+ * Backwards-compatible: returns the matched tracker domain or null.
+ * New callers should prefer `matchBlocked()` which also covers ad
+ * domains and labels them.
  */
 export function matchTracker(host: string): string | null {
+  const m = matchBlocked(host)
+  return m ? m.domain : null
+}
+
+/**
+ * Returns whichever of (tracker, ad) matches `host` first. Ad domains
+ * win the tie because the "Ads blocked" label is more user-friendly
+ * than "Tracker blocked" for the head of EasyPrivacy that's actually
+ * ad-tech (rubicon, openx, pubmatic, etc).
+ *
+ * Match rules:
+ *   "doubleclick.net"          → { kind: "tracker", domain: "doubleclick.net" }
+ *   "www.criteo.com"           → { kind: "ad",      domain: "criteo.com" }
+ *   "evil.example.com"         → null
+ */
+export function matchBlocked(host: string): BlockMatch | null {
   const h = host.toLowerCase()
-  if (CURATED_DOMAINS.has(h)) return h
-  if (extendedEnabled && EXTENDED_DOMAINS.has(h)) return h
-  // Walk back labels — `a.b.c.example.com` checks `b.c.example.com`,
-  // `c.example.com`, `example.com`. Stops as soon as a match is found.
+  // Direct hits first (cheapest)
+  if (adBlockEnabled && AD_DOMAINS.has(h)) return { kind: "ad",      domain: h }
+  if (CURATED_DOMAINS.has(h))              return { kind: "tracker", domain: h }
+  if (extendedEnabled && EXTENDED_DOMAINS.has(h)) return { kind: "tracker", domain: h }
+  // Walk back labels for suffix matches
   let dot = h.indexOf(".")
   while (dot !== -1) {
     const tail = h.slice(dot + 1)
-    if (CURATED_DOMAINS.has(tail)) return tail
-    if (extendedEnabled && EXTENDED_DOMAINS.has(tail)) return tail
+    if (adBlockEnabled && AD_DOMAINS.has(tail))             return { kind: "ad",      domain: tail }
+    if (CURATED_DOMAINS.has(tail))                          return { kind: "tracker", domain: tail }
+    if (extendedEnabled && EXTENDED_DOMAINS.has(tail))      return { kind: "tracker", domain: tail }
     dot = h.indexOf(".", dot + 1)
   }
   return null
 }
 
 export function ownerOf(domain: string): string {
-  return TRACKER_OWNER.get(domain) ?? domain
+  return AD_OWNER.get(domain) ?? TRACKER_OWNER.get(domain) ?? domain
 }
 
 /** Total number of hostnames the matcher knows about — useful for the
- *  privacy section's "blocking ~N trackers" honesty line. */
-export function trackerListSize(): { curated: number; extended: number } {
+ *  privacy section's "blocking ~N domains" honesty line. */
+export function trackerListSize(): { curated: number; extended: number; ads: number } {
   return {
     curated: CURATED_DOMAINS.size,
     extended: extendedEnabled ? EXTENDED_DOMAINS.size : 0,
+    ads:      adBlockEnabled  ? AD_DOMAINS.size       : 0,
   }
 }

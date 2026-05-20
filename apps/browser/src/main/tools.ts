@@ -12,10 +12,17 @@
 import type { ToolDef } from "@shared/types"
 import type { TabManager } from "./tabs"
 import { clickElement, getInteractiveElements, typeIntoElement, type Criteria } from "./page-agent"
+import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path"
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 
 const MAX_PAGE_CHARS_DEFAULT = 16_000
 
-export type ToolContext = { tabs: TabManager }
+/** Bounded interface to the second-brain vault. `getPath` returns null when the
+ *  user hasn't picked a vault yet — vault tools surface a `no_vault` error in
+ *  that case rather than touching disk. */
+export type VaultIO = { getPath: () => string | null }
+
+export type ToolContext = { tabs: TabManager; vault: VaultIO }
 
 export type ToolHandler = (args: any, ctx: ToolContext) => Promise<unknown>
 
@@ -105,6 +112,192 @@ const read_tab: Tool = {
 function clampMax(v: unknown): number {
   const n = typeof v === "number" && Number.isFinite(v) ? Math.floor(v) : MAX_PAGE_CHARS_DEFAULT
   return Math.max(500, Math.min(64_000, n))
+}
+
+// ── Vault tools (second-brain) ─────────────────────────────────────────
+// Bounded to the user's configured vault folder (Settings → Second brain).
+// All paths are interpreted relative to that root; any attempt to escape
+// it via `..`, an absolute path, or a normalised traversal is rejected.
+//
+// These are `side: "read"` so they don't go through the (origin, tool)
+// permission gate — they don't have an origin, and the only state they
+// touch is a folder the user explicitly created and pointed Delta at.
+// The blast radius is the same as the agent writing into its own
+// conversation history.
+
+const VAULT_MAX_BYTES_PER_WRITE = 256 * 1024
+const VAULT_MAX_FILES_LISTED = 500
+const VAULT_MAX_READ_BYTES = 64 * 1024
+
+/** Resolve a relative path against the vault root, refusing traversal. */
+function resolveVaultPath(
+  vault: VaultIO,
+  rel: unknown,
+): { ok: true; root: string; abs: string; rel: string } | { ok: false; error: string; message?: string } {
+  const root = vault.getPath()
+  if (!root) return { ok: false, error: "no_vault", message: "No second-brain vault is configured. Ask the user to set one up in Settings → Second brain." }
+  if (typeof rel !== "string" || !rel.length) return { ok: false, error: "invalid_args", message: "path (string) is required" }
+  if (isAbsolute(rel)) return { ok: false, error: "path_escape", message: "path must be relative to the vault root" }
+  const normalised = normalize(rel)
+  if (normalised.startsWith("..")) return { ok: false, error: "path_escape", message: "path must stay inside the vault" }
+  const abs = join(root, normalised)
+  const inside = relative(root, abs)
+  if (inside.startsWith("..") || isAbsolute(inside)) return { ok: false, error: "path_escape", message: "path must stay inside the vault" }
+  return { ok: true, root, abs, rel: inside.split(sep).join("/") }
+}
+
+const vault_list: Tool = {
+  def: {
+    name: "vault_list",
+    description:
+      "List Markdown files in the user's second-brain vault. Returns file paths (relative to the vault root), sizes, and last-modified timestamps. Use this before vault_write to see what's already there — placing a fact in the right folder keeps the vault routable.",
+    schema: {
+      type: "object",
+      properties: {
+        subpath: {
+          type: "string",
+          description: "Optional folder inside the vault to limit the listing (e.g. \"daily\" or \"projects/foo\"). Defaults to the vault root.",
+        },
+      },
+    },
+    side: "read",
+  },
+  handler: async (args, ctx) => {
+    const subpath = typeof args?.subpath === "string" && args.subpath.length ? args.subpath : "."
+    const resolved = resolveVaultPath(ctx.vault, subpath)
+    if (!resolved.ok) return resolved
+    if (!existsSync(resolved.abs)) return { error: "not_found", path: resolved.rel }
+    const out: { path: string; bytes: number; modified: string }[] = []
+    walkVault(resolved.abs, resolved.root, (full, rel) => {
+      if (out.length >= VAULT_MAX_FILES_LISTED) return false
+      try {
+        const s = statSync(full)
+        if (s.isFile()) out.push({ path: rel, bytes: s.size, modified: new Date(s.mtimeMs).toISOString() })
+      } catch { /* skip */ }
+      return true
+    })
+    return { root: resolved.root, files: out, truncated: out.length >= VAULT_MAX_FILES_LISTED }
+  },
+}
+
+const vault_read: Tool = {
+  def: {
+    name: "vault_read",
+    description:
+      "Read a Markdown file from the second-brain vault. Use this when you need to see what the user already wrote about a topic before adding to it. Returns the file's text (truncated).",
+    schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File path relative to the vault root, e.g. \"context/about.md\"." },
+      },
+      required: ["path"],
+    },
+    side: "read",
+  },
+  handler: async (args, ctx) => {
+    const resolved = resolveVaultPath(ctx.vault, args?.path)
+    if (!resolved.ok) return resolved
+    if (!existsSync(resolved.abs)) return { error: "not_found", path: resolved.rel }
+    try {
+      const s = statSync(resolved.abs)
+      if (!s.isFile()) return { error: "not_a_file", path: resolved.rel }
+      const buf = readFileSync(resolved.abs)
+      const truncated = buf.length > VAULT_MAX_READ_BYTES
+      const text = (truncated ? buf.subarray(0, VAULT_MAX_READ_BYTES) : buf).toString("utf8")
+      return { path: resolved.rel, text, truncated, bytes: buf.length }
+    } catch (err) {
+      return { error: "read_failed", message: err instanceof Error ? err.message : String(err) }
+    }
+  },
+}
+
+const vault_write: Tool = {
+  def: {
+    name: "vault_write",
+    description:
+      "Write a Markdown file into the second-brain vault. Use this to persist a fact, a daily brief, or a summary the user should be able to revisit. Creates parent folders as needed. Set mode=\"create\" (default) to refuse overwriting, or mode=\"overwrite\" to replace.",
+    schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File path relative to the vault root, e.g. \"daily/2026-05-20.md\"." },
+        content: { type: "string", description: "The Markdown content to write." },
+        mode: { type: "string", enum: ["create", "overwrite"], description: "\"create\" (default) errors if the file exists; \"overwrite\" replaces it." },
+      },
+      required: ["path", "content"],
+    },
+    side: "read",
+  },
+  handler: async (args, ctx) => {
+    if (typeof args?.content !== "string") return { error: "invalid_args", message: "content (string) is required" }
+    if (Buffer.byteLength(args.content, "utf8") > VAULT_MAX_BYTES_PER_WRITE) {
+      return { error: "too_large", message: `content exceeds ${VAULT_MAX_BYTES_PER_WRITE} bytes — split into multiple files` }
+    }
+    const resolved = resolveVaultPath(ctx.vault, args?.path)
+    if (!resolved.ok) return resolved
+    const mode = args?.mode === "overwrite" ? "overwrite" : "create"
+    if (mode === "create" && existsSync(resolved.abs)) {
+      return { error: "exists", path: resolved.rel, message: "file already exists — pass mode=\"overwrite\" to replace, or use vault_append" }
+    }
+    try {
+      mkdirSync(dirname(resolved.abs), { recursive: true })
+      writeFileSync(resolved.abs, args.content, "utf8")
+      return { ok: true, path: resolved.rel, bytes: Buffer.byteLength(args.content, "utf8") }
+    } catch (err) {
+      return { error: "write_failed", message: err instanceof Error ? err.message : String(err) }
+    }
+  },
+}
+
+const vault_append: Tool = {
+  def: {
+    name: "vault_append",
+    description:
+      "Append content to an existing Markdown file in the vault (or create it if missing). Use this for daily logs and running notes where each new entry stacks under the previous ones.",
+    schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File path relative to the vault root." },
+        content: { type: "string", description: "Content to append. A leading newline is inserted automatically if the existing file doesn't end with one." },
+      },
+      required: ["path", "content"],
+    },
+    side: "read",
+  },
+  handler: async (args, ctx) => {
+    if (typeof args?.content !== "string") return { error: "invalid_args", message: "content (string) is required" }
+    if (Buffer.byteLength(args.content, "utf8") > VAULT_MAX_BYTES_PER_WRITE) {
+      return { error: "too_large", message: `content exceeds ${VAULT_MAX_BYTES_PER_WRITE} bytes` }
+    }
+    const resolved = resolveVaultPath(ctx.vault, args?.path)
+    if (!resolved.ok) return resolved
+    try {
+      mkdirSync(dirname(resolved.abs), { recursive: true })
+      let prefix = ""
+      if (existsSync(resolved.abs)) {
+        const tail = readFileSync(resolved.abs).subarray(-1).toString("utf8")
+        if (tail && tail !== "\n") prefix = "\n"
+      }
+      appendFileSync(resolved.abs, prefix + args.content, "utf8")
+      return { ok: true, path: resolved.rel, appendedBytes: Buffer.byteLength(prefix + args.content, "utf8") }
+    } catch (err) {
+      return { error: "append_failed", message: err instanceof Error ? err.message : String(err) }
+    }
+  },
+}
+
+function walkVault(start: string, root: string, visit: (full: string, rel: string) => boolean): void {
+  let entries: string[]
+  try { entries = readdirSync(start) } catch { return }
+  for (const name of entries) {
+    if (name.startsWith(".")) continue
+    const full = join(start, name)
+    const rel = relative(root, full).split(sep).join("/")
+    try {
+      const s = statSync(full)
+      if (s.isDirectory()) walkVault(full, root, visit)
+      else if (!visit(full, rel)) return
+    } catch { /* skip */ }
+  }
 }
 
 // ── Act tools ──────────────────────────────────────────────────────────
@@ -250,7 +443,12 @@ function _criteriaFrom(args: any): Criteria | null {
 }
 
 // ── Registry ────────────────────────────────────────────────────────────
-const TOOLS: Tool[] = [list_tabs, read_active_page, read_tab, navigate, open_tab, get_interactive_elements, click, type_tool]
+const TOOLS: Tool[] = [
+  list_tabs, read_active_page, read_tab,
+  vault_list, vault_read, vault_write, vault_append,
+  navigate, open_tab,
+  get_interactive_elements, click, type_tool,
+]
 const BY_NAME: Record<string, Tool> = Object.fromEntries(TOOLS.map((t) => [t.def.name, t]))
 
 /** All tool definitions, in the shape providers expect to see. */

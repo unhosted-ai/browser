@@ -8,10 +8,46 @@
 // - If safeStorage isn't available on this platform (rare), we refuse to
 //   persist keys rather than fall back to plaintext on disk.
 import { app, safeStorage } from "electron"
-import { randomUUID } from "node:crypto"
+import { pbkdf2Sync, randomBytes, randomUUID, timingSafeEqual } from "node:crypto"
 import { join } from "node:path"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import type { SettingsUpdate, UserSettings } from "@shared/types"
+
+// PBKDF2 — 200k iterations of SHA-256, 32-byte salt, 32-byte hash. Tuned
+// to ~150ms on a 2023 M-series laptop, which is fast enough for a lock
+// screen and slow enough to make brute-forcing a 4-digit PIN feel.
+const PBKDF2_ITERS = 200_000
+const PBKDF2_KEYLEN = 32
+const PBKDF2_DIGEST = "sha256"
+
+function hashSecret(plain: string, saltB64?: string): { salt: string; hash: string } {
+  const salt = saltB64 ? Buffer.from(saltB64, "base64") : randomBytes(32)
+  const hash = pbkdf2Sync(plain.normalize("NFKC"), salt, PBKDF2_ITERS, PBKDF2_KEYLEN, PBKDF2_DIGEST)
+  return { salt: salt.toString("base64"), hash: hash.toString("base64") }
+}
+
+function verifySecret(plain: string, saltB64: string, expectedHashB64: string): boolean {
+  const { hash } = hashSecret(plain, saltB64)
+  const a = Buffer.from(hash, "base64")
+  const b = Buffer.from(expectedHashB64, "base64")
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
+// PINs are 4–12 digits; passwords are 8+ printable chars. Cheap
+// guardrails to keep users from accidentally setting a 1-char lock.
+function validateLockSecret(kind: "pin" | "password", secret: string): void {
+  const s = secret.normalize("NFKC")
+  if (kind === "pin") {
+    if (!/^\d{4,12}$/.test(s)) {
+      throw new Error("PIN must be 4 to 12 digits.")
+    }
+  } else {
+    if (s.length < 8) {
+      throw new Error("Password must be at least 8 characters.")
+    }
+  }
+}
 
 // On-disk shape. The renderer's `hasApiKey` boolean is computed from the
 // cipher being present, so the stored shape just carries id/label/endpoint
@@ -22,11 +58,13 @@ type StoredEndpoint = {
   endpoint: string
   apiKeyCipher?: string
 }
-type StoredSettings = Omit<UserSettings, "openaiHasKey" | "anthropicHasKey" | "customEndpoints"> & {
+type StoredSettings = Omit<UserSettings, "openaiHasKey" | "anthropicHasKey" | "customEndpoints" | "accountLockConfigured"> & {
   openaiKeyCipher?: string     // base64 of safeStorage ciphertext
   anthropicKeyCipher?: string
   customEndpoints: StoredEndpoint[]
   // permissionGrants is in the wire shape too — store it as-is.
+  accountLockSalt?: string     // base64 — present iff a lock is configured
+  accountLockHash?: string     // base64 — PBKDF2-SHA256 of the secret + salt
 }
 
 const FILE = "settings.json"
@@ -40,6 +78,7 @@ const DEFAULTS: StoredSettings = {
   newtabBackground: "procedural",
   newtabFolder: null,
   requireBiometric: false,
+  useAdBlock: true,
   useExtendedTrackerList: true,
   httpsOnly: true,
   httpsOnlyBypass: [],
@@ -47,6 +86,11 @@ const DEFAULTS: StoredSettings = {
   dnsOverHttps: false,
   dohProvider: "cloudflare",
   autoUpdateCheck: false,
+  personalSlmEnabled: false,
+  accountLockKind: "none",
+  secondBrainPath: null,
+  tabDiscardMinutes: 30,
+  maxLiveTabs: 0,
 }
 
 function settingsPath(): string {
@@ -105,6 +149,7 @@ function toWire(s: StoredSettings): UserSettings {
     newtabBackground: s.newtabBackground ?? "procedural",
     newtabFolder: s.newtabFolder ?? null,
     requireBiometric: s.requireBiometric ?? false,
+    useAdBlock: s.useAdBlock ?? true,
     useExtendedTrackerList: s.useExtendedTrackerList ?? true,
     httpsOnly: s.httpsOnly ?? true,
     httpsOnlyBypass: s.httpsOnlyBypass ?? [],
@@ -112,7 +157,28 @@ function toWire(s: StoredSettings): UserSettings {
     dnsOverHttps: s.dnsOverHttps ?? false,
     dohProvider: s.dohProvider ?? "cloudflare",
     autoUpdateCheck: s.autoUpdateCheck ?? false,
+    personalSlmEnabled: s.personalSlmEnabled ?? false,
+    accountLockKind: s.accountLockKind ?? "none",
+    accountLockConfigured:
+      (s.accountLockKind ?? "none") !== "none" && !!s.accountLockHash && !!s.accountLockSalt,
+    secondBrainPath: s.secondBrainPath ?? null,
+    tabDiscardMinutes: clampDiscardMinutes(s.tabDiscardMinutes),
+    maxLiveTabs: clampMaxLiveTabs(s.maxLiveTabs),
   }
+}
+
+function clampDiscardMinutes(v: unknown): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) return 30
+  return Math.max(0, Math.min(720, Math.floor(v)))
+}
+
+function clampMaxLiveTabs(v: unknown): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) return 0
+  // 0 = unlimited. Otherwise 3..200 — under 3 makes the browser unusable
+  // (active + one neighbour), over 200 defeats the point of the cap.
+  const n = Math.floor(v)
+  if (n <= 0) return 0
+  return Math.max(3, Math.min(200, n))
 }
 
 export class SettingsStore {
@@ -226,6 +292,9 @@ export class SettingsStore {
       case "useExtendedTrackerList":
         this.state.useExtendedTrackerList = update.value
         break
+      case "useAdBlock":
+        this.state.useAdBlock = update.value
+        break
       case "httpsOnly":
         this.state.httpsOnly = update.value
         break
@@ -253,10 +322,81 @@ export class SettingsStore {
       case "autoUpdateCheck":
         this.state.autoUpdateCheck = update.value
         break
+      case "personalSlmEnabled":
+        this.state.personalSlmEnabled = update.value
+        break
+      case "secondBrainPath":
+        this.state.secondBrainPath = update.value
+        break
+      case "tabDiscardMinutes":
+        this.state.tabDiscardMinutes = clampDiscardMinutes(update.value)
+        break
+      case "maxLiveTabs":
+        this.state.maxLiveTabs = clampMaxLiveTabs(update.value)
+        break
+      case "setAccountLock": {
+        // If a lock is already configured the caller MUST present the
+        // current secret. Refuse silently otherwise — never write a new
+        // hash without authorisation.
+        if (this.state.accountLockHash && this.state.accountLockSalt) {
+          if (!update.currentSecret) {
+            throw new Error("Current PIN/password required to change the lock.")
+          }
+          if (!verifySecret(update.currentSecret, this.state.accountLockSalt, this.state.accountLockHash)) {
+            throw new Error("Current PIN/password is incorrect.")
+          }
+        }
+        validateLockSecret(update.lockKind, update.secret)
+        const { salt, hash } = hashSecret(update.secret)
+        this.state.accountLockKind = update.lockKind
+        this.state.accountLockSalt = salt
+        this.state.accountLockHash = hash
+        break
+      }
+      case "clearAccountLock": {
+        if (this.state.accountLockHash && this.state.accountLockSalt) {
+          if (!verifySecret(update.currentSecret, this.state.accountLockSalt, this.state.accountLockHash)) {
+            throw new Error("Current PIN/password is incorrect.")
+          }
+        }
+        this.state.accountLockKind = "none"
+        delete this.state.accountLockSalt
+        delete this.state.accountLockHash
+        // The lock is now gone — mark this session as unlocked so the
+        // renderer doesn't redraw a lock screen on the next requiresUnlock().
+        this.sessionUnlocked = true
+        break
+      }
     }
     persist(this.state)
     this.emit()
     return this.get()
+  }
+
+  // ── Account lock — session verification ─────────────────────
+  // The lock is enforced once per process. On a successful verify we
+  // flip sessionUnlocked; subsequent IPC requiresUnlock() returns false
+  // until the process exits.
+  private sessionUnlocked = false
+
+  /** True iff a lock is configured AND has not been verified yet this session. */
+  requiresUnlock(): boolean {
+    if (this.sessionUnlocked) return false
+    if (this.state.accountLockKind === "none") return false
+    if (!this.state.accountLockHash || !this.state.accountLockSalt) return false
+    return true
+  }
+
+  /** Verify the user-entered secret. Returns true on success and unlocks the session. */
+  verifyAccountLock(secret: string): boolean {
+    if (!this.state.accountLockHash || !this.state.accountLockSalt) {
+      // No lock configured — treat as already unlocked.
+      this.sessionUnlocked = true
+      return true
+    }
+    const ok = verifySecret(secret, this.state.accountLockSalt, this.state.accountLockHash)
+    if (ok) this.sessionUnlocked = true
+    return ok
   }
 
   onChange(cb: (s: UserSettings) => void): () => void {

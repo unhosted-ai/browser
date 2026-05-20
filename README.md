@@ -10,7 +10,10 @@ _Local LLM by default. The agent reads and acts on the active page. Nothing leav
 [About](apps/browser/docs/about.md) ·
 [Agent design](apps/browser/docs/agent-design.md) ·
 [Identity model](apps/browser/docs/identity.md) ·
-[Brand](brand/guidelines.md)
+[Brand](brand/guidelines.md) ·
+[Privacy](PRIVACY.md) ·
+[Terms](TERMS.md) ·
+[License](LICENSE)
 
 </div>
 
@@ -36,6 +39,13 @@ identity.
 
 ## Quickstart
 
+Requirements:
+
+- Node 20+ (recommended; Node 18 LTS works)
+- pnpm 10 (the workspace pins this in `packageManager`)
+- macOS, Windows 10+, or a Linux desktop with libsecret installed (Keychain / DPAPI / libsecret backs `safeStorage`)
+- Optional: [Ollama](https://ollama.com/) (or LM Studio / llama.cpp / MLX) for a local model
+
 ```bash
 git clone https://github.com/Delta-Practice/Browser.git
 cd Browser
@@ -46,10 +56,11 @@ pnpm delta:dev
 Bring up a local model — fastest path is Ollama:
 
 ```bash
-brew install ollama
+brew install ollama        # or: curl -fsSL https://ollama.com/install.sh | sh
 ollama serve &
 ollama pull llama3.2
-# Delta auto-detects it within a few seconds
+# Delta auto-detects it within a few seconds.
+# The Onboarding card on first launch shows a live "Local model online" pip.
 ```
 
 Open the AI sidebar (the Δ button in the address bar, or `⌘J`), type a
@@ -57,9 +68,40 @@ question, hit Enter. The active tab's text is attached as untrusted
 context, wrapped in `<page_content>` tags that the system prompt tells the
 model to treat as data — not instructions.
 
-> If `pnpm delta:dev` fails with `Cannot read properties of undefined
-> (reading 'isPackaged')`, your shell has `ELECTRON_RUN_AS_NODE=1` set.
-> Run `unset ELECTRON_RUN_AS_NODE` and retry.
+**Build a standalone app** (instead of running the dev server):
+
+```bash
+pnpm --filter delta make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux: AppImage + .deb.
+# Output lands in apps/browser/release/.
+```
+
+> Builds are currently **unsigned** — macOS Gatekeeper will warn the
+> first time you open the .dmg. Right-click → Open to confirm. The
+> notarization flip happens once the Apple Developer cert is in place
+> (see [`STATUS.md`](STATUS.md)).
+
+### Troubleshooting
+
+- **`Cannot read properties of undefined (reading 'isPackaged')`** when
+  starting the dev server → your shell has `ELECTRON_RUN_AS_NODE=1`
+  set. Run `unset ELECTRON_RUN_AS_NODE` and retry.
+- **Linux: `safeStorage` warnings + API keys won't save** → install
+  `libsecret-1-0` (Debian/Ubuntu) or `libsecret` (Arch/Fedora). Delta
+  refuses to persist keys without OS-keychain encryption rather than
+  fall back to plaintext on disk.
+- **Lockfile mismatch on `pnpm install`** → `pnpm install --frozen-lockfile=false`
+  once, then commit the result.
+
+### What's inside (key features)
+
+- **Local-first agent** with read tools (`list_tabs`, `read_active_page`, `read_tab`) and act tools (`navigate`, `open_tab`) gated per-`(origin, tool)`. Sensitive-site classifier blocks act tools on banking / gov / payment / wallet / healthcare.
+- **Tracker blocker** with ~42k EasyPrivacy domains + a curated short list, bound at app boot. 30-day rolling privacy report.
+- **Personal SLM (preview)** — opt-in toggle for a per-user model that learns from your local data. See [`apps/browser/docs/slm-design.md`](apps/browser/docs/slm-design.md).
+- **Account lock** — set a PIN or password (Settings → Account lock). PBKDF2-SHA256 200k iters, hash + salt only in `settings.json`. No remote recovery.
+- **Scheduled tasks** — local cron-of-one: reminders (native notifications), opening a URL at a set time, or kicking off an agent prompt. Settings → Scheduled tasks.
+- **Per-site password import** — bring a CSV from Chrome / Brave / Edge / Firefox / Safari. Preview-with-per-row keep, encrypted via OS keychain. Settings → Passwords.
+- **Set as default browser** — registers Delta for http+https system-wide.
+- **Connection-layer hardening** — HTTPS-only, strict referrer policy, optional DNS-over-HTTPS (Cloudflare / Quad9 / Google).
 
 ## Roadmap
 
@@ -163,8 +205,14 @@ docs/                          # GitHub Pages source — public landing page
   browser" design space; the dev-tool register of their site informs
   Delta's public face under [`docs/`](docs/).
 
-## License
+## Legal
 
-TBD — likely MIT once the codebase stabilises. Brand assets in
-[`brand/`](brand/) follow the rules in
-[`brand/guidelines.md`](brand/guidelines.md).
+- [`LICENSE`](LICENSE) — MIT for code. Brand assets in [`brand/`](brand/)
+  are not covered; see [`brand/guidelines.md`](brand/guidelines.md).
+- [`PRIVACY.md`](PRIVACY.md) — full data-flow notice with jurisdiction
+  addenda (GDPR / UK GDPR / CCPA + US state CDPAs / PIPEDA / Quebec
+  Law 25 / LGPD / PIPL / DPDP / APPI / PIPA / PDPA / POPIA / revFADP).
+  Delta runs no IP-geolocation; the notice is universal.
+- [`TERMS.md`](TERMS.md) — terms of use, AI Act disclosure, acceptable
+  use, governing law.
+- [`SECURITY.md`](SECURITY.md) — threat model + how to report a vuln.

@@ -2,6 +2,7 @@
   "name": "delta-practice-browser",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "scripts": {
     "portfolio:dev":   "pnpm --filter portfolio dev",
     "portfolio:build": "pnpm --filter portfolio build",

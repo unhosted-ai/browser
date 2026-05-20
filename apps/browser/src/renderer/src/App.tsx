@@ -8,6 +8,7 @@ import { SettingsPanel } from "./components/SettingsPanel"
 import { FindBar } from "./components/FindBar"
 import { ChromeMenu } from "./components/ChromeMenu"
 import { Onboarding, useOnboardingState } from "./components/Onboarding"
+import { LockScreen } from "./components/LockScreen"
 import {
   LeftNavSidebar,
   LEFT_NAV_WIDTH_FULL,
@@ -50,6 +51,33 @@ export function App() {
   // Doesn't reset the onboarded flag — this is a runtime re-open, not a
   // first-launch event.
   const openWelcome = () => setShowOnboarding(true)
+
+  // Local account lock — start in an "unknown" state, ask main, then
+  // either gate the UI behind the LockScreen or proceed. lockKind is
+  // sourced from settings so the LockScreen knows whether to render a
+  // PIN pad or a password field.
+  const [lockState, setLockState] = useState<"checking" | "locked" | "unlocked">("checking")
+  const [lockKind, setLockKind] = useState<"pin" | "password">("pin")
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const [needs, s] = await Promise.all([
+          window.api.accountLock.requiresUnlock(),
+          window.api.settings.get(),
+        ])
+        if (cancelled) return
+        setLockKind(s.accountLockKind === "password" ? "password" : "pin")
+        setLockState(needs ? "locked" : "unlocked")
+      } catch {
+        // If the IPC fails we fall open — the lock is opt-in and a broken
+        // IPC shouldn't brick the browser. Logged for the developer.
+        if (!cancelled) setLockState("unlocked")
+        console.warn("[delta] account-lock check failed; opening unlocked")
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     void window.api.tabs.list().then(setState)
@@ -310,12 +338,26 @@ export function App() {
           owns its own fixed-inset positioning and entry/exit animations
           (backdrop fade + card scale-and-lift). */}
       <AnimatePresence>
-        {showOnboarding && (
+        {showOnboarding && lockState === "unlocked" && (
           <Onboarding
             key="onboarding"
             onClose={dismissOnboarding}
             onOpenSettings={() => { openSettings(); dismissOnboarding() }}
             onToggleAssistant={() => { openAssistant(); dismissOnboarding() }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Account lock — z-100, painted above EVERYTHING else. While locked
+          the rest of the UI is rendered but inert (visually covered by the
+          full-bleed solid background of the LockScreen). On unlock we drop
+          the overlay and the app is live with no further round-trip. */}
+      <AnimatePresence>
+        {lockState === "locked" && (
+          <LockScreen
+            key="lock"
+            kind={lockKind}
+            onUnlocked={() => setLockState("unlocked")}
           />
         )}
       </AnimatePresence>

@@ -406,7 +406,7 @@ export const AddressBar = forwardRef<AddressBarHandle, Props>(function AddressBa
                 }
               }
             }}
-            placeholder={askMode ? "Ask Delta…  ⌘↩ continue in Assistant" : "Search or enter address"}
+            placeholder={askMode ? 'Ask anything — e.g. "summarise this page". ⌘↩ opens the Assistant' : "Search or enter address"}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"

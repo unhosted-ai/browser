@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import type { PrivacyReport, ProviderInfo, UserSettings } from "@shared/types"
+import type { CredentialImportPreview, ExtensionEntry, PrivacyReport, ProviderInfo, SavedCredential, ScheduledTask, ScheduledTaskAction, ScheduledTaskInput, ScheduledTaskTrigger, UserSettings } from "@shared/types"
 import { useTheme } from "../hooks/useTheme"
 
 type Props = {
@@ -152,11 +152,21 @@ function SettingsBody({
           onRefresh={onRefreshProviders}
         />
         <DefaultProviderSection settings={settings} providers={providers} />
+        <SecondBrainSection settings={settings} />
+        <PersonalSlmSection settings={settings} />
         <AppLockSection settings={settings} />
+        <AccountLockSection settings={settings} />
+        <CredentialsSection />
+        <DefaultBrowserSection />
+        <ExtensionsSection />
+        <ScheduledTasksSection />
         <SecurityHardeningSection settings={settings} />
         <UpdatesSection settings={settings} />
+        <TabsSection settings={settings} />
+        <AdBlockSection settings={settings} />
         <ExtendedTrackerListSection settings={settings} />
         <PrivacySection />
+        <LegalPrivacySection />
         <PrivacyNote />
       </div>
     </div>
@@ -406,6 +416,144 @@ function UpdatesSection({ settings }: { settings: UserSettings }) {
             ariaLabel="Check for updates on launch"
           />
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Ad blocking ─────────────────────────────────────────────────────
+// Distinct from the tracker list — separate curated set of well-known
+// ad networks (display, video, header-bidding, native, retargeting).
+// Default on. Match logic in main/tracker-list.ts → matchBlocked();
+// ad hits get the "ad" label so the privacy report can show them
+// separately from analytics trackers.
+// ── Tabs (memory + discard) ─────────────────────────────────────────
+// The RAM pip in the tab strip shows the same data live. This section
+// exposes the auto-discard threshold (default 30 min) and a one-click
+// "discard idle tabs now" mirror of the pip's button.
+function TabsSection({ settings }: { settings: UserSettings }) {
+  const TIME_PRESETS: { label: string; minutes: number }[] = [
+    { label: "Off", minutes: 0 },
+    { label: "5 min", minutes: 5 },
+    { label: "15 min", minutes: 15 },
+    { label: "30 min", minutes: 30 },
+    { label: "1 hr", minutes: 60 },
+    { label: "4 hr", minutes: 240 },
+  ]
+  const CAP_PRESETS: { label: string; n: number }[] = [
+    { label: "No cap", n: 0 },
+    { label: "10", n: 10 },
+    { label: "20", n: 20 },
+    { label: "50", n: 50 },
+    { label: "100", n: 100 },
+  ]
+  const minutes = settings.tabDiscardMinutes
+  const cap = settings.maxLiveTabs
+  return (
+    <section>
+      <SectionHeader
+        label="Tabs &amp; memory"
+        hint="Inactive tabs free their renderer process. The active tab is never discarded. Click a discarded tab to reload it."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 grid gap-3">
+        <div>
+          <p className="text-[11px] text-chrome-text-3 mb-1.5">Auto-discard inactive tabs after</p>
+          <div className="flex flex-wrap gap-1.5">
+            {TIME_PRESETS.map((p) => {
+              const on = p.minutes === minutes
+              return (
+                <button
+                  key={p.minutes}
+                  type="button"
+                  onClick={() => void window.api.settings.update({ kind: "tabDiscardMinutes", value: p.minutes })}
+                  className={[
+                    "h-7 px-2.5 rounded-md text-[12px] font-medium transition-colors duration-150",
+                    on
+                      ? "bg-signal/15 text-signal"
+                      : "bg-chrome-surface-2 text-chrome-text-2 hover:bg-chrome-border hover:text-chrome-text",
+                  ].join(" ")}
+                  aria-pressed={on}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div>
+          <p className="text-[11px] text-chrome-text-3 mb-1.5">Max live tabs (soft cap; oldest gets discarded when exceeded)</p>
+          <div className="flex flex-wrap gap-1.5">
+            {CAP_PRESETS.map((p) => {
+              const on = p.n === cap
+              return (
+                <button
+                  key={p.n}
+                  type="button"
+                  onClick={() => void window.api.settings.update({ kind: "maxLiveTabs", value: p.n })}
+                  className={[
+                    "h-7 px-2.5 rounded-md text-[12px] font-medium transition-colors duration-150",
+                    on
+                      ? "bg-signal/15 text-signal"
+                      : "bg-chrome-surface-2 text-chrome-text-2 hover:bg-chrome-border hover:text-chrome-text",
+                  ].join(" ")}
+                  aria-pressed={on}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] leading-snug text-chrome-text-3">
+            {minutes === 0 && cap === 0
+              ? "No discard policy — tabs stay loaded until you close them. Watch the RAM pip in the tab strip."
+              : [
+                  minutes > 0 && `Idle ≥ ${minutes} min are discarded.`,
+                  cap > 0 && `Oldest gets discarded past ${cap} live tabs.`,
+                ].filter(Boolean).join(" ")}
+          </p>
+          <button
+            type="button"
+            onClick={() => void window.api.tabs.discardAllIdle()}
+            className="h-7 px-2.5 rounded-md text-[12px] font-medium bg-chrome-surface-2 text-chrome-text-2 hover:bg-chrome-border hover:text-chrome-text transition-colors duration-150 shrink-0"
+          >
+            Discard idle now
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function AdBlockSection({ settings }: { settings: UserSettings }) {
+  const set = (value: boolean) =>
+    void window.api.settings.update({ kind: "useAdBlock", value })
+  return (
+    <section>
+      <SectionHeader
+        label="Ad blocking"
+        hint="Curated list of well-known ad networks. Separate from the tracker list — toggle independently."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] text-chrome-text leading-snug">
+            {settings.useAdBlock
+              ? "On — display, video, header-bidding + native ad networks blocked."
+              : "Off — ads will load (trackers may still be blocked, depending on the tracker list toggle)."}
+          </p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5">
+            Bulk EasyList import is planned. Today's list focuses on the head
+            of ad-tech: Criteo, Rubicon, OpenX, PubMatic, Index Exchange,
+            Xandr, Outbrain, Taboola, the IDs (LiveRamp, ID5), and the video
+            stack (SpotX, FreeWheel, IAS, DoubleVerify).
+          </p>
+        </div>
+        <Toggle
+          checked={settings.useAdBlock}
+          onChange={set}
+          ariaLabel="Block ads"
+        />
       </div>
     </section>
   )
@@ -967,9 +1115,9 @@ function CustomEndpointsSection({
                   </div>
                   {e.hasApiKey && (
                     <span
-                      title="API key configured"
+                      title="An API key is stored for this endpoint (encrypted via your OS keychain)."
                       className="font-mono text-[9px] tracking-[0.12em] uppercase text-signal/80 shrink-0"
-                    >authed</span>
+                    >key set</span>
                   )}
                   <button
                     type="button"
@@ -1177,6 +1325,1158 @@ function PrivacyNote() {
       </p>
     </section>
   )
+}
+
+// ── Legal & Privacy ──────────────────────────────────────────────────
+// Surface the on-disk docs in-app so users don't have to know they exist
+// on GitHub to find them. Each opens a NEW Delta tab — keeps the user
+// in the app rather than punting them to their default browser.
+function LegalPrivacySection() {
+  const open = (url: string) => { void window.api.tabs.create(url); }
+  const base = "https://github.com/Delta-Practice/Browser/blob/main"
+  const items: Array<{ label: string; href: string; hint: string }> = [
+    {
+      label: "Privacy notice",
+      href: `${base}/PRIVACY.md`,
+      hint: "What data Delta processes, every outbound endpoint, jurisdiction addenda (GDPR, CCPA, PIPEDA, LGPD, DPDP, PIPL, APPI, others).",
+    },
+    {
+      label: "Terms of use",
+      href: `${base}/TERMS.md`,
+      hint: "Warranty disclaimer, AI Act Art. 50 disclosure, acceptable use, governing law.",
+    },
+    {
+      label: "MIT license",
+      href: `${base}/LICENSE`,
+      hint: "Code is MIT. Brand assets are not — see brand/guidelines.md.",
+    },
+    {
+      label: "Security policy",
+      href: `${base}/SECURITY.md`,
+      hint: "Threat model + how to report a vulnerability privately.",
+    },
+  ]
+  return (
+    <section>
+      <SectionHeader
+        label="Legal & Privacy"
+        hint="The full notices live in the repo; opening one creates a tab."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface divide-y divide-chrome-border">
+        {items.map((it) => (
+          <button
+            key={it.href}
+            type="button"
+            onClick={() => open(it.href)}
+            className="w-full text-left px-3 py-2.5 hover:bg-chrome-surface-2 transition-colors first:rounded-t-2xl last:rounded-b-2xl flex items-start gap-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[12.5px] text-chrome-text leading-snug">{it.label}</p>
+              <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">{it.hint}</p>
+            </div>
+            <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 shrink-0 mt-0.5">
+              Open →
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-chrome-text-3 leading-relaxed">
+        Delta runs no IP geolocation; the privacy notice is universal and
+        satisfies the strictest applicable regime.
+      </p>
+    </section>
+  )
+}
+
+// ── Second brain (OS Setup) ─────────────────────────────────────────
+// Skill 1 from the AI-OS pattern. Creates a structured Markdown vault
+// on disk with Claude.md navigation maps. The renderer only ever sees
+// status; reads/writes go through the agent.
+function SecondBrainSection({ settings }: { settings: UserSettings }) {
+  const [status, setStatus] = useState<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [okFlash, setOkFlash] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    void window.api.secondBrain.status().then(setStatus)
+  }, [settings.secondBrainPath])
+
+  const flashOk = (msg: string) => { setOkFlash(msg); setTimeout(() => setOkFlash(null), 1800) }
+
+  const pickAndInit = async () => {
+    setBusy(true); setError(null)
+    try {
+      const s = await window.api.secondBrain.pickAndInit()
+      if (s) { setStatus(s); flashOk("Vault initialised.") }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally { setBusy(false) }
+  }
+  const reinit = async () => {
+    setBusy(true); setError(null)
+    try {
+      const s = await window.api.secondBrain.reinit()
+      if (s) { setStatus(s); flashOk("Re-initialised — any missing folders / Claude.md files were created.") }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally { setBusy(false) }
+  }
+  const disconnect = () => {
+    void window.api.settings.update({ kind: "secondBrainPath", value: null })
+    setStatus(null)
+  }
+  const fmtBytes = (n: number): string => {
+    if (n < 1024) return `${n} B`
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <section>
+      <SectionHeader
+        label="Second brain"
+        hint="A structured Markdown vault on disk. The agent can read + write it; open the same folder in Obsidian if you want the graph view."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-2.5">
+        {!settings.secondBrainPath || !status ? (
+          <>
+            <p className="text-[12px] text-chrome-text-2 leading-relaxed">
+              Pick a folder. Delta creates the structure
+              (<code className="font-mono text-[11px]">context · daily · projects · intelligence · resources · skills</code>) +
+              navigation maps. Existing files are left alone — re-init is safe.
+            </p>
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={pickAndInit}
+                disabled={busy}
+                className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+              >{busy ? "Setting up…" : "Set up vault…"}</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[12.5px] text-chrome-text leading-snug truncate">
+                  {status.initialised ? "Vault ready." : "Folder exists but no Claude.md — click Re-init."}
+                </p>
+                <p className="font-mono text-[10.5px] text-chrome-text-3 truncate">{status.path}</p>
+                <p className="text-[11px] text-chrome-text-3 mt-0.5">
+                  {status.fileCount} file{status.fileCount === 1 ? "" : "s"} · {fmtBytes(status.totalBytes)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={reinit}
+                  disabled={busy}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors disabled:opacity-40"
+                >Re-init</button>
+                <button
+                  type="button"
+                  onClick={disconnect}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_72%)] transition-colors"
+                >Disconnect</button>
+              </div>
+            </div>
+            <p className="text-[11px] text-chrome-text-3 leading-relaxed">
+              Tell the agent things like
+              <span className="font-mono text-chrome-text-2"> "Save this to my vault at projects/foo.md"</span>
+              or <span className="font-mono text-chrome-text-2">"Scan my vault for context on X"</span>.
+              The 12-section brain-dump wizard is on the roadmap; for now, dump into <code className="font-mono">context/about.md</code> by hand.
+            </p>
+          </>
+        )}
+        {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+        {okFlash && (
+          <p role="status" className="font-mono text-[10.5px] tracking-[0.08em] uppercase text-signal">
+            {okFlash}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Personal SLM (preview) ───────────────────────────────────────────
+// Honest framing: the toggle is real and is wired into settings; the
+// training pipeline itself is a roadmap item (see docs/slm-design.md).
+// Today, switching the toggle on tells the agent that the user wants
+// the personalisation pass when it ships, and surfaces the setup
+// docs so the user can follow along. We refuse to silently fake it.
+function PersonalSlmSection({ settings }: { settings: UserSettings }) {
+  const set = (value: boolean) =>
+    void window.api.settings.update({ kind: "personalSlmEnabled", value })
+  const enabled = settings.personalSlmEnabled
+  return (
+    <section>
+      <SectionHeader
+        label="Personal SLM"
+        hint="Opt in to a small per-user model that learns from this device. Training pipeline is preview — see the design doc."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[12.5px] text-chrome-text leading-snug">
+              {enabled
+                ? "Enabled — your agent will use a personalisation pass once training ships."
+                : "Off. Your prompts go straight to whichever model is selected."}
+            </p>
+            <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">
+              The SLM is trained from your conversations, bookmarks and browsing
+              context locally — nothing is uploaded. Unlike a cloud assistant,
+              this model is yours and only knows what you let it see.
+            </p>
+          </div>
+          <Toggle
+            checked={enabled}
+            onChange={set}
+            ariaLabel="Enable personal SLM"
+          />
+        </div>
+        <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-1.5">
+          <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-chrome-text-3">
+            Status · preview
+          </p>
+          <ul className="text-[11px] text-chrome-text-2 leading-relaxed list-disc pl-4 space-y-1">
+            <li>Today: the toggle persists your consent + reserves the agent slot.</li>
+            <li>Phase A (planned): nightly LoRA fine-tune over local conversations into <code className="font-mono text-[10.5px]">userData/slm/</code>.</li>
+            <li>Phase B (planned): per-query rewrite pass through the SLM before the main model sees it.</li>
+            <li>Phase C (planned): in-app "what does my SLM know?" inspector + one-click reset.</li>
+          </ul>
+        </div>
+        <button
+          type="button"
+          onClick={() => void window.api.tabs.create("https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/slm-design.md")}
+          className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+        >
+          Read the design doc →
+        </button>
+      </div>
+    </section>
+  )
+}
+
+// ── Account lock (PIN or password) ───────────────────────────────────
+// Distinct from the macOS-only biometric AppLockSection above. This is
+// a fully cross-platform, local-only secret stored as PBKDF2-SHA256 hash
+// + salt in settings.json. The renderer never sees the hash; main does
+// the comparison. Loss of the secret = delete settings.json (everything
+// else stays). No remote reset, ever.
+function AccountLockSection({ settings }: { settings: UserSettings }) {
+  const configured = settings.accountLockConfigured
+  const [mode, setMode] = useState<"idle" | "set" | "change" | "clear">("idle")
+  const [kindDraft, setKindDraft] = useState<"pin" | "password">(
+    settings.accountLockKind === "password" ? "password" : "pin",
+  )
+  const [secret, setSecret] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [currentSecret, setCurrentSecret] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [okFlash, setOkFlash] = useState<string | null>(null)
+
+  const reset = () => {
+    setMode("idle")
+    setSecret("")
+    setConfirm("")
+    setCurrentSecret("")
+    setError(null)
+  }
+
+  const flashOk = (msg: string) => {
+    setOkFlash(msg)
+    setTimeout(() => setOkFlash(null), 1800)
+  }
+
+  const submitSet = async () => {
+    if (busy) return
+    setError(null)
+    if (secret !== confirm) { setError("The two entries don't match."); return }
+    setBusy(true)
+    try {
+      await window.api.settings.update({
+        kind: "setAccountLock",
+        lockKind: kindDraft,
+        secret,
+        ...(configured ? { currentSecret } : {}),
+      })
+      flashOk(configured ? "Lock changed." : "Lock set.")
+      reset()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const submitClear = async () => {
+    if (busy) return
+    setError(null)
+    setBusy(true)
+    try {
+      await window.api.settings.update({ kind: "clearAccountLock", currentSecret })
+      flashOk("Lock removed.")
+      reset()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section>
+      <SectionHeader
+        label="Account lock"
+        hint="A local PIN or password gate. Works on any platform — no remote auth, no recovery."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[12.5px] text-chrome-text leading-snug">
+              {configured
+                ? `${settings.accountLockKind === "pin" ? "PIN" : "Password"} required on launch.`
+                : "No lock — opens straight to your tabs."}
+            </p>
+            <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">
+              Stored as PBKDF2-SHA256 hash + salt in <code className="font-mono">settings.json</code>.
+              The renderer never sees the hash; comparison happens in main.
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            {!configured && mode !== "set" && (
+              <button
+                type="button"
+                onClick={() => { setMode("set"); setError(null) }}
+                className="h-7 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 transition-opacity"
+              >Set a lock</button>
+            )}
+            {configured && mode === "idle" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setMode("change"); setError(null) }}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+                >Change →</button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("clear"); setError(null) }}
+                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_72%)] transition-colors"
+                >Remove →</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {(mode === "set" || mode === "change") && (
+          <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-2.5">
+            <div className="grid grid-cols-2 gap-1.5 rounded-full border border-chrome-border bg-chrome-surface-2 p-1">
+              {(["pin", "password"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => { setKindDraft(k); setSecret(""); setConfirm("") }}
+                  className={[
+                    "h-7 rounded-full text-[11.5px] transition-colors",
+                    kindDraft === k
+                      ? "bg-chrome-bg text-chrome-text border border-chrome-border"
+                      : "text-chrome-text-3 hover:text-chrome-text-2",
+                  ].join(" ")}
+                >{k === "pin" ? "PIN (4–12 digits)" : "Password (8+ chars)"}</button>
+              ))}
+            </div>
+            {mode === "change" && (
+              <input
+                type={settings.accountLockKind === "pin" ? "tel" : "password"}
+                inputMode={settings.accountLockKind === "pin" ? "numeric" : "text"}
+                value={currentSecret}
+                onChange={(e) => { setCurrentSecret(e.target.value); setError(null) }}
+                placeholder={`Current ${settings.accountLockKind === "pin" ? "PIN" : "password"}`}
+                className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+              />
+            )}
+            <input
+              type={kindDraft === "pin" ? "tel" : "password"}
+              inputMode={kindDraft === "pin" ? "numeric" : "text"}
+              pattern={kindDraft === "pin" ? "[0-9]*" : undefined}
+              value={secret}
+              onChange={(e) => { setSecret(e.target.value); setError(null) }}
+              placeholder={kindDraft === "pin" ? "New PIN (4–12 digits)" : "New password (8+ chars)"}
+              className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+            />
+            <input
+              type={kindDraft === "pin" ? "tel" : "password"}
+              inputMode={kindDraft === "pin" ? "numeric" : "text"}
+              pattern={kindDraft === "pin" ? "[0-9]*" : undefined}
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value); setError(null) }}
+              placeholder="Confirm"
+              className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+            />
+            {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={reset}
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+              >Cancel</button>
+              <button
+                type="button"
+                onClick={submitSet}
+                disabled={busy || !secret || !confirm || (mode === "change" && !currentSecret)}
+                className="h-8 px-4 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+              >{busy ? "Saving…" : "Save"}</button>
+            </div>
+          </div>
+        )}
+
+        {mode === "clear" && (
+          <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-2">
+            <p className="text-[11.5px] text-chrome-text-2 leading-relaxed">
+              Removing the lock means anyone with this device can open Delta.
+              Confirm your current {settings.accountLockKind === "pin" ? "PIN" : "password"}:
+            </p>
+            <input
+              type={settings.accountLockKind === "pin" ? "tel" : "password"}
+              inputMode={settings.accountLockKind === "pin" ? "numeric" : "text"}
+              value={currentSecret}
+              onChange={(e) => { setCurrentSecret(e.target.value); setError(null) }}
+              placeholder={`Current ${settings.accountLockKind === "pin" ? "PIN" : "password"}`}
+              className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+            />
+            {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={reset}
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+              >Cancel</button>
+              <button
+                type="button"
+                onClick={submitClear}
+                disabled={busy || !currentSecret}
+                className="h-8 px-4 rounded-full bg-[hsl(0_70%_60%)] text-white text-[12px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+              >{busy ? "Removing…" : "Remove lock"}</button>
+            </div>
+          </div>
+        )}
+
+        {okFlash && (
+          <p role="status" className="font-mono text-[10.5px] tracking-[0.08em] uppercase text-signal">
+            {okFlash}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Per-site password import ────────────────────────────────────────
+// Two-step flow: pick a CSV (Chrome/Brave/Edge/Firefox/Safari export
+// format), preview the rows, toggle which to keep per-row, then commit.
+// Stored encrypted via safeStorage in main; the renderer only ever sees
+// {origin, username, hasPassword} for each saved credential. The Fill
+// chip in the address bar (future) calls credentials.fillActive(id),
+// which decrypts in main and injects the value into the active tab's
+// focused form. The plaintext password never crosses the IPC boundary
+// in either direction.
+function CredentialsSection() {
+  const [creds, setCreds] = useState<SavedCredential[] | null>(null)
+  const [preview, setPreview] = useState<CredentialImportPreview | null>(null)
+  const [keep, setKeep] = useState<Set<number>>(new Set())
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [okFlash, setOkFlash] = useState<string | null>(null)
+  const [filter, setFilter] = useState("")
+
+  useEffect(() => {
+    void window.api.credentials.list().then(setCreds)
+    return window.api.credentials.onChange(setCreds)
+  }, [])
+
+  const flashOk = (msg: string) => {
+    setOkFlash(msg)
+    setTimeout(() => setOkFlash(null), 1800)
+  }
+
+  const pick = async () => {
+    setError(null)
+    try {
+      const p = await window.api.credentials.pickAndPreview()
+      if (!p) return
+      setPreview(p)
+      // Default: pre-select rows that don't already exist + aren't invalid.
+      const initial = new Set(p.rows.filter((r) => !r.alreadyExists && !r.invalid).map((r) => r.index))
+      setKeep(initial)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const toggleRow = (i: number) => {
+    const next = new Set(keep)
+    if (next.has(i)) next.delete(i); else next.add(i)
+    setKeep(next)
+  }
+
+  const commit = async () => {
+    if (!preview || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const n = await window.api.credentials.importSelected({
+        filePath: preview.filePath,
+        keepIndices: [...keep],
+      })
+      setPreview(null)
+      setKeep(new Set())
+      flashOk(`Imported ${n} credential${n === 1 ? "" : "s"}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const cancel = () => { setPreview(null); setKeep(new Set()); setError(null) }
+  const remove = (id: string) => void window.api.credentials.remove(id)
+
+  const filtered = !creds ? [] : filter.trim()
+    ? creds.filter((c) =>
+        c.origin.toLowerCase().includes(filter.toLowerCase()) ||
+        c.username.toLowerCase().includes(filter.toLowerCase()))
+    : creds
+
+  // Group stored creds by origin so the per-site model is visible at a glance.
+  const grouped = new Map<string, SavedCredential[]>()
+  for (const c of filtered) {
+    const arr = grouped.get(c.origin) ?? []
+    arr.push(c)
+    grouped.set(c.origin, arr)
+  }
+
+  return (
+    <section>
+      <SectionHeader
+        label="Passwords"
+        hint="Import a CSV from your old browser, then pick per-site which entries to keep. Encrypted via your OS keychain."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-3">
+        {preview ? (
+          <div className="space-y-2">
+            <p className="text-[12px] text-chrome-text-2 leading-relaxed">
+              {preview.rows.length} row{preview.rows.length === 1 ? "" : "s"} parsed
+              {preview.rejected > 0 ? `, ${preview.rejected} rejected (missing url or username)` : ""}.
+              Toggle which to import — nothing is saved until you commit.
+            </p>
+            <div className="max-h-[260px] overflow-y-auto -mx-1 px-1 space-y-1">
+              {preview.rows.map((r) => {
+                const checked = keep.has(r.index)
+                return (
+                  <button
+                    type="button"
+                    key={r.index}
+                    onClick={() => toggleRow(r.index)}
+                    className={[
+                      "w-full text-left rounded-xl border px-2.5 py-2 flex items-center gap-2.5 transition-colors",
+                      checked
+                        ? "bg-signal/10 border-signal/40"
+                        : "bg-chrome-surface-2 border-chrome-border hover:border-chrome-text-3",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "h-3.5 w-3.5 rounded shrink-0 border flex items-center justify-center",
+                        checked ? "bg-signal border-signal" : "border-chrome-border",
+                      ].join(" ")}
+                    >
+                      {checked && <span className="text-[hsl(240_8%_8%)] text-[9px] leading-none">✓</span>}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] text-chrome-text truncate">{r.username}</p>
+                      <p className="font-mono text-[10.5px] text-chrome-text-3 truncate">
+                        {r.origin} <span className="text-chrome-border">·</span> {r.passwordHint || "no password"}
+                      </p>
+                    </div>
+                    {r.alreadyExists && (
+                      <span className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-chrome-text-3 shrink-0">
+                        replaces existing
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={cancel}
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+              >Cancel</button>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3">
+                  {keep.size} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={commit}
+                  disabled={busy || keep.size === 0}
+                  className="h-8 px-4 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+                >{busy ? "Importing…" : `Import ${keep.size}`}</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[12px] text-chrome-text-2 leading-relaxed min-w-0">
+                {creds === null
+                  ? "Loading…"
+                  : creds.length === 0
+                    ? "No saved credentials yet. Import a CSV from Chrome / Brave / Edge / Firefox / Safari."
+                    : `${creds.length} credential${creds.length === 1 ? "" : "s"} across ${grouped.size} site${grouped.size === 1 ? "" : "s"}.`}
+              </p>
+              <button
+                type="button"
+                onClick={pick}
+                className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 transition-opacity shrink-0"
+              >Import CSV…</button>
+            </div>
+
+            {creds && creds.length > 0 && (
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter by site or username"
+                className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none focus:border-signal/60 transition-colors"
+              />
+            )}
+
+            {creds && creds.length > 0 && (
+              <div className="max-h-[260px] overflow-y-auto -mx-1 px-1 space-y-2">
+                {[...grouped.entries()].map(([origin, group]) => (
+                  <div key={origin} className="rounded-xl border border-chrome-border bg-chrome-surface-2 p-2.5">
+                    <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 truncate mb-1.5">
+                      {origin}
+                    </p>
+                    <ul className="space-y-1">
+                      {group.map((c) => (
+                        <li key={c.id} className="flex items-center gap-2">
+                          <span className={["h-1.5 w-1.5 rounded-full shrink-0", c.hasPassword ? "bg-signal" : "bg-chrome-text-3"].join(" ")} />
+                          <span className="text-[12px] text-chrome-text truncate flex-1">{c.username}</span>
+                          {!c.hasPassword && (
+                            <span className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-chrome-text-3">no password</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => remove(c.id)}
+                            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_72%)] transition-colors"
+                          >Remove</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+            {okFlash && (
+              <p role="status" className="font-mono text-[10.5px] tracking-[0.08em] uppercase text-signal">
+                {okFlash}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Default browser ─────────────────────────────────────────────────
+// macOS: app.setAsDefaultProtocolClient does the registration; the OS
+// honours it as a candidate in System Settings → Desktop & Dock →
+// Default web browser. Windows: there's no programmatic "make me
+// default" since Win10 — we open the Settings → Default apps pane and
+// the user finishes the swap there. Linux: best-effort link.
+function DefaultBrowserSection() {
+  const [isDefault, setIsDefault] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [okFlash, setOkFlash] = useState<string | null>(null)
+  useEffect(() => {
+    void window.api.defaultBrowser.isDefault().then(setIsDefault)
+  }, [])
+  const make = async () => {
+    setBusy(true)
+    try {
+      const ok = await window.api.defaultBrowser.setDefault()
+      setIsDefault(ok)
+      if (ok) {
+        setOkFlash("Registered with the OS. Confirm in your system settings.")
+        setTimeout(() => setOkFlash(null), 4200)
+      }
+    } finally { setBusy(false) }
+  }
+  return (
+    <section>
+      <SectionHeader
+        label="Default browser"
+        hint="Register Delta as a handler for http + https links system-wide."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] text-chrome-text leading-snug">
+            {isDefault === null ? "Checking…" : isDefault ? "Delta is the default." : "Delta is not the default."}
+          </p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">
+            macOS confirms in System Settings → Desktop &amp; Dock. Windows opens the
+            Default apps pane — you finish the swap there. Linux is best-effort.
+          </p>
+          {okFlash && (
+            <p role="status" className="mt-1.5 font-mono text-[10.5px] tracking-[0.08em] uppercase text-signal">
+              {okFlash}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={make}
+          disabled={busy || isDefault === true}
+          className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+        >{isDefault === true ? "✓ Default" : busy ? "Working…" : "Make default"}</button>
+      </div>
+    </section>
+  )
+}
+
+// ── Unpacked Chrome extensions ──────────────────────────────────────
+// Point at an unpacked extension folder; we hand it to
+// session.loadExtension on boot. MV3 content scripts, themes, action
+// popups, devtools panels work. Anything that calls chrome.identity /
+// chrome.cookies / Chrome Sync won't — Electron doesn't ship those
+// runtimes. The UI shows the manifest's name + version + load state
+// + lastError, with reload and remove affordances.
+function ExtensionsSection() {
+  const [list, setList] = useState<ExtensionEntry[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    void window.api.extensions.list().then(setList)
+    return window.api.extensions.onChange(setList)
+  }, [])
+  const add = async () => {
+    setBusy(true); setError(null)
+    try {
+      await window.api.extensions.pickAndAdd()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally { setBusy(false) }
+  }
+  const reload = (id: string) => void window.api.extensions.reload(id)
+  const remove = (id: string) => void window.api.extensions.remove(id)
+  return (
+    <section>
+      <SectionHeader
+        label="Extensions"
+        hint="Point at an unpacked extension folder. MV3 content scripts, themes, action popups, devtools panels all work."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[12px] text-chrome-text-2 leading-relaxed min-w-0">
+            {list === null
+              ? "Loading…"
+              : list.length === 0
+                ? "No extensions yet. Pick the folder that contains the extension's manifest.json."
+                : `${list.length} extension${list.length === 1 ? "" : "s"} loaded for this session.`}
+          </p>
+          <button
+            type="button"
+            onClick={add}
+            disabled={busy}
+            className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+          >{busy ? "Picking…" : "Add unpacked…"}</button>
+        </div>
+        {list && list.length > 0 && (
+          <ul className="space-y-1.5">
+            {list.map((e) => (
+              <li key={e.id} className="rounded-xl border border-chrome-border bg-chrome-surface-2 p-2.5">
+                <div className="flex items-start gap-3">
+                  <span
+                    title={e.loaded ? "Loaded" : "Not loaded"}
+                    className={["h-1.5 w-1.5 rounded-full shrink-0 mt-1.5", e.loaded ? "bg-signal" : "bg-chrome-text-3"].join(" ")}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] text-chrome-text leading-snug truncate">
+                      {e.name ?? "(missing name)"} {e.version && <span className="text-chrome-text-3">· v{e.version}</span>}
+                    </p>
+                    <p className="font-mono text-[10.5px] text-chrome-text-3 truncate">{e.path}</p>
+                    {e.lastError && (
+                      <p className="font-mono text-[10.5px] text-[hsl(0_70%_72%)] mt-0.5">err: {e.lastError}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => reload(e.id)}
+                      className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+                    >Reload</button>
+                    <button
+                      type="button"
+                      onClick={() => remove(e.id)}
+                      className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_72%)] transition-colors"
+                    >Remove</button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+        <p className="text-[11px] text-chrome-text-3 leading-relaxed">
+          Heads-up: Electron's chrome.* runtime is partial. Content scripts,
+          themes, popups, devtools panels work. <code className="font-mono">chrome.identity</code>,
+          <code className="font-mono"> chrome.cookies</code>, and Chrome Sync don't.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+// ── Scheduled tasks (local cron-of-one) ─────────────────────────────
+// Three action types ship today: reminder (native notification),
+// openUrl (opens a tab at a URL — pairs with "be on this booking page
+// at 9:00"), agent (kicks off an agent prompt; once click/type land
+// this is "book it for me"). Triggers: oneShot at an ISO timestamp,
+// or every-N-minutes. Persisted in userData/schedules.json; the main
+// scheduler re-arms after every fire and survives long sleeps by
+// recomputing the next slot ahead of `now`.
+function ScheduledTasksSection() {
+  const [tasks, setTasks] = useState<ScheduledTask[] | null>(null)
+  const [creating, setCreating] = useState(false)
+  useEffect(() => {
+    void window.api.schedules.list().then(setTasks)
+    return window.api.schedules.onChange(setTasks)
+  }, [])
+
+  const del = (id: string) => void window.api.schedules.delete(id)
+  const togglePause = (t: ScheduledTask) =>
+    void window.api.schedules.update(t.id, { enabled: !t.enabled })
+  const runNow = (id: string) => void window.api.schedules.runNow(id)
+
+  return (
+    <section>
+      <SectionHeader
+        label="Scheduled tasks"
+        hint="Time-triggered reminders, page opens, or agent runs. Local-only — your machine's clock is the trigger."
+      />
+      <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-3">
+        {tasks === null ? (
+          <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3">loading…</p>
+        ) : tasks.length === 0 && !creating ? (
+          <p className="text-[12px] text-chrome-text-2 leading-relaxed">
+            Nothing scheduled. Add a reminder, queue a URL to open at a time,
+            or set the agent to run a prompt on a schedule.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {tasks?.map((t) => (
+              <ScheduledTaskRow
+                key={t.id}
+                task={t}
+                onTogglePause={() => togglePause(t)}
+                onDelete={() => del(t.id)}
+                onRunNow={() => runNow(t.id)}
+              />
+            ))}
+          </ul>
+        )}
+        {creating ? (
+          <ScheduledTaskComposer
+            onCancel={() => setCreating(false)}
+            onCreated={() => setCreating(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+          >
+            + Schedule something →
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function ScheduledTaskRow({
+  task, onTogglePause, onDelete, onRunNow,
+}: {
+  task: ScheduledTask
+  onTogglePause: () => void
+  onDelete: () => void
+  onRunNow: () => void
+}) {
+  const next = task.nextRunAt ? new Date(task.nextRunAt) : null
+  const triggerSummary =
+    task.trigger.kind === "oneShot"
+      ? `once · ${formatDateShort(new Date(task.trigger.at))}`
+      : `every ${task.trigger.minutes}m`
+  return (
+    <li className="rounded-xl border border-chrome-border bg-chrome-surface-2 p-2.5">
+      <div className="flex items-start gap-3">
+        <span
+          title={task.enabled ? "Enabled" : "Paused"}
+          className={["h-1.5 w-1.5 rounded-full shrink-0 mt-1.5", task.enabled ? "bg-signal" : "bg-chrome-text-3"].join(" ")}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] text-chrome-text leading-snug truncate">{task.label}</p>
+          <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">
+            <span className="font-mono">{actionKindLabel(task.action)}</span>
+            <span className="mx-1.5 text-chrome-border">·</span>
+            <span className="font-mono">{triggerSummary}</span>
+            {task.enabled && next && (
+              <>
+                <span className="mx-1.5 text-chrome-border">·</span>
+                <span className="font-mono">next {formatDateShort(next)}</span>
+              </>
+            )}
+            {task.lastError && (
+              <>
+                <span className="mx-1.5 text-chrome-border">·</span>
+                <span className="text-[hsl(0_70%_72%)]">err: {task.lastError}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onRunNow}
+            title="Fire this task now without disturbing the schedule"
+            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
+          >Run</button>
+          <button
+            type="button"
+            onClick={onTogglePause}
+            title={task.enabled ? "Pause" : "Resume"}
+            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+          >{task.enabled ? "Pause" : "Resume"}</button>
+          <button
+            type="button"
+            onClick={onDelete}
+            title="Delete this task"
+            className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-[hsl(0_70%_72%)] transition-colors"
+          >Delete</button>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function ScheduledTaskComposer({
+  onCancel, onCreated,
+}: {
+  onCancel: () => void
+  onCreated: () => void
+}) {
+  const [actionKind, setActionKind] = useState<ScheduledTaskAction["kind"]>("reminder")
+  const [triggerKind, setTriggerKind] = useState<ScheduledTaskTrigger["kind"]>("oneShot")
+  const [label, setLabel] = useState("")
+  // Action fields — only one set is used at a time, based on actionKind.
+  const [reminderTitle, setReminderTitle] = useState("")
+  const [reminderBody, setReminderBody] = useState("")
+  const [url, setUrl] = useState("")
+  const [prompt, setPrompt] = useState("")
+  // Trigger fields.
+  const [whenLocal, setWhenLocal] = useState(() => defaultLocalDatetime())
+  const [everyMinutes, setEveryMinutes] = useState(30)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const build = (): ScheduledTaskInput => {
+    const trigger: ScheduledTaskTrigger =
+      triggerKind === "oneShot"
+        ? { kind: "oneShot", at: new Date(whenLocal).toISOString() }
+        : { kind: "every", minutes: Math.max(1, Math.floor(everyMinutes)) }
+    const action: ScheduledTaskAction =
+      actionKind === "reminder"
+        ? { kind: "reminder", title: reminderTitle.trim(), body: reminderBody.trim() || undefined }
+        : actionKind === "openUrl"
+        ? { kind: "openUrl", url: url.trim() }
+        : { kind: "agent", prompt: prompt.trim() }
+    return { label: label.trim(), trigger, action }
+  }
+
+  const submit = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await window.api.schedules.create(build())
+      onCreated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-2.5">
+      <div className="grid grid-cols-3 gap-1.5 rounded-full border border-chrome-border bg-chrome-surface-2 p-1">
+        {([
+          { k: "reminder", label: "Reminder" },
+          { k: "openUrl",  label: "Open URL" },
+          { k: "agent",    label: "Agent" },
+        ] as const).map(({ k, label: l }) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => { setActionKind(k); setError(null) }}
+            className={[
+              "h-7 rounded-full text-[11.5px] transition-colors",
+              actionKind === k
+                ? "bg-chrome-bg text-chrome-text border border-chrome-border"
+                : "text-chrome-text-3 hover:text-chrome-text-2",
+            ].join(" ")}
+          >{l}</button>
+        ))}
+      </div>
+
+      <input
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Label (optional)"
+        className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+      />
+
+      {actionKind === "reminder" && (
+        <>
+          <input
+            type="text"
+            value={reminderTitle}
+            onChange={(e) => setReminderTitle(e.target.value)}
+            placeholder="Reminder title (e.g. Drink water)"
+            className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none focus:border-signal/60 transition-colors"
+          />
+          <input
+            type="text"
+            value={reminderBody}
+            onChange={(e) => setReminderBody(e.target.value)}
+            placeholder="Body (optional)"
+            className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none focus:border-signal/60 transition-colors"
+          />
+        </>
+      )}
+      {actionKind === "openUrl" && (
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.opentable.com/booking/..."
+          className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 font-mono focus:outline-none focus:border-signal/60 transition-colors"
+        />
+      )}
+      {actionKind === "agent" && (
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          rows={3}
+          placeholder="Agent prompt (e.g. 'Check today's news and summarise')"
+          className="w-full px-3 py-2 rounded-2xl bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text placeholder:text-chrome-text-3 focus:outline-none focus:border-signal/60 transition-colors resize-none"
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-1.5 rounded-full border border-chrome-border bg-chrome-surface-2 p-1">
+        {([
+          { k: "oneShot", label: "Once at…" },
+          { k: "every",   label: "Every N min" },
+        ] as const).map(({ k, label: l }) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => { setTriggerKind(k); setError(null) }}
+            className={[
+              "h-7 rounded-full text-[11.5px] transition-colors",
+              triggerKind === k
+                ? "bg-chrome-bg text-chrome-text border border-chrome-border"
+                : "text-chrome-text-3 hover:text-chrome-text-2",
+            ].join(" ")}
+          >{l}</button>
+        ))}
+      </div>
+
+      {triggerKind === "oneShot" ? (
+        <input
+          type="datetime-local"
+          value={whenLocal}
+          onChange={(e) => setWhenLocal(e.target.value)}
+          className="w-full h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text font-mono focus:outline-none focus:border-signal/60 transition-colors"
+        />
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-[11.5px] text-chrome-text-2">Every</span>
+          <input
+            type="number"
+            min={1}
+            value={everyMinutes}
+            onChange={(e) => setEveryMinutes(Number(e.target.value) || 1)}
+            className="w-20 h-9 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-[12.5px] text-chrome-text font-mono text-center focus:outline-none focus:border-signal/60 transition-colors"
+          />
+          <span className="text-[11.5px] text-chrome-text-2">minutes</span>
+        </div>
+      )}
+
+      {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+        >Cancel</button>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy}
+          className="h-8 px-4 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+        >{busy ? "Saving…" : "Schedule it"}</button>
+      </div>
+    </div>
+  )
+}
+
+function actionKindLabel(a: ScheduledTaskAction): string {
+  switch (a.kind) {
+    case "reminder": return "reminder"
+    case "openUrl":  return "open url"
+    case "agent":    return "agent"
+  }
+}
+
+function formatDateShort(d: Date): string {
+  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString()
+  const now = new Date()
+  const tomorrow = new Date(now.getTime() + 86_400_000)
+  const hhmm = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  if (same(d, now)) return `today ${hhmm}`
+  if (same(d, tomorrow)) return `tomorrow ${hhmm}`
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${hhmm}`
+}
+
+// HTML <input type="datetime-local"> wants `YYYY-MM-DDTHH:MM` in the
+// user's local zone (no Z suffix). Default: 15 minutes from now, rounded
+// down to the minute. Trims seconds + ms so the field looks tidy.
+function defaultLocalDatetime(): string {
+  const d = new Date(Date.now() + 15 * 60 * 1000)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 // Click to copy. Tiny visual feedback ("copied · …") for ~1.4s, then revert.

@@ -1,4 +1,5 @@
 import type { Tab, TabId } from "@shared/types"
+import { RamPip } from "./RamPip"
 
 type Props = {
   tabs: Tab[]
@@ -20,7 +21,7 @@ function favicon(url: string): string | null {
 export function TabStrip({ tabs, activeId, onActivate, onClose, onCreate }: Props) {
   return (
     <div className="h-10 flex items-end pl-3 pr-2 gap-[2px] select-none">
-      <ul className="flex flex-1 items-end gap-[2px] overflow-x-auto scrollbar-none">
+      <ul className="flex flex-1 items-end gap-[2px] overflow-x-auto scrollbar-none min-w-0">
         {tabs.map((t) => {
           const active = t.id === activeId
           const fav = favicon(t.url)
@@ -100,6 +101,9 @@ export function TabStrip({ tabs, activeId, onActivate, onClose, onCreate }: Prop
           </button>
         </li>
       </ul>
+      <div className="h-9 pl-2 flex items-center shrink-0">
+        <RamPip />
+      </div>
     </div>
   )
 }

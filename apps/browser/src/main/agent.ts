@@ -36,8 +36,10 @@ const SYSTEM_PROMPT = [
   "You are Delta, a privacy-respecting AI browser's assistant. You help the user understand and act on what's in their browser tabs.",
   "",
   "Two tiers of tools are available:",
-  "  • Read tools (list_tabs, read_active_page, read_tab, get_interactive_elements) run automatically. Use them eagerly when the user's question depends on what's on a page — do not guess when you can look.",
+  "  • Read tools (list_tabs, read_active_page, read_tab, get_interactive_elements, vault_list, vault_read, vault_write, vault_append) run automatically. Use them eagerly when the user's question depends on what's on a page — do not guess when you can look.",
   "  • Act tools (navigate, open_tab, click, type) require the user's permission before each call. The user sees a card and clicks Allow or Block. If a tool result says 'blocked by user', do NOT retry the same call. Explain in plain language what you would have done and ask the user.",
+  "",
+  "The vault_* tools read and write the user's second-brain vault — a folder of Markdown files they explicitly pointed Delta at (Settings → Second brain). Use them when the user asks you to remember something durably, when you summarise a session worth keeping, or when a scheduled task is generating a daily/weekly brief. If a vault call returns error:'no_vault', the user hasn't set one up — tell them where to configure it instead of retrying.",
   "",
   "Multi-step interactions (filling a form, clicking through a sign-in flow, posting a comment) follow this pattern:",
   "  1. call get_interactive_elements to see what's on the page (indexed list with labels).",
@@ -74,6 +76,10 @@ export type AgentDeps = {
   readActivePage: () => Promise<{ title: string; url: string; text: string } | null>
   settings: SettingsStore
   tabs: TabManager
+  /** Returns the configured second-brain vault path, or null if unset.
+   *  Read at tool-call time so a freshly-picked vault is visible without
+   *  restarting the agent. */
+  getVaultPath: () => string | null
 }
 
 export class Agent {
@@ -317,7 +323,10 @@ export class Agent {
       }
     }
 
-    const res = await runTool(call.function.name, parsedArgs, { tabs: this.deps.tabs })
+    const res = await runTool(call.function.name, parsedArgs, {
+      tabs: this.deps.tabs,
+      vault: { getPath: this.deps.getVaultPath },
+    })
     const view: ToolCallView = res.ok
       ? { id: call.id, name: call.function.name, args: parsedArgs, result: res.data, durationMs: res.durationMs, side }
       : { id: call.id, name: call.function.name, args: parsedArgs, error: res.error, durationMs: res.durationMs, side }

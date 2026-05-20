@@ -310,6 +310,15 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
               {c.label}
             </li>
           ))}
+          {settings?.personalSlmEnabled && (
+            <li
+              title="Personal SLM is on — preview. The training pipeline is roadmap; the toggle records your consent."
+              className="px-2 h-5 rounded-full inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase border text-chrome-text-2 border-chrome-border bg-chrome-surface"
+            >
+              <span className="h-1 w-1 rounded-full bg-chrome-text-2" />
+              SLM · preview
+            </li>
+          )}
         </ul>
       </div>
 

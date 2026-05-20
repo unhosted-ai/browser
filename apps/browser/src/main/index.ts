@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, systemPreferences } from "electron"
+import { app, BrowserWindow, ipcMain, Menu, protocol, shell, systemPreferences } from "electron"
 import { join } from "node:path"
 import { TabManager } from "./tabs"
 import { listProviders } from "./providers"
@@ -8,7 +8,7 @@ import { ConversationStore } from "./conversations"
 import { registerNewtabProtocol } from "./newtab"
 import { buildMenu } from "./menu"
 import { PrivacyStore, TrackerBlocker } from "./privacy"
-import { setExtendedTrackerListEnabled } from "./tracker-list"
+import { setAdBlockEnabled, setExtendedTrackerListEnabled } from "./tracker-list"
 import {
   bindReferrerPolicy,
   configureDoH,
@@ -25,11 +25,17 @@ import { DownloadsManager } from "./downloads"
 import { clearBrowsingData } from "./browsing-data"
 import { pickFolder } from "./newtab-bg"
 import { IdentityStore } from "./identity"
+import { SchedulesStore } from "./schedules"
+import { CredentialsStore } from "./credentials"
+import { ExtensionsStore } from "./extensions"
+import { SecondBrainStore } from "./second-brain"
 import type {
   AgentMessage,
   AgentSendInput,
   ClearScope,
+  CredentialImportSelection,
   IdentityProvider,
+  ScheduledTaskInput,
   SettingsUpdate,
   TabId,
 } from "@shared/types"
@@ -58,6 +64,10 @@ let bookmarks: BookmarkStore | null = null
 let history: HistoryStore | null = null
 let downloads: DownloadsManager | null = null
 let identity: IdentityStore | null = null
+let schedules: SchedulesStore | null = null
+let credentials: CredentialsStore | null = null
+let extensions: ExtensionsStore | null = null
+const secondBrain = new SecondBrainStore()
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -91,12 +101,18 @@ function createWindow(): void {
   // blocker binds). We assert non-null here — the createWindow path
   // can't run without it.
   if (!settings) throw new Error("settings store wasn't initialised before createWindow")
+  // Apply the persisted discard threshold + soft cap to the freshly-built
+  // TabManager. Subsequent edits flow through settings.onChange a few
+  // lines above.
+  tabs.setDiscardAfterMinutes(settings.get().tabDiscardMinutes)
+  tabs.setMaxLiveTabs(settings.get().maxLiveTabs)
   conversations = new ConversationStore()
   agent = new Agent({
     emit: (event) => mainWindow?.webContents.send("agent:event", event),
     readActivePage: () => tabs!.readActivePage(),
     settings,
     tabs: tabs!,
+    getVaultPath: () => settings?.get().secondBrainPath ?? null,
   })
   // Push settings changes to the renderer so the panel + provider list
   // stay in sync without polling.
@@ -130,6 +146,11 @@ function registerIpc(): void {
   ipcMain.handle("tabs:back",     (_e, id: TabId) => t.back(id))
   ipcMain.handle("tabs:forward",  (_e, id: TabId) => t.forward(id))
   ipcMain.handle("tabs:reload",   (_e, id: TabId) => t.reload(id))
+  // Memory pip + bulk-discard. sampleMemory is cheap (app.getAppMetrics
+  // is the same call Chromium's Task Manager makes), so the renderer can
+  // call it on demand; we also broadcast every 5s so the pip stays live.
+  ipcMain.handle("tabs:sampleMemory",    () => t.sampleMemory())
+  ipcMain.handle("tabs:discardAllIdle",  () => t.discardAllIdle())
 
   ipcMain.handle("layout:setRightReservation", (_e, px: number) => t.setRightReservation(px))
   ipcMain.handle("layout:setLeftNavWidth",     (_e, px: number) => t.setLeftNavWidth(px))
@@ -230,6 +251,67 @@ function registerIpc(): void {
   ipcMain.handle("agent:cancel", (_e, taskId: string) => agent?.cancel(taskId))
   ipcMain.handle("agent:respondToPermission", (_e, permissionId: string, decision: "allow" | "block" | "always_allow") => agent?.resolvePermission(permissionId, decision))
 
+  // Account lock — local-only PIN/password. Verification stays in main;
+  // the renderer only ever passes plaintext over IPC and gets a boolean.
+  ipcMain.handle("accountLock:requiresUnlock", () => settings?.requiresUnlock() ?? false)
+  ipcMain.handle("accountLock:verify", (_e, secret: string) => settings?.verifyAccountLock(secret) ?? false)
+
+  // Scheduled tasks — local cron-of-one. See main/schedules.ts.
+  ipcMain.handle("schedules:list",   () => schedules?.list() ?? [])
+  ipcMain.handle("schedules:create", (_e, input: ScheduledTaskInput) => schedules?.create(input))
+  ipcMain.handle("schedules:update", (_e, id: string, patch: Partial<ScheduledTaskInput> & { enabled?: boolean }) => schedules?.update(id, patch))
+  ipcMain.handle("schedules:delete", (_e, id: string) => { schedules?.delete(id) })
+  ipcMain.handle("schedules:runNow", async (_e, id: string) => { await schedules?.runNow(id) })
+
+  // Per-site password import (see main/credentials.ts). The plaintext
+  // password never crosses the IPC boundary — pickAndPreview returns
+  // hints, importSelected persists with safeStorage encryption,
+  // fillActive injects directly into the active tab's content.
+  ipcMain.handle("credentials:pickAndPreview", async () => credentials?.pickAndPreview(mainWindow) ?? null)
+  ipcMain.handle("credentials:importSelected", (_e, selection: CredentialImportSelection) => credentials?.importSelected(selection) ?? 0)
+  ipcMain.handle("credentials:list", () => credentials?.list() ?? [])
+  ipcMain.handle("credentials:listForOrigin", (_e, origin: string) => credentials?.listForOrigin(origin) ?? [])
+  ipcMain.handle("credentials:remove", (_e, id: string) => { credentials?.remove(id) })
+  ipcMain.handle("credentials:fillActive", async (_e, id: string) => {
+    if (!credentials || !tabs) return false
+    const activeId = tabs.getState().activeId
+    const view = activeId ? tabs.getView(activeId) : null
+    return credentials.fillActive(id, view?.webContents ?? null)
+  })
+
+  // Default-browser registration. macOS: app.setAsDefaultProtocolClient
+  // for http+https registers Delta with LaunchServices; the OS will
+  // then offer Delta in System Settings → Desktop & Dock → Default web
+  // browser. Windows: opens Settings → Default apps. Linux: xdg-mime.
+  ipcMain.handle("defaultBrowser:isDefault", () => isDefaultBrowser())
+  ipcMain.handle("defaultBrowser:setDefault", () => setAsDefaultBrowser())
+
+  // Unpacked Chrome-extension loader (see main/extensions.ts).
+  ipcMain.handle("extensions:list",       () => extensions?.list() ?? [])
+  ipcMain.handle("extensions:pickAndAdd", () => extensions?.pickAndAdd(mainWindow) ?? null)
+  ipcMain.handle("extensions:remove",     (_e, id: string) => extensions?.remove(id))
+  ipcMain.handle("extensions:reload",     (_e, id: string) => extensions?.reload(id))
+
+  // Second-brain vault (see main/second-brain.ts + apps/os/).
+  ipcMain.handle("secondBrain:defaultPath", () => secondBrain.defaultPath())
+  ipcMain.handle("secondBrain:status", () => {
+    const path = settings?.get().secondBrainPath
+    return path ? secondBrain.status(path) : null
+  })
+  ipcMain.handle("secondBrain:pickAndInit", async () => {
+    const defaultPath = secondBrain.defaultPath()
+    const chosen = await secondBrain.pickPath(mainWindow, defaultPath)
+    if (!chosen) return null
+    const status = secondBrain.initialise(chosen)
+    settings?.apply({ kind: "secondBrainPath", value: chosen })
+    return status
+  })
+  ipcMain.handle("secondBrain:reinit", () => {
+    const path = settings?.get().secondBrainPath
+    if (!path) return null
+    return secondBrain.initialise(path)
+  })
+
   ipcMain.handle("updater:openRelease", (_e, url: string) => {
     void import("./updater").then(({ openReleasePage }) => openReleasePage(url))
   })
@@ -243,9 +325,59 @@ function registerIpc(): void {
   t.onUpdate((state) => {
     mainWindow?.webContents.send("tabs:update", state)
   })
+
+  // 5s memory broadcast — keeps the chrome RAM pip live without the
+  // renderer polling. unref()'d so it never holds the event loop open
+  // after the window closes; we also stop it if the BrowserWindow goes
+  // away mid-tick.
+  const memoryTimer = setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    try {
+      mainWindow.webContents.send("tabs:memory", t.sampleMemory())
+    } catch {
+      // Window may close between the guard and the send.
+    }
+  }, 5000)
+  memoryTimer.unref?.()
+  mainWindow?.on("closed", () => clearInterval(memoryTimer))
 }
 
 app.setName("Delta")
+
+// ── Default-browser registration ────────────────────────────────────
+// macOS: app.setAsDefaultProtocolClient + LaunchServices does the work.
+// Windows: there's no programmatic "make me default" for browsers since
+//          Win10 — the OS forces a Settings → Default apps prompt. We
+//          open that pane via shell.openExternal.
+// Linux:   no portable API; we open xdg-settings via shell where possible
+//          and otherwise tell the user to set it from their DE.
+function isDefaultBrowser(): boolean {
+  try {
+    return app.isDefaultProtocolClient("http") && app.isDefaultProtocolClient("https")
+  } catch { return false }
+}
+
+async function setAsDefaultBrowser(): Promise<boolean> {
+  try {
+    const okHttp  = app.setAsDefaultProtocolClient("http")
+    const okHttps = app.setAsDefaultProtocolClient("https")
+    if (process.platform === "win32") {
+      // Win10/11 won't let an app silently grab default-browser; opening
+      // the Settings pane is the supported path.
+      await shell.openExternal("ms-settings:defaultapps")
+    } else if (process.platform === "linux") {
+      // Best-effort — desktops vary. Most respond to xdg-mime defaults,
+      // but firing it requires our .desktop file to be installed, which
+      // electron-builder handles for AppImage/.deb. If that fails we
+      // open a help link.
+      await shell.openExternal("https://wiki.archlinux.org/title/default_applications")
+    }
+    return okHttp && okHttps
+  } catch (err) {
+    console.warn("[delta] setAsDefaultBrowser failed:", err)
+    return false
+  }
+}
 
 // Opt-in app lock: if the user has flipped requireBiometric in settings, we
 // prompt for Touch ID (or fail-closed on platforms without it) before
@@ -297,6 +429,7 @@ app.whenReady().then(async () => {
   settings = new SettingsStore()
   const initial = settings.get()
   setExtendedTrackerListEnabled(initial.useExtendedTrackerList)
+  setAdBlockEnabled(initial.useAdBlock)
   setHttpsOnly(initial.httpsOnly)
   setHttpsOnlyBypass(initial.httpsOnlyBypass)
   setStrictReferrer(initial.strictReferrerPolicy)
@@ -306,9 +439,12 @@ app.whenReady().then(async () => {
   configureDoH({ enabled: initial.dnsOverHttps, provider: initial.dohProvider })
   settings.onChange((s) => {
     setExtendedTrackerListEnabled(s.useExtendedTrackerList)
+    setAdBlockEnabled(s.useAdBlock)
     setHttpsOnly(s.httpsOnly)
     setHttpsOnlyBypass(s.httpsOnlyBypass)
     setStrictReferrer(s.strictReferrerPolicy)
+    tabs?.setDiscardAfterMinutes(s.tabDiscardMinutes)
+    tabs?.setMaxLiveTabs(s.maxLiveTabs)
   })
 
   // Privacy: build the store + bind the blocker to the default session
@@ -326,6 +462,15 @@ app.whenReady().then(async () => {
   downloads = new DownloadsManager()
   identity = new IdentityStore()
   identity.onChange((id) => mainWindow?.webContents.send("identity:change", id))
+  schedules = new SchedulesStore()
+  credentials = new CredentialsStore()
+  credentials.onChange((creds) => mainWindow?.webContents.send("credentials:change", creds))
+  extensions = new ExtensionsStore()
+  extensions.onChange((list) => mainWindow?.webContents.send("extensions:change", list))
+  // Load any persisted unpacked extensions into the default session.
+  // Done before createWindow so they're hot when the first tab paints.
+  // Failures are non-fatal — each entry captures its lastError.
+  await extensions.loadAll()
   registerNewtabProtocol(
     () => privacy?.getReport() ?? null,
     () => {
@@ -337,6 +482,28 @@ app.whenReady().then(async () => {
     },
   )
   createWindow()
+  // Bind the scheduler now that mainWindow + tabs + agent exist. The
+  // Scheduler timers re-arm on each fire; the bind() call kicks them
+  // off for tasks that were saved between launches.
+  schedules.bind({
+    openTab: (url) => { tabs?.create(url) },
+    runAgentPrompt: async (prompt) => {
+      // Fresh agent task — appears in the sidebar history as its own
+      // conversation. Doesn't attach the active page (the scheduled
+      // task should be self-contained).
+      try { await agent?.send({ text: prompt, attachActivePage: false }) }
+      catch (err) { console.warn("[schedules] agent send failed:", err) }
+    },
+    emit: (event) => {
+      if (event.type === "list") {
+        mainWindow?.webContents.send("schedules:list", event.tasks)
+      } else if (event.type === "fired") {
+        mainWindow?.webContents.send("schedules:fired", {
+          id: event.id, label: event.label, action: event.action,
+        })
+      }
+    },
+  })
   // Per-tab counters: every block tells the active TabManager which tab
   // owned the request, so the address-bar shield can show "N blocked here".
   blocker.onBlock((webContentsId) => tabs?.recordTrackerBlock(webContentsId))

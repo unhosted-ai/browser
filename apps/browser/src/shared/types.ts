@@ -13,6 +13,10 @@ export type Tab = {
   canGoForward: boolean
   /** Trackers blocked since the last top-level navigation on this tab. */
   trackersBlocked: number
+  /** True when the WebContentsView was discarded to free memory. The
+   *  tab strip should render these with a dimmed treatment; clicking
+   *  the tab silently re-creates the view and reloads `url`. */
+  discarded?: boolean
 }
 
 export type TabsState = {
@@ -94,6 +98,14 @@ export type UserSettings = {
    */
   requireBiometric: boolean
   /**
+   * Block well-known ad networks (display, video, header-bidding,
+   * native, retargeting). Separate from the tracker list so the user
+   * can flip them independently. On by default. ~70 entries today;
+   * future EasyList bulk import will tier this the same way the
+   * extended tracker list works.
+   */
+  useAdBlock: boolean
+  /**
    * Use the bundled EasyPrivacy host list (~42k known trackers) on top
    * of the curated short list. On by default — this is what makes the
    * tracker blocker comparable with uBlock Origin's coverage. Flip OFF
@@ -132,6 +144,71 @@ export type UserSettings = {
    * place (see STATUS.md). Off by default until signed builds ship.
    */
   autoUpdateCheck: boolean
+  /**
+   * Second-brain vault path. Set by Settings → Second brain → Set up
+   * vault. When non-null, the agent's system prompt is augmented with
+   * the vault path + conventions so chat turns can read/write it
+   * naturally. See apps/browser/src/main/second-brain.ts and the
+   * apps/os/ docs for the structure.
+   */
+  secondBrainPath: string | null
+  /**
+   * Personal SLM (Small Language Model) — opt-in preview. When on, the
+   * agent rewrites/augments queries through a small per-user model that
+   * learns from your local conversations + bookmarks + browsing context
+   * (with your consent). Training pipeline is roadmap; the toggle today
+   * gates UI affordances and the future build path. See docs/slm-design.md.
+   */
+  personalSlmEnabled: boolean
+  /**
+   * Local account lock (no remote auth). When set to "pin" or "password"
+   * the launcher requires verifying the local secret before the main
+   * window unlocks. Stored as PBKDF2-SHA256 hash + salt in settings.json.
+   * "none" disables the lock.
+   */
+  accountLockKind: "none" | "pin" | "password"
+  /** True when accountLockKind is set AND a hash is on disk. Renderer-only flag. */
+  accountLockConfigured: boolean
+  /**
+   * Auto-discard inactive tabs after this many minutes. Discarded tabs
+   * keep their strip entry; clicking one rebuilds and reloads.
+   * 0 disables auto-discard. Default 30. The active tab is never
+   * discarded regardless of this setting. See main/tabs.ts.
+   */
+  tabDiscardMinutes: number
+  /**
+   * Soft cap on the number of *live* (non-discarded) tabs. When the cap
+   * is exceeded — after a new tab opens, after a discarded tab is
+   * revived, or after the user tightens the cap — the oldest non-active
+   * live tabs are discarded to bring the count back within range. The
+   * active tab is always preserved. 0 disables the cap. Default 0.
+   */
+  maxLiveTabs: number
+}
+
+/** Snapshot of process memory across the main process + every WebContentsView.
+ *  Built by TabManager.sampleMemory; pushed to the renderer on a 5s tick so
+ *  the chrome RAM pip stays roughly live without polling. */
+export type MemorySample = {
+  sampledAt: number
+  /** Total across the main process + all renderers. */
+  totalBytes: number
+  /** Main process only. */
+  mainBytes: number
+  /** Sum across all live (non-discarded) tab renderers. */
+  tabsBytes: number
+  /** All entries in the tab strip, including discarded. */
+  tabCount: number
+  /** How many of `tabCount` are currently discarded. */
+  discardedCount: number
+  perTab: Array<{
+    id: TabId
+    title: string
+    url: string
+    /** 0 if the tab is discarded. */
+    bytes: number
+    discarded: boolean
+  }>
 }
 
 // What the renderer can write. Sensitive fields (api keys) come in as
@@ -150,6 +227,7 @@ export type SettingsUpdate =
   | { kind: "newtabFolder"; value: string | null }
   | { kind: "requireBiometric"; value: boolean }
   | { kind: "useExtendedTrackerList"; value: boolean }
+  | { kind: "useAdBlock"; value: boolean }
   | { kind: "httpsOnly"; value: boolean }
   | { kind: "httpsOnlyBypassAdd"; host: string }
   | { kind: "httpsOnlyBypassRemove"; host: string }
@@ -157,6 +235,23 @@ export type SettingsUpdate =
   | { kind: "dnsOverHttps"; value: boolean }
   | { kind: "dohProvider"; value: "cloudflare" | "quad9" | "google" }
   | { kind: "autoUpdateCheck"; value: boolean }
+  | { kind: "personalSlmEnabled"; value: boolean }
+  | { kind: "secondBrainPath"; value: string | null }
+  | { kind: "tabDiscardMinutes"; value: number }
+  | { kind: "maxLiveTabs"; value: number }
+  | {
+      kind: "setAccountLock"
+      lockKind: "pin" | "password"
+      /** Plaintext secret — hashed and discarded in main. */
+      secret: string
+      /** Required when a lock already exists, to authorise the change. */
+      currentSecret?: string
+    }
+  | {
+      kind: "clearAccountLock"
+      /** Required when a lock exists, to authorise removal. */
+      currentSecret: string
+    }
 
 // ── Persisted conversation history (one JSON file per conversation) ──
 export type ConversationSummary = {
@@ -342,6 +437,12 @@ export type BrowserApi = {
     forward: (id: TabId) => Promise<void>
     reload: (id: TabId) => Promise<void>
     onUpdate: (cb: (state: TabsState) => void) => () => void
+    /** One-shot memory snapshot across main + every tab's renderer. */
+    sampleMemory: () => Promise<MemorySample>
+    /** Discard every non-active, non-already-discarded tab. Returns the count. */
+    discardAllIdle: () => Promise<number>
+    /** Subscribe to the 5s memory broadcast that drives the chrome RAM pip. */
+    onMemorySample: (cb: (sample: MemorySample) => void) => () => void
   }
   layout: {
     /**
@@ -463,9 +564,223 @@ export type BrowserApi = {
     /** Subscribe to "an update is available" events from main. */
     onAvailable: (cb: (info: { version: string; releaseDate?: string; releaseUrl: string }) => void) => () => void
   }
+  /**
+   * Local account lock — no remote auth. The hashed secret lives in
+   * settings.json (PBKDF2-SHA256). Verification happens in main; the
+   * renderer only ever passes plaintext over IPC and gets a boolean back.
+   */
+  accountLock: {
+    /** Whether a lock is configured AND not yet verified for this session. */
+    requiresUnlock: () => Promise<boolean>
+    /** Verify the local secret. Returns true on success. */
+    verify: (secret: string) => Promise<boolean>
+  }
+  /**
+   * Local cron-of-one. Time-triggered actions that fire from the main
+   * process: reminders, opening a URL at a set time, kicking off an
+   * agent task. Persisted in userData/schedules.json. The scheduler
+   * itself runs from app start and re-arms each next fire on its own;
+   * the renderer is just a CRUD surface + a live "fired" event stream.
+   */
+  schedules: {
+    list:   () => Promise<ScheduledTask[]>
+    create: (input: ScheduledTaskInput) => Promise<ScheduledTask>
+    update: (id: string, input: Partial<ScheduledTaskInput> & { enabled?: boolean }) => Promise<ScheduledTask>
+    delete: (id: string) => Promise<void>
+    /** Run a task right now, off-schedule. Useful as a "test" affordance in the UI. */
+    runNow: (id: string) => Promise<void>
+    onChange: (cb: (tasks: ScheduledTask[]) => void) => () => void
+    /** A task just fired — renderer surfaces a toast and (for agent tasks) routes to the sidebar. */
+    onFired:  (cb: (info: { id: string; label: string; action: ScheduledTaskAction }) => void) => () => void
+  }
+  /**
+   * Per-site password import. The renderer never sees a plaintext
+   * password — preview() returns hints, importSelected() persists with
+   * safeStorage encryption, list/listForOrigin return wire-shape only.
+   * fillActive() asks main to inject username + password into the
+   * focused form fields on the active tab; nothing returns to the
+   * renderer.
+   */
+  credentials: {
+    /** Open a native file dialog and parse the chosen CSV. Returns a preview. */
+    pickAndPreview: () => Promise<CredentialImportPreview | null>
+    /** Persist only the rows the user kept. Returns the new count. */
+    importSelected: (selection: CredentialImportSelection) => Promise<number>
+    list: () => Promise<SavedCredential[]>
+    listForOrigin: (origin: string) => Promise<SavedCredential[]>
+    remove: (id: string) => Promise<void>
+    /** Inject the credential into the focused form on the active tab. No-op if no focus. */
+    fillActive: (id: string) => Promise<boolean>
+    onChange: (cb: (creds: SavedCredential[]) => void) => () => void
+  }
+  /**
+   * Default-browser registration. macOS exposes a proper "set as default";
+   * Windows opens the Settings → Default apps pane; Linux delegates to xdg.
+   */
+  defaultBrowser: {
+    isDefault: () => Promise<boolean>
+    setDefault: () => Promise<boolean>
+  }
+  /**
+   * Unpacked Chrome-extension loader. The user picks a folder; we
+   * `session.defaultSession.loadExtension(path)` and persist the path
+   * so it loads on every boot. Removing an entry unloads it and stops
+   * loading it next time.
+   */
+  extensions: {
+    list:   () => Promise<ExtensionEntry[]>
+    /** Open a native folder picker and add the chosen extension. */
+    pickAndAdd: () => Promise<ExtensionEntry | null>
+    remove: (id: string) => Promise<void>
+    /** Unload + reload the extension (useful while developing one). */
+    reload: (id: string) => Promise<ExtensionEntry>
+    onChange: (cb: (list: ExtensionEntry[]) => void) => () => void
+  }
+  /**
+   * Second-brain vault — Skill 1 (OS Setup) from the AI-OS pattern.
+   * The vault is plain Markdown on disk; the renderer only sees
+   * status, never the contents. Reads/writes go through the agent.
+   */
+  secondBrain: {
+    /** Pick a folder + initialise the vault structure. Returns status. */
+    pickAndInit: () => Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>
+    /** Idempotent re-init at the currently-configured path. */
+    reinit: () => Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>
+    /** Status of the currently-configured vault. */
+    status: () => Promise<{ path: string; fileCount: number; totalBytes: number; initialised: boolean } | null>
+    /** Suggested default path for the picker. */
+    defaultPath: () => Promise<string>
+  }
 }
 
 export type UpdateAvailable = { version: string; releaseDate?: string; releaseUrl: string }
+
+// ── Scheduled tasks (local cron-of-one) ──────────────────────────────
+// Time-triggered actions that fire from the main process. Stored as
+// JSON in userData/schedules.json. No remote service, no calendar
+// integration — the device's clock is the trigger. Three action types
+// cover the common cases:
+//   - reminder: native notification at a time (clocked reminder)
+//   - openUrl : create a new tab at a URL (e.g. open opentable.com at
+//               09:00 so the booking page is ready)
+//   - agent   : kick off an agent task with a prompt — once click/type
+//               act tools land, this is the "book the table for me"
+//               path. Today the agent will navigate + report.
+//
+// Triggers are intentionally narrow for v1:
+//   - oneShot: an absolute ISO timestamp; fires once
+//   - every  : repeat every N minutes from createdAt; fires N times
+//              until the user pauses/deletes it
+// Cron expressions are a planned upgrade — for v1, "every 30 minutes"
+// and "tomorrow at 09:00" cover ~90% of the asks.
+export type ScheduledTaskTrigger =
+  | { kind: "oneShot"; at: string }          // ISO timestamp, e.g. "2026-05-20T09:00:00Z"
+  | { kind: "every"; minutes: number }       // every N minutes, N >= 1
+
+export type ScheduledTaskAction =
+  | { kind: "reminder"; title: string; body?: string }
+  | { kind: "openUrl"; url: string; title?: string }
+  | { kind: "agent"; prompt: string; title?: string }
+
+export type ScheduledTask = {
+  id: string                       // "task:<uuid>"
+  label: string                    // user-supplied display name
+  trigger: ScheduledTaskTrigger
+  action: ScheduledTaskAction
+  enabled: boolean                 // paused tasks are kept but don't fire
+  createdAt: number                // unix ms
+  nextRunAt: number | null         // unix ms, null if computed-as-past for a oneShot
+  lastRunAt: number | null         // unix ms of last successful fire
+  lastError: string | null         // last failure message, if any
+  fireCount: number                // total successful fires
+}
+
+export type ScheduledTaskInput = {
+  label: string
+  trigger: ScheduledTaskTrigger
+  action: ScheduledTaskAction
+}
+
+// ── Saved credentials (per-site password import) ─────────────────────
+//
+// Wire shape — the renderer NEVER sees the plaintext password. The
+// password is encrypted by safeStorage (OS keychain) in main and
+// returned only to the active-tab content-script when the user clicks
+// "Fill password" on the address bar pill. The renderer learns:
+//   - that there is/isn't a credential for the current origin
+//   - the username (so the UI can show "Fill as foo@example.com")
+//   - the count, the import timestamp
+// — but never the password itself.
+export type SavedCredential = {
+  id: string                  // "cred:<uuid>"
+  origin: string              // normalised scheme+host, e.g. "https://example.com"
+  username: string
+  /** Whether a password ciphertext is stored. (Renderer never sees the value.) */
+  hasPassword: boolean
+  importedAt: number
+  lastUsedAt: number | null
+}
+
+// One row of a CSV password export, as the user sees it in the import
+// preview. The renderer shows these and the user toggles `keep` per
+// row; only kept rows are persisted.
+export type CredentialImportRow = {
+  /** Stable index inside the parsed file, used as the key in the preview. */
+  index: number
+  /** Normalised origin we derived from the row's url column. */
+  origin: string
+  username: string
+  /** Truncated password preview ("••••" + last two chars) — never the full value. */
+  passwordHint: string
+  /** Pre-flagged: a credential for (origin, username) already exists. */
+  alreadyExists: boolean
+  /** Pre-flagged: the row didn't have a parseable origin and we can't store it. */
+  invalid: boolean
+}
+
+export type CredentialImportPreview = {
+  /** Absolute path the user picked. We don't keep the file open beyond the preview call. */
+  filePath: string
+  rows: CredentialImportRow[]
+  /** How many rows we couldn't parse (no url column, etc). */
+  rejected: number
+}
+
+export type CredentialImportSelection = {
+  filePath: string
+  /** Indices from the preview the user chose to keep. */
+  keepIndices: number[]
+}
+
+// ── Unpacked Chrome-extension loading ────────────────────────────────
+//
+// Electron's `session.loadExtension(path)` supports MV3 content scripts +
+// theme + a subset of the chrome.* APIs. We expose this as a per-user
+// list of folder paths — each one is loaded on app boot and on
+// hot-reload. NOT a Chrome Web Store integration; the user supplies a
+// folder containing an unpacked extension's `manifest.json`.
+//
+// What works seamlessly: content scripts, themes, action popups,
+// devtools-extension panels, web-accessible resources, the `chrome.tabs`
+// query/get APIs.
+// What doesn't yet: chrome.identity, chrome.cookies (privacy boundary),
+// the full chrome.runtime.connect remote-port surface, and most things
+// that rely on Chrome Sync.
+export type ExtensionEntry = {
+  /** "ext:<uuid>" — stable id we generate when the path is added. */
+  id: string
+  /** Absolute path to the unpacked extension folder. */
+  path: string
+  /** From the extension's manifest.json. Best-effort; null if parse fails. */
+  name: string | null
+  version: string | null
+  description: string | null
+  /** True once Electron's session has loaded it for this process. */
+  loaded: boolean
+  /** Last load attempt's error, if any. */
+  lastError: string | null
+  addedAt: number
+}
 
 declare global {
   interface Window {

@@ -3,6 +3,7 @@
   "productName": "Delta",
   "version": "0.0.2",
   "private": true,
+  "license": "MIT",
   "description": "Delta — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
   "author": {
     "name": "Ankur Sinha",

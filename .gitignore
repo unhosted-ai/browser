@@ -26,3 +26,9 @@ release/
 .turbo
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code per-project state (settings, command history). Not part of the product.
+.claude/
+
+# Unrelated reference material kept in the workspace; never part of the repo.
+references/
