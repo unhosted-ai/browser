@@ -1,7 +1,7 @@
 {
   "name": "delta",
   "productName": "Delta",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "license": "MIT",
   "description": "Delta — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
