@@ -25,6 +25,7 @@ remaining._
 | Agent vault tools — `vault_list` / `vault_read` / `vault_write` / `vault_append` (read-tier, bounded to the configured vault, path-traversal-guarded, 256 KB/write cap). Makes scheduled-`agent` daily briefs possible. | [tools.ts](../src/main/tools.ts) | landed |
 | RAM pip in the tab strip + Settings → Tabs section with auto-discard presets. Lives off `app.getAppMetrics` on a 5s broadcast; "Discard idle now" one-click. | [RamPip.tsx](../src/renderer/src/components/RamPip.tsx) + [tabs.ts](../src/main/tabs.ts) | landed |
 | Soft live-tab cap (`maxLiveTabs`, 0 = unlimited). Enforced on create / revive / cap-tighten. Oldest non-active live tab gets discarded first. | [tabs.ts](../src/main/tabs.ts) + Settings UI | landed |
+| macOS Keychain reader for credentials. `listSystemPasswords` enumerates web-password entries from `security dump-keychain` (metadata only, no OS prompts). `importFromSystemPasswords` fetches each selected entry via `security find-internet-password -w` — OS shows its access-prompt the first time, then encrypts via `safeStorage`. Windows + Linux land next. | [credentials.ts](../src/main/credentials.ts) + Settings UI | landed (macOS) |
 
 ## Stacked asks — honest first-PR scope
 

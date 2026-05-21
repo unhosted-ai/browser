@@ -612,6 +612,10 @@ export type BrowserApi = {
     /** Inject the credential into the focused form on the active tab. No-op if no focus. */
     fillActive: (id: string) => Promise<boolean>
     onChange: (cb: (creds: SavedCredential[]) => void) => () => void
+    /** Enumerate entries in the OS keychain (metadata only — no OS prompts). */
+    listSystemPasswords: () => Promise<SystemCredentialEntry[]>
+    /** Import the user-picked entries. OS shows its access-prompt per-item the first time. */
+    importFromSystemPasswords: (entries: SystemCredentialEntry[]) => Promise<SystemCredentialImportResult>
   }
   /**
    * Default-browser registration. macOS exposes a proper "set as default";
@@ -750,6 +754,36 @@ export type CredentialImportSelection = {
   filePath: string
   /** Indices from the preview the user chose to keep. */
   keepIndices: number[]
+}
+
+// One entry surfaced from the OS keychain. Metadata only — no password
+// value (Delta never carries plaintext over IPC). On macOS this comes
+// from `security dump-keychain`; on Windows + Linux the analogous APIs
+// will populate the same shape in a follow-up PR.
+export type SystemCredentialEntry = {
+  host: string                // bare hostname, lowercased
+  username: string
+  /** Normalised origin we'd persist if the user imports this. */
+  origin: string
+  /** True if a (origin, username) pair is already in Delta's store. */
+  alreadyImported: boolean
+}
+
+export type SystemCredentialImportResult = {
+  imported: number
+  results: Array<{
+    host: string
+    username: string
+    /**
+     *  imported   — password fetched + encrypted + stored
+     *  denied     — the user clicked Deny on the OS keychain prompt
+     *  not_found  — the keychain item disappeared between list + import
+     *  no_password— the entry has no password value (rare)
+     *  skipped    — malformed entry; we didn't try
+     *  unsupported— the host platform doesn't have a system keychain reader yet
+     */
+    status: "imported" | "denied" | "not_found" | "no_password" | "skipped" | "unsupported"
+  }>
 }
 
 // ── Unpacked Chrome-extension loading ────────────────────────────────

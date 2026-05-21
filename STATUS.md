@@ -24,7 +24,7 @@ table when the two disagree.
 - Copy link, hamburger menu, "Clear browsing data" (cookies / cache / history / downloads)
 - **Account lock** — opt-in PIN or password gate at app launch; PBKDF2-SHA256 200k iters, hash + salt only on disk, `timingSafeEqual` in main, 3-failure 4s cooldown on the lock screen
 - **Scheduled tasks** — local cron-of-one (`reminder` / `openUrl` / `agent` actions; `oneShot` ISO or `every N min`). Native `Notification` API for reminders; agent prompts spawn a fresh conversation
-- **Per-site password import** — CSV preview (Chrome / Brave / Edge / Firefox / Safari export format) with per-row keep; passwords encrypted via OS keychain; plaintext never crosses IPC; fill-into-active-tab IPC ready (renderer hookup is the next polish PR)
+- **Per-site password import** — CSV preview (Chrome / Brave / Edge / Firefox / Safari export format) with per-row keep, OR **direct from the macOS Keychain** via `security` (lists metadata without prompts; OS prompts per-item on import). Passwords encrypted via OS keychain (`safeStorage`); plaintext never crosses IPC; fill-into-active-tab IPC ready. Windows + Linux system-keychain readers land next.
 - **Set as default browser** — registers Delta for http+https via `app.setAsDefaultProtocolClient`; Windows deeplinks to the Settings → Default apps pane
 - **Conversation compression** — `userData/conversations/<id>.json.gz` (gzip via `node:zlib`), 4-6× smaller; legacy `.json` reads transparently, migrate on next save
 

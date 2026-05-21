@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import type { CredentialImportPreview, ExtensionEntry, PrivacyReport, ProviderInfo, SavedCredential, ScheduledTask, ScheduledTaskAction, ScheduledTaskInput, ScheduledTaskTrigger, UserSettings } from "@shared/types"
+import type { CredentialImportPreview, ExtensionEntry, PrivacyReport, ProviderInfo, SavedCredential, ScheduledTask, ScheduledTaskAction, ScheduledTaskInput, ScheduledTaskTrigger, SystemCredentialEntry, SystemCredentialImportResult, UserSettings } from "@shared/types"
 import { useTheme } from "../hooks/useTheme"
 
 type Props = {
@@ -1782,6 +1782,11 @@ function AccountLockSection({ settings }: { settings: UserSettings }) {
 // which decrypts in main and injects the value into the active tab's
 // focused form. The plaintext password never crosses the IPC boundary
 // in either direction.
+// Stable identity for a system-keychain row — used as the Set<string> key
+// in the per-row checkbox state. `host\tusername` is safe because tabs
+// don't appear in either field.
+function sysKey(e: SystemCredentialEntry): string { return `${e.host}\t${e.username}` }
+
 function CredentialsSection() {
   const [creds, setCreds] = useState<SavedCredential[] | null>(null)
   const [preview, setPreview] = useState<CredentialImportPreview | null>(null)
@@ -1790,6 +1795,14 @@ function CredentialsSection() {
   const [error, setError] = useState<string | null>(null)
   const [okFlash, setOkFlash] = useState<string | null>(null)
   const [filter, setFilter] = useState("")
+  // System-keychain import (macOS today). `sysList` is null until the user
+  // clicks the button. After listing, `sysKeep` tracks which entries the
+  // user wants to actually fetch passwords for (each fetch fires the OS
+  // access-prompt on first run).
+  const [sysList, setSysList] = useState<SystemCredentialEntry[] | null>(null)
+  const [sysKeep, setSysKeep] = useState<Set<string>>(new Set())
+  const [sysBusy, setSysBusy] = useState(false)
+  const [sysMessage, setSysMessage] = useState<string | null>(null)
 
   useEffect(() => {
     void window.api.credentials.list().then(setCreds)
@@ -1843,6 +1856,53 @@ function CredentialsSection() {
   const cancel = () => { setPreview(null); setKeep(new Set()); setError(null) }
   const remove = (id: string) => void window.api.credentials.remove(id)
 
+  const pickFromSystem = async () => {
+    setSysMessage(null)
+    setError(null)
+    try {
+      const list = await window.api.credentials.listSystemPasswords()
+      if (list.length === 0) {
+        setSysMessage("No entries surfaced from the system keychain. Today only macOS is supported — Windows + Linux land next.")
+        return
+      }
+      setSysList(list)
+      // Default: pre-select everything not already imported.
+      setSysKeep(new Set(list.filter((e) => !e.alreadyImported).map(sysKey)))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+  const toggleSysRow = (key: string) => {
+    const next = new Set(sysKeep)
+    if (next.has(key)) next.delete(key); else next.add(key)
+    setSysKeep(next)
+  }
+  const commitSystem = async () => {
+    if (!sysList || sysBusy) return
+    setSysBusy(true)
+    setError(null)
+    setSysMessage(null)
+    try {
+      const picked = sysList.filter((e) => sysKeep.has(sysKey(e)))
+      const result: SystemCredentialImportResult = await window.api.credentials.importFromSystemPasswords(picked)
+      const denied = result.results.filter((r) => r.status === "denied").length
+      const notFound = result.results.filter((r) => r.status === "not_found").length
+      const skipped = result.results.filter((r) => r.status === "skipped" || r.status === "no_password" || r.status === "unsupported").length
+      const parts: string[] = [`Imported ${result.imported}`]
+      if (denied > 0) parts.push(`${denied} denied`)
+      if (notFound > 0) parts.push(`${notFound} not found`)
+      if (skipped > 0) parts.push(`${skipped} skipped`)
+      flashOk(parts.join(" · "))
+      setSysList(null)
+      setSysKeep(new Set())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSysBusy(false)
+    }
+  }
+  const cancelSystem = () => { setSysList(null); setSysKeep(new Set()); setSysMessage(null); setError(null) }
+
   const filtered = !creds ? [] : filter.trim()
     ? creds.filter((c) =>
         c.origin.toLowerCase().includes(filter.toLowerCase()) ||
@@ -1864,7 +1924,71 @@ function CredentialsSection() {
         hint="Import a CSV from your old browser, then pick per-site which entries to keep. Encrypted via your OS keychain."
       />
       <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 space-y-3">
-        {preview ? (
+        {sysList ? (
+          <div className="space-y-2">
+            <p className="text-[12px] text-chrome-text-2 leading-relaxed">
+              {sysList.length} entr{sysList.length === 1 ? "y" : "ies"} found in your system keychain.
+              Picking one and clicking Import will trigger the OS access-prompt the first time —
+              click <span className="text-chrome-text">Always Allow</span> there to skip future prompts for that item.
+            </p>
+            <div className="max-h-[260px] overflow-y-auto -mx-1 px-1 space-y-1">
+              {sysList.map((e) => {
+                const key = sysKey(e)
+                const checked = sysKeep.has(key)
+                return (
+                  <button
+                    type="button"
+                    key={key}
+                    onClick={() => toggleSysRow(key)}
+                    className={[
+                      "w-full text-left rounded-xl border px-2.5 py-2 flex items-center gap-2.5 transition-colors",
+                      checked
+                        ? "bg-signal/10 border-signal/40"
+                        : "bg-chrome-surface-2 border-chrome-border hover:border-chrome-text-3",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "h-3.5 w-3.5 rounded shrink-0 border flex items-center justify-center",
+                        checked ? "bg-signal border-signal" : "border-chrome-border",
+                      ].join(" ")}
+                    >
+                      {checked && <span className="text-[hsl(240_8%_8%)] text-[9px] leading-none">✓</span>}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] text-chrome-text truncate">{e.username}</p>
+                      <p className="font-mono text-[10.5px] text-chrome-text-3 truncate">{e.origin}</p>
+                    </div>
+                    {e.alreadyImported && (
+                      <span className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-chrome-text-3 shrink-0">
+                        replaces existing
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {error && <p role="alert" className="font-mono text-[11px] text-[hsl(0_70%_72%)]">{error}</p>}
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={cancelSystem}
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-chrome-text transition-colors"
+              >Cancel</button>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] tracking-[0.08em] text-chrome-text-3">
+                  {sysKeep.size} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={commitSystem}
+                  disabled={sysBusy || sysKeep.size === 0}
+                  className="h-8 px-4 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[12px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+                >{sysBusy ? "Importing…" : `Import ${sysKeep.size}`}</button>
+              </div>
+            </div>
+          </div>
+        ) : preview ? (
           <div className="space-y-2">
             <p className="text-[12px] text-chrome-text-2 leading-relaxed">
               {preview.rows.length} row{preview.rows.length === 1 ? "" : "s"} parsed
@@ -1936,15 +2060,28 @@ function CredentialsSection() {
                 {creds === null
                   ? "Loading…"
                   : creds.length === 0
-                    ? "No saved credentials yet. Import a CSV from Chrome / Brave / Edge / Firefox / Safari."
+                    ? "No saved credentials yet. Import a CSV from Chrome / Brave / Edge / Firefox / Safari, or pull from your macOS Keychain."
                     : `${creds.length} credential${creds.length === 1 ? "" : "s"} across ${grouped.size} site${grouped.size === 1 ? "" : "s"}.`}
               </p>
-              <button
-                type="button"
-                onClick={pick}
-                className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 transition-opacity shrink-0"
-              >Import CSV…</button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={pickFromSystem}
+                  className="h-8 px-3 rounded-full bg-chrome-surface-2 border border-chrome-border text-chrome-text text-[11.5px] font-medium hover:border-signal/60 transition-colors"
+                  title="Read web passwords from your system keychain (macOS today; Windows + Linux soon). OS prompts per-item the first time."
+                >From system keychain</button>
+                <button
+                  type="button"
+                  onClick={pick}
+                  className="h-8 px-3 rounded-full bg-signal text-[hsl(240_8%_8%)] text-[11.5px] font-medium hover:opacity-90 transition-opacity"
+                >Import CSV…</button>
+              </div>
             </div>
+            {sysMessage && (
+              <p role="status" className="font-mono text-[10.5px] tracking-[0.04em] text-chrome-text-3">
+                {sysMessage}
+              </p>
+            )}
 
             {creds && creds.length > 0 && (
               <input

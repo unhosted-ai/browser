@@ -10,6 +10,8 @@ import type {
   ConversationSummary,
   CredentialImportPreview,
   CredentialImportSelection,
+  SystemCredentialEntry,
+  SystemCredentialImportResult,
   ExtensionEntry,
   DownloadEntry,
   HistoryEntry,
@@ -204,6 +206,8 @@ const api: BrowserApi = {
       ipcRenderer.on("credentials:change", listener)
       return () => ipcRenderer.removeListener("credentials:change", listener)
     },
+    listSystemPasswords:        () => ipcRenderer.invoke("credentials:listSystemPasswords") as Promise<SystemCredentialEntry[]>,
+    importFromSystemPasswords:  (entries: SystemCredentialEntry[]) => ipcRenderer.invoke("credentials:importFromSystemPasswords", entries) as Promise<SystemCredentialImportResult>,
   },
   defaultBrowser: {
     isDefault:  () => ipcRenderer.invoke("defaultBrowser:isDefault") as Promise<boolean>,

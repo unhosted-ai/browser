@@ -34,6 +34,7 @@ import type {
   AgentSendInput,
   ClearScope,
   CredentialImportSelection,
+  SystemCredentialEntry,
   IdentityProvider,
   ScheduledTaskInput,
   SettingsUpdate,
@@ -277,6 +278,11 @@ function registerIpc(): void {
     const activeId = tabs.getState().activeId
     const view = activeId ? tabs.getView(activeId) : null
     return credentials.fillActive(id, view?.webContents ?? null)
+  })
+  ipcMain.handle("credentials:listSystemPasswords", async () => credentials?.listSystemPasswords() ?? [])
+  ipcMain.handle("credentials:importFromSystemPasswords", async (_e, entries: SystemCredentialEntry[]) => {
+    if (!credentials) return { imported: 0, results: [] }
+    return credentials.importFromSystemPasswords(entries ?? [])
   })
 
   // Default-browser registration. macOS: app.setAsDefaultProtocolClient

@@ -21,15 +21,21 @@
 //      Settings before any password leaves the CSV.
 
 import { app, BrowserWindow, dialog, safeStorage, type WebContents } from "electron"
+import { execFile } from "node:child_process"
 import { randomUUID } from "node:crypto"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { promisify } from "node:util"
 import type {
   CredentialImportPreview,
   CredentialImportRow,
   CredentialImportSelection,
   SavedCredential,
+  SystemCredentialEntry,
+  SystemCredentialImportResult,
 } from "@shared/types"
+
+const execFileP = promisify(execFile)
 
 const FILE = () => join(app.getPath("userData"), "credentials.json")
 
@@ -170,6 +176,119 @@ export class CredentialsStore {
     this.persist()
     this.emit()
     return imported
+  }
+
+  /** Enumerate web-password entries in the OS keychain. Metadata only —
+   *  no password values are read here, so the OS access-prompt does NOT
+   *  appear. Returns `{ host, username, alreadyImported }` so the UI can
+   *  ask the user which entries to import.
+   *
+   *  Platforms: macOS shells out to `security dump-keychain` and parses
+   *  internet-password records (class:"inet"). Windows + Linux return an
+   *  empty list today — same shape, separate PR. */
+  async listSystemPasswords(): Promise<SystemCredentialEntry[]> {
+    if (process.platform !== "darwin") return []
+    try {
+      // `-c inet` filters to internet passwords (Safari / iCloud Keychain
+      // form fills). We don't pass `-d` — that would dump secrets and
+      // trigger the OS prompt per item even though we don't need values.
+      const { stdout } = await execFileP("security", ["dump-keychain"], {
+        maxBuffer: 32 * 1024 * 1024,
+      })
+      const parsed = parseSecurityDump(stdout)
+      const seen = new Set<string>()
+      const out: SystemCredentialEntry[] = []
+      for (const item of parsed) {
+        if (item.class !== "inet") continue
+        if (!item.srvr || !item.acct) continue
+        const host = item.srvr.toLowerCase()
+        const username = item.acct
+        const key = `${host}\t${username}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        const protocol = item.ptcl === "http" ? "http" : "https"
+        const origin = `${protocol}://${host}`
+        out.push({
+          host,
+          username,
+          origin,
+          alreadyImported: this.creds.some((c) => c.origin === origin && c.username === username),
+        })
+      }
+      // Stable display order: alphabetical by host, then username.
+      out.sort((a, b) => a.host.localeCompare(b.host) || a.username.localeCompare(b.username))
+      return out
+    } catch (err) {
+      console.warn("[credentials] system keychain listing failed:", err)
+      return []
+    }
+  }
+
+  /** Import the user-selected entries from the OS keychain. For each entry,
+   *  fetches the password via `security find-internet-password -w` — the OS
+   *  shows its access-prompt the first time, then remembers if the user
+   *  clicks "Always allow". Returns a per-entry result so the UI can show
+   *  which ones the user denied or which were missing. Plaintext never
+   *  leaves main. */
+  async importFromSystemPasswords(entries: SystemCredentialEntry[]): Promise<SystemCredentialImportResult> {
+    if (process.platform !== "darwin") {
+      return { imported: 0, results: entries.map((e) => ({ host: e.host, username: e.username, status: "unsupported" })) }
+    }
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error("OS keychain encryption is unavailable; refusing to persist passwords.")
+    }
+    const results: SystemCredentialImportResult["results"] = []
+    let imported = 0
+    for (const entry of entries) {
+      const host = entry.host?.trim().toLowerCase()
+      const username = entry.username?.trim()
+      if (!host || !username) {
+        results.push({ host: entry.host, username: entry.username, status: "skipped" })
+        continue
+      }
+      let password: string | null = null
+      try {
+        const { stdout } = await execFileP("security", [
+          "find-internet-password",
+          "-s", host,
+          "-a", username,
+          "-w",
+        ])
+        // `-w` prints the password followed by a newline; trim that.
+        password = stdout.replace(/\n$/, "")
+        if (!password) {
+          results.push({ host, username, status: "no_password" })
+          continue
+        }
+      } catch (err: any) {
+        // `security` exits non-zero when the user denies or the item is
+        // missing. We can't always distinguish — surface a generic
+        // "denied_or_missing" so the UI tells the user to try again.
+        const msg = (err?.stderr?.toString?.() ?? err?.message ?? "").toLowerCase()
+        const denied = msg.includes("user interaction is not allowed") || msg.includes("user name or signature") || msg.includes("user canceled")
+        results.push({ host, username, status: denied ? "denied" : "not_found" })
+        continue
+      }
+      // Replace any prior entry for the same (origin, username) — same
+      // policy as the CSV path.
+      const origin = entry.origin ?? `https://${host}`
+      this.creds = this.creds.filter((c) => !(c.origin === origin && c.username === username))
+      this.creds.push({
+        id: "cred:" + randomUUID(),
+        origin,
+        username,
+        passwordCipher: safeStorage.encryptString(password).toString("base64"),
+        importedAt: Date.now(),
+        lastUsedAt: null,
+      })
+      // Drop the plaintext reference immediately.
+      password = null
+      imported += 1
+      results.push({ host, username, status: "imported" })
+    }
+    this.persist()
+    this.emit()
+    return { imported, results }
   }
 
   /** Fill the credential into the focused form on the supplied WebContents. */
@@ -344,4 +463,54 @@ function isStored(x: unknown): x is StoredCredential {
     typeof c.origin === "string" &&
     typeof c.username === "string"
   )
+}
+
+// ── macOS `security dump-keychain` parser ─────────────────────────────
+// The CLI prints one item at a time, each item is a `keychain:` line
+// followed by a `class:` line and an `attributes:` block. Inside the
+// attributes block, each row is one keyed attribute. We only care about
+// `srvr` (server), `acct` (account/username), and `ptcl` (protocol);
+// every other attribute is ignored. Output looks like:
+//
+//   keychain: "/.../login.keychain-db"
+//   class: "inet"
+//   attributes:
+//       "acct"<blob>="alice@example.com"
+//       "srvr"<blob>="example.com"
+//       "ptcl"<uint32>="htps"
+//
+// Quoted blob values can contain escaped characters (`\134` = backslash,
+// etc) but for hostnames + usernames the encoding is plain ASCII in
+// every example we've checked.
+type ParsedSecurityItem = { class: string; srvr?: string; acct?: string; ptcl?: string }
+function parseSecurityDump(text: string): ParsedSecurityItem[] {
+  const out: ParsedSecurityItem[] = []
+  let current: ParsedSecurityItem | null = null
+  const lines = text.split("\n")
+  for (const line of lines) {
+    const klass = line.match(/^class:\s*"([^"]+)"/)
+    if (klass) {
+      if (current) out.push(current)
+      current = { class: klass[1]! }
+      continue
+    }
+    if (!current) continue
+    const attr = line.match(/^\s*"(\w{4})"<[^>]+>=(?:"([^"]*)"|0x([0-9A-Fa-f]+))/)
+    if (!attr) continue
+    const key = attr[1]
+    const quoted = attr[2]
+    const hex = attr[3]
+    let value: string | undefined = quoted
+    if (value === undefined && hex !== undefined) {
+      // Some attributes are emitted as hex (e.g. when the blob contains
+      // non-printable bytes). Decode as UTF-8 for sanity.
+      try { value = Buffer.from(hex, "hex").toString("utf8") } catch { value = undefined }
+    }
+    if (value === undefined) continue
+    if (key === "srvr") current.srvr = value
+    else if (key === "acct") current.acct = value
+    else if (key === "ptcl") current.ptcl = value.toLowerCase().includes("htps") ? "https" : "http"
+  }
+  if (current) out.push(current)
+  return out
 }
