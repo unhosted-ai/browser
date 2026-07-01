@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import type { Identity } from "@shared/types"
-import { DeltaLogo } from "./DeltaLogo"
+import { UnhostedMark } from "./UnhostedMark"
 
 type Props = {
   collapsed: boolean
@@ -44,11 +44,11 @@ export function LeftNavSidebar({ collapsed, onToggleCollapsed, onNewTab, onOpenS
       <div className="no-drag px-3 pb-3 flex items-center justify-between">
         <div className={["flex items-baseline gap-2 min-w-0", collapsed ? "justify-center w-full" : ""].join(" ")}>
           <span className="text-signal shrink-0" style={{ transform: "translateY(2px)" }}>
-            <DeltaLogo size={14} />
+            <UnhostedMark size={14} />
           </span>
           {!collapsed && (
             <span className="font-serif italic text-[16px] leading-none text-chrome-text truncate">
-              Delta
+              Unhosted
             </span>
           )}
         </div>
@@ -213,7 +213,7 @@ function ProfileChip({ collapsed, onOpenSignIn }: { collapsed: boolean; onOpenSi
   const tooltip = signedIn
     ? `${identity!.displayName} (${identity!.handle})\nProvider: ${identity!.provider}\nStored locally · no remote account · no sync`
     : "Default profile · stored locally on this device.\n" +
-      "Delta has no account — your settings and history live on this machine."
+      "Unhosted Browser has no account — your settings and history live on this machine."
 
   return (
     <div ref={ref} className="no-drag p-3 border-t border-chrome-border relative">

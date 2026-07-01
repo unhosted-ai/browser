@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { motion } from "motion/react"
-import { DeltaLogo } from "./DeltaLogo"
+import { UnhostedMark } from "./UnhostedMark"
 
 type Props = {
   /** "pin" or "password" — drives the input mode and the on-screen label. */
@@ -20,7 +20,7 @@ type Props = {
  * There is no "forgot PIN" recovery flow on purpose — the secret only
  * ever existed on this device, and recovery would mean either an
  * accountless escape hatch (defeats the purpose) or a server-side reset
- * (Delta has no server). If you lose the secret, deleting the app's
+ * (Unhosted Browser has no server). If you lose the secret, deleting the app's
  * settings.json wipes the lock; everything else is intact.
  */
 export function LockScreen({ kind, onUnlocked }: Props) {
@@ -92,14 +92,14 @@ export function LockScreen({ kind, onUnlocked }: Props) {
       >
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-signal" style={{ transform: "translateY(2px)" }}>
-            <DeltaLogo size={18} />
+            <UnhostedMark size={18} />
           </span>
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">
             locked
           </span>
         </div>
         <h1 className="font-serif italic text-[26px] leading-[1.1] text-chrome-text mb-2">
-          Delta is locked.
+          Unhosted Browser is locked.
         </h1>
         <p className="text-[13px] leading-[1.55] text-chrome-text-2 mb-5">
           {label}. Nothing leaves your machine; this check runs against a
@@ -135,10 +135,10 @@ export function LockScreen({ kind, onUnlocked }: Props) {
         </form>
 
         <p className="mt-5 pt-4 border-t border-chrome-border font-mono text-[10px] tracking-[0.08em] text-chrome-text-3 leading-[1.6]">
-          No recovery, no remote reset — Delta has no server.
+          No recovery, no remote reset — Unhosted Browser has no server.
           If you've lost the {kind === "pin" ? "PIN" : "password"}, delete
           <code className="text-chrome-text-2 px-1">settings.json</code>
-          in Delta's data folder to remove the lock. Everything else stays.
+          in Unhosted Browser's data folder to remove the lock. Everything else stays.
         </p>
       </motion.div>
     </motion.div>

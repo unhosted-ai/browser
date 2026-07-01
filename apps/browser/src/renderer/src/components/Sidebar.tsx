@@ -11,7 +11,7 @@ import type {
   ToolCallView,
   UserSettings,
 } from "@shared/types"
-import { DeltaLogo } from "./DeltaLogo"
+import { UnhostedMark } from "./UnhostedMark"
 
 type Props = {
   providers: ProviderInfo[]
@@ -266,7 +266,7 @@ export function Sidebar({ providers, activeUrl, activeTitle, onRefresh, onOpenSe
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-2">
             <span className="text-signal" style={{ transform: "translateY(2px)" }}>
-              <DeltaLogo size={13} />
+              <UnhostedMark size={13} />
             </span>
             <span className="font-serif italic text-[18px] leading-none text-chrome-text">Assistant</span>
           </div>

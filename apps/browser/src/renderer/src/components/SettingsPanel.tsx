@@ -174,7 +174,7 @@ function SettingsBody({
 }
 
 // ── App lock (biometric / system password on launch) ────────────────
-// Opt-in: when on, Delta prompts for Touch ID before the main window
+// Opt-in: when on, Unhosted Browser prompts for Touch ID before the main window
 // appears. Off by default — the app is no-account, this is for users
 // who want a second layer at the device edge (shared laptop, family
 // machine, etc.). The toggle stays writable on non-macOS platforms,
@@ -190,8 +190,8 @@ function AppLockSection({ settings }: { settings: UserSettings }) {
       <SectionHeader
         label="App lock"
         hint={isMac
-          ? "Require Touch ID before Delta opens. Off by default."
-          : "Require your OS biometric / password before Delta opens. macOS Touch ID only for now — toggle still saves on other platforms."}
+          ? "Require Touch ID before Unhosted Browser opens. Off by default."
+          : "Require your OS biometric / password before Unhosted Browser opens. macOS Touch ID only for now — toggle still saves on other platforms."}
       />
       <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -200,7 +200,7 @@ function AppLockSection({ settings }: { settings: UserSettings }) {
           </p>
           <p className="text-[11px] text-chrome-text-3 mt-0.5">
             {isMac
-              ? "Uses systemPreferences.promptTouchID. Cancels quit Delta."
+              ? "Uses systemPreferences.promptTouchID. Cancels quit Unhosted Browser."
               : "Touch ID prompt is macOS-only; this preference is harmless on your platform."}
           </p>
         </div>
@@ -798,7 +798,7 @@ function ConnectionSection({
           </ol>
           <p className="text-[11px] text-chrome-text-3 leading-relaxed mb-3">
             Already running LM Studio / llama.cpp / MLX? Start their local
-            server — Delta auto-detects within a few seconds.
+            server — Unhosted Browser auto-detects within a few seconds.
           </p>
           {/* Prominent CTA so users on a non-default IP/port don't have to
               hunt for the Custom endpoints section below. */}
@@ -1318,7 +1318,7 @@ function PrivacyNote() {
   return (
     <section className="pt-4 border-t border-chrome-border">
       <p className="text-[11px] text-chrome-text-3 leading-relaxed">
-        Delta has no account. Keys you add live in your OS keychain via
+        Unhosted Browser has no account. Keys you add live in your OS keychain via
         Electron <code className="font-mono">safeStorage</code> and only
         the main process ever decrypts them. Removing a key here removes
         it from disk.
@@ -1329,7 +1329,7 @@ function PrivacyNote() {
 
 // ── Legal & Privacy ──────────────────────────────────────────────────
 // Surface the on-disk docs in-app so users don't have to know they exist
-// on GitHub to find them. Each opens a NEW Delta tab — keeps the user
+// on GitHub to find them. Each opens a NEW Unhosted Browser tab — keeps the user
 // in the app rather than punting them to their default browser.
 function LegalPrivacySection() {
   const open = (url: string) => { void window.api.tabs.create(url); }
@@ -1338,7 +1338,7 @@ function LegalPrivacySection() {
     {
       label: "Privacy notice",
       href: `${base}/PRIVACY.md`,
-      hint: "What data Delta processes, every outbound endpoint, jurisdiction addenda (GDPR, CCPA, PIPEDA, LGPD, DPDP, PIPL, APPI, others).",
+      hint: "What data Unhosted Browser processes, every outbound endpoint, jurisdiction addenda (GDPR, CCPA, PIPEDA, LGPD, DPDP, PIPL, APPI, others).",
     },
     {
       label: "Terms of use",
@@ -1381,7 +1381,7 @@ function LegalPrivacySection() {
         ))}
       </div>
       <p className="mt-2 text-[11px] text-chrome-text-3 leading-relaxed">
-        Delta runs no IP geolocation; the privacy notice is universal and
+        Unhosted Browser runs no IP geolocation; the privacy notice is universal and
         satisfies the strictest applicable regime.
       </p>
     </section>
@@ -1441,7 +1441,7 @@ function SecondBrainSection({ settings }: { settings: UserSettings }) {
         {!settings.secondBrainPath || !status ? (
           <>
             <p className="text-[12px] text-chrome-text-2 leading-relaxed">
-              Pick a folder. Delta creates the structure
+              Pick a folder. Unhosted Browser creates the structure
               (<code className="font-mono text-[11px]">context · daily · projects · intelligence · resources · skills</code>) +
               navigation maps. Existing files are left alone — re-init is safe.
             </p>
@@ -1735,7 +1735,7 @@ function AccountLockSection({ settings }: { settings: UserSettings }) {
         {mode === "clear" && (
           <div className="pl-3 border-l-2 border-chrome-border ml-1 space-y-2">
             <p className="text-[11.5px] text-chrome-text-2 leading-relaxed">
-              Removing the lock means anyone with this device can open Delta.
+              Removing the lock means anyone with this device can open Unhosted Browser.
               Confirm your current {settings.accountLockKind === "pin" ? "PIN" : "password"}:
             </p>
             <input
@@ -2162,12 +2162,12 @@ function DefaultBrowserSection() {
     <section>
       <SectionHeader
         label="Default browser"
-        hint="Register Delta as a handler for http + https links system-wide."
+        hint="Register Unhosted Browser as a handler for http + https links system-wide."
       />
       <div className="rounded-2xl border border-chrome-border bg-chrome-surface p-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[12.5px] text-chrome-text leading-snug">
-            {isDefault === null ? "Checking…" : isDefault ? "Delta is the default." : "Delta is not the default."}
+            {isDefault === null ? "Checking…" : isDefault ? "Unhosted Browser is the default." : "Unhosted Browser is not the default."}
           </p>
           <p className="text-[11px] text-chrome-text-3 mt-0.5 leading-relaxed">
             macOS confirms in System Settings → Desktop &amp; Dock. Windows opens the

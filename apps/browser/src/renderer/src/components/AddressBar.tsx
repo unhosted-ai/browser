@@ -81,17 +81,12 @@ const Icon = {
       <path d="M7 7l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   ),
-  // Delta brand mark — Δ with a guiding spark; mirrors components/DeltaLogo.tsx
+  // Unhosted mark — three concentric rings; mirrors components/UnhostedMark.tsx
   delta: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="2.4" r="1.1" fill="currentColor" />
-      <path
-        d="M8 5 L13 13.5 L3 13.5 Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
+    <svg width="12" height="12" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="7">
+      <circle cx="50" cy="50" r="44" strokeDasharray="2 6" />
+      <circle cx="50" cy="50" r="28" />
+      <circle cx="50" cy="50" r="12" fill="currentColor" stroke="none" />
     </svg>
   ),
   // Toothed gear — visually distinct from any "sun"-like radial shape.

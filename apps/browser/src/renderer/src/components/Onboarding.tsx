@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import type { Identity, IdentityProvider, ProviderInfo } from "@shared/types"
-import { DeltaLogo } from "./DeltaLogo"
+import { UnhostedMark } from "./UnhostedMark"
 
 const STORAGE_KEY = "delta:onboarded"
 
@@ -132,14 +132,14 @@ function ChooseView({
       <div className="px-7 pt-7 pb-5">
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-signal" style={{ transform: "translateY(2px)" }}>
-            <DeltaLogo size={18} />
+            <UnhostedMark size={18} />
           </span>
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">
             welcome
           </span>
         </div>
         <h1 className="font-serif italic text-[34px] leading-[1.05] text-chrome-text mb-3">
-          Delta is a privacy-first<br /> AI browser.
+          Unhosted Browser is a privacy-first<br /> AI browser.
         </h1>
         <p className="text-[13.5px] leading-[1.55] text-chrome-text-2 max-w-[44ch]">
           The Assistant runs against a model on your machine. Nothing leaves
@@ -213,7 +213,7 @@ function SignInView({
       <div className="px-7 pt-7 pb-3">
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-signal" style={{ transform: "translateY(2px)" }}>
-            <DeltaLogo size={18} />
+            <UnhostedMark size={18} />
           </span>
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-chrome-text-3">
             personalise · local
