@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>unhosted browser</title>
+  <!-- Favicon: warm-off-white ground so the monochrome mark reads at 16px.
+       Slightly heavier stroke than the 1:1 mark so the rings survive
+       down-rasterisation. -->
+  <rect width="100" height="100" rx="22" fill="#0A0A0A"/>
+  <g fill="none" stroke="#F5F5F0" stroke-width="3.5">
+    <circle cx="50" cy="50" r="40" stroke-dasharray="2 6"/>
+    <circle cx="50" cy="50" r="26"/>
+    <circle cx="50" cy="50" r="11" fill="#F5F5F0" stroke="none"/>
+  </g>
+</svg>

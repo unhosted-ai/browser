@@ -1,6 +1,6 @@
 # brand/exports
 
-Pre-rendered PNG and JPG of every Delta brand asset. Committed so
+Pre-rendered PNG and JPG of every Unhosted Browser brand asset. Committed so
 consumers (the GitHub Pages site, READMEs, social cards, third-party
 write-ups) don't need `rsvg-convert` installed.
 
@@ -11,7 +11,7 @@ Source-of-truth lives one folder up — these files are *outputs* of
 
 ### App icon — `icon-{16,32,48,64,128,256,512,1024}.{png,jpg}`
 
-The full Δ-with-spark icon — black line-art Δ + spark dot on a cream
+The three-ring Unhosted mark on a cream
 squircle. This is the asset that ends up in the macOS dock, the Windows
 taskbar, and `apple-touch-icon` slots. PNG carries the squircle's
 transparent corners; JPG composites onto the cream canvas that's baked
@@ -26,18 +26,18 @@ into the SVG itself, so JPGs are safe to drop on any background.
 
 ### Line-art mark — `icon-mark-{dark,light}-{64,128,256,512}.{png,jpg}`
 
-Stripped-down Δ + spark in a single stroke weight. No fills, no
-gradients. Use this for headers, footers, READMEs, monogram avatars.
+The three-ring mark, monochrome. No
+fills. Use this for headers, footers, READMEs, monogram avatars.
 
 - `icon-mark-dark-*` — near-black stroke. PNG has a transparent ground; JPG composites onto cream paper (`#f5f5f0`).
 - `icon-mark-light-*` — cream stroke. PNG has a transparent ground; JPG composites onto near-black (`#0a0c10`).
 
 ### Wordmark — `wordmark-{320,640,1280}.{png,jpg}` and `wordmark-cream-{320,640,1280}.{png,jpg}`
 
-The Δ + "Delta" lockup. Two register variants, both available as PNG + JPG:
+The "unhosted browser" wordmark. Two register variants, both available as PNG + JPG:
 
-- `wordmark-*` — dark register. Cream Δ-glyph + serif italic "Delta" type. PNG keeps the transparent ground; JPG composites onto near-black (`#0a0c10`).
-- `wordmark-cream-*` — light register. Black Δ + black type. PNG keeps the cream ground baked in by the SVG; JPG matches.
+- `wordmark-*` — dark register. Cream "unhosted" + mute "browser", mono. PNG keeps the transparent ground; JPG composites onto near-black (`#0a0c10`).
+- `wordmark-cream-*` — light register. Near-black "unhosted" + mute "browser". PNG keeps the cream ground baked in by the SVG; JPG matches.
 
 | Size | Use |
 | --- | --- |
@@ -48,8 +48,8 @@ The Δ + "Delta" lockup. Two register variants, both available as PNG + JPG:
 ### Open Graph card — `og-image.{png,jpg}` (1200×630), `og-image@2x.{png,jpg}` (2400×1260)
 
 The unfurled-link card you'll see when someone pastes
-`https://delta-practice.github.io/Browser/` into X / Slack / Discord /
-iMessage. Cream canvas, black line-art Δ + spark on the left, "delta"
+`https://unhosted-ai.github.io/browser/` into X / Slack / Discord /
+iMessage. Cream canvas, the three-ring mark on the left, "unhosted browser"
 wordmark + tagline + three badges on the right.
 
 The `@2x` variant is for higher-quality re-embeds (some platforms
@@ -68,5 +68,5 @@ Idempotent. Outputs land in `brand/exports/png/` and `brand/exports/jpg/`.
 
 Brand assets follow the rules in [`brand/guidelines.md`](../guidelines.md):
 free for screenshots, talks, write-ups, and "see this thing I'm building
-on top of Delta" demos. Please don't ship a fork called Delta with these
+on Unhosted" demos. Please don't ship a fork called Unhosted with these
 marks — pick your own name and your own brand.

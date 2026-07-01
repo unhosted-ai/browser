@@ -1,72 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta — Open Graph / social-share card. 1200×630, the standard size
-  rendered by Twitter/X, LinkedIn, Discord, Slack, iMessage when a link
-  to https://delta-practice.github.io/Browser/ is unfurled.
+  Unhosted Browser — Open Graph / social-share card. 1200×630, rendered by
+  X/LinkedIn/Discord/Slack/iMessage when a link to
+  https://unhosted-ai.github.io/browser/ is unfurled.
 
-  Composition: cream canvas, black line-art Δ + spark on the left, giant
-  lowercase "delta" wordmark + tagline on the right. Matches brand/
-  icon.svg and the GitHub Pages light register so unfurled links feel
-  like the same brand.
+  Composition: cream canvas, the three-ring Unhosted mark on the left, the
+  "unhosted browser" wordmark + tagline on the right. Matches brand/icon.svg
+  and the light register so unfurled links feel like the same brand.
 
-  No SVG filters or external fonts at render time — everything is paths,
-  rects, and a single inline text element with system-serif fallbacks
-  so it rasterises identically across rsvg-convert / Cairo / WebKit.
+  No SVG filters or external fonts at render time — paths/rects/text with
+  system fallbacks so it rasterises identically across renderers.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <title>Delta — Open Graph card</title>
+  <title>Unhosted Browser — Open Graph card</title>
 
-  <!-- Cream canvas. -->
   <rect width="1200" height="630" fill="#f5f5f0"/>
-
-  <!-- Subtle hairline border for cards that float on white-ish chrome. -->
   <rect x="0.5" y="0.5" width="1199" height="629" fill="none"
         stroke="rgba(10,10,10,0.08)" stroke-width="1"/>
 
-  <!-- Δ + spark on the left. The whole composition fits in a 360×360
-       square centred at (240, 315). Mirrors the proportions in
-       brand/icon.svg + brand/icon-mark.svg. -->
-  <circle cx="240" cy="170" r="22" fill="#0a0a0a"/>
-  <path d="M 240 215 L 380 460 L 100 460 Z"
-        fill="none"
-        stroke="#0a0a0a" stroke-width="14"
-        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Three-ring Unhosted mark on the left, centred at (240, 315). -->
+  <g fill="none" stroke="#0a0a0a" stroke-width="12">
+    <circle cx="240" cy="315" r="132" stroke-dasharray="6 18"/>
+    <circle cx="240" cy="315" r="84"/>
+    <circle cx="240" cy="315" r="36" fill="#0a0a0a" stroke="none"/>
+  </g>
 
-  <!-- "delta" wordmark on the right. Bold sans for the brand stamp. -->
-  <text x="490" y="320"
-        font-family="'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif"
-        font-weight="900"
-        font-size="160"
-        letter-spacing="-6"
-        fill="#0a0a0a">delta</text>
+  <!-- Wordmark on the right — mono, "browser" in the mute tone. Sized to
+       stay inside the 1200 canvas with right margin. -->
+  <text x="470" y="300"
+        font-family="ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace"
+        font-weight="700" font-size="82" letter-spacing="-4">
+    <tspan fill="#0a0a0a">unhosted</tspan><tspan fill="#737373"> browser</tspan>
+  </text>
 
-  <!-- Tagline — lowercase, system serif italic for the editorial register. -->
-  <text x="492" y="380"
+  <!-- Tagline. -->
+  <text x="472" y="360"
         font-family="'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif"
-        font-style="italic"
-        font-size="34"
-        fill="#0a0a0a">a privacy-first ai browser</text>
+        font-style="italic" font-size="34" fill="#0a0a0a">a privacy-first ai browser — part of unhosted</text>
 
-  <!-- Three small badges — mirror the site's hero badges. -->
+  <!-- Three badges. -->
   <g font-family="'Inter', system-ui, sans-serif" font-size="20" font-weight="500" fill="#0a0a0a">
-    <g transform="translate(490, 430)">
+    <g transform="translate(470, 410)">
       <rect width="140" height="44" rx="10" fill="rgba(10,10,10,0.04)" stroke="rgba(10,10,10,0.18)"/>
       <text x="70" y="29" text-anchor="middle">local-first</text>
     </g>
-    <g transform="translate(644, 430)">
+    <g transform="translate(624, 410)">
       <rect width="155" height="44" rx="10" fill="rgba(10,10,10,0.04)" stroke="rgba(10,10,10,0.18)"/>
       <text x="77.5" y="29" text-anchor="middle">open-source</text>
     </g>
-    <g transform="translate(813, 430)">
+    <g transform="translate(793, 410)">
       <rect width="170" height="44" rx="10" fill="rgba(10,10,10,0.04)" stroke="rgba(10,10,10,0.18)"/>
       <text x="85" y="29" text-anchor="middle">no telemetry</text>
     </g>
   </g>
 
-  <!-- Tiny URL line at the very bottom — bottom-right, mono, mute. -->
-  <text x="1170" y="595"
-        text-anchor="end"
+  <text x="1170" y="595" text-anchor="end"
         font-family="'JetBrains Mono', ui-monospace, Menlo, monospace"
-        font-size="18"
-        fill="rgba(10,10,10,0.5)">github.com/unhosted-ai/browser</text>
+        font-size="18" fill="rgba(10,10,10,0.5)">github.com/unhosted-ai/browser</text>
 </svg>

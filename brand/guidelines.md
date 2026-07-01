@@ -1,114 +1,119 @@
-# Delta — Brand Guidelines
+# Unhosted Browser — Brand Guidelines
 
 These are working guidelines, not finished house style. The repo is public; if
 you're using the mark for something we haven't anticipated, open an issue
 rather than guessing.
 
+**This brand is a member of the [Unhosted](https://github.com/unhosted-ai) family.**
+The mark, colors, and type come from
+[unhosted-core `BRAND.md`](https://github.com/unhosted-ai/unhosted-core/blob/main/BRAND.md) —
+that file is the ultimate source of truth. When something here contradicts it,
+it wins.
+
 ## Voice in one line
 
 > A privacy-first AI browser. Local LLM by default, the agent reads and acts
-> on the active page, nothing leaves your machine.
+> on the active page, nothing leaves your machine — part of Unhosted.
 
 ## Mark
 
-The Delta mark is an equilateral triangle with a small spark dot above the
-apex. One shape, two registers: black on cream, or cream on black. Use the
-SVGs in this folder as the source of truth — never recreate from screenshots.
+The mark is the **canonical Unhosted mark, unchanged**: three concentric
+circles — a filled center, a solid ring, a dashed ring. It maps to the product:
+
+- **Filled center** — you. Devices you own. Total trust.
+- **Solid ring** — your trusted circle. Friends, team, family.
+- **Dashed ring** — the public swarm. Strangers, opt-in. Discontinuous on purpose.
+
+Per Unhosted BRAND.md, **the mark is the architecture diagram and must not be
+altered.** The *browser* product is distinguished by the wordmark — "browser"
+set in the mute tone beside "unhosted" — never by modifying the rings.
 
 | File | When to use |
 | --- | --- |
-| [`icon.svg`](icon.svg) | App icon. Pure line-art Δ + spark on a cream squircle. Reads the same at 16px and 1024px. |
-| [`icon-mark.svg`](icon-mark.svg) | Unbounded line-art mark for inline use — README headers, footer marks, monogram avatars. Uses `currentColor` so it tints to its container. |
-| [`wordmark.svg`](wordmark.svg) | "Delta" + glyph for dark backgrounds (cream type). |
-| [`wordmark-cream.svg`](wordmark-cream.svg) | Same composition, black type on cream. Use for the GitHub Pages site and cream-register marketing. |
+| [`icon.svg`](icon.svg) | App icon. Three-ring mark on a cream squircle. Reads the same at 16px and 1024px. |
+| [`logo.svg`](logo.svg) | The mark on a 100 grid, `currentColor`. Drop-in with the canonical Unhosted mark. |
+| [`icon-mark.svg`](icon-mark.svg) | Unbounded inline mark (200 grid), `currentColor` — README headers, footer marks, avatars. |
+| [`wordmark.svg`](wordmark.svg) | "unhosted browser" wordmark for dark backgrounds. |
+| [`wordmark-cream.svg`](wordmark-cream.svg) | Same, near-black type on cream. GitHub Pages + cream-register marketing. |
+| [`lockup.svg`](lockup.svg) | Mark + wordmark, horizontal. |
+| [`favicon.svg`](favicon.svg) | Favicon — mark on a near-black rounded square. |
+| [`og-image.svg`](og-image.svg) | 1200×630 social-share card. |
 
-### Clearspace
+### Construction (from Unhosted BRAND.md — do not change)
 
-Reserve at least 1× the height of the Δ on every side around the mark — in
-practice, that means leaving the full vertical space of the triangle clear of
-other graphics. Don't crop the squircle in the app icon.
+- Outer ring: stroke 3, `stroke-dasharray="2 6"` (sparse — reads as "swarm")
+- Middle ring: stroke 3, solid
+- Inner: filled disc, no stroke
+- Radii on a 100 grid: 44 / 28 / 12. Do not invent new ratios, add a fourth
+  ring, or put text inside the rings.
 
 ### Don't
 
-- Don't fill the Δ. The mark is a single-stroke line-art glyph; adding a fill
-  (or a gradient inside) changes its visual register.
-- Don't change the stroke weight away from the source SVGs. Heavier or lighter
-  strokes break the visual family across sizes.
-- Don't apply drop-shadows, bevels, or glows to the wordmark.
-- Don't typeset "Delta" in anything other than Instrument Serif italic. If
-  the font is unavailable, fall back to a system serif italic — never sans.
-- Don't render the icon on a saturated coloured background. The squircle is
-  cream for a reason — keep the cream, or invert to a near-black squircle
-  for dark-only contexts. No orange, pink, blue, etc. squircles.
-- Don't write the product as DELTA in all-caps. It's "Delta" — capital D,
-  lowercase rest.
+- Don't modify the three-ring mark. The browser distinction lives in the
+  wordmark, not the rings.
+- Don't fill the mark with the accent red — the mark is monochrome
+  (`currentColor`) by default. Trust-tier colors only when the diagram is the
+  explicit subject.
+- Don't apply drop-shadows, bevels, or glows.
+- Don't render the icon on a saturated coloured background. Keep the cream
+  squircle, or invert to near-black for dark contexts.
+- Don't set the wordmark in anything but the mono family below.
 
-## Colors
+## Colors (Unhosted palette)
 
-The brand reads black-on-cream by default; for dark contexts, cream-on-black.
-A muted mint accent shows up in UI for selection states and active controls,
-but it isn't part of the mark itself.
+| Role | Hex | Notes |
+| --- | --- | --- |
+| Background | `#0A0A0A` | Near-black, never pure `#000000` |
+| Foreground | `#F5F5F0` | Warm off-white, never pure `#FFFFFF` |
+| Accent | `#FF3B30` | Signal red. Links on dark, "live" indicators. **Never** fills the mark. |
+| Mute | `#737373` | Secondary text, dividers, the "browser" word in the wordmark, the dashed-ring hint |
 
-| Token | HSL | Hex | Where it shows up |
-| --- | --- | --- | --- |
-| Paper (web) | `60 19% 95%` | `#f5f5f0` | GitHub Pages canvas, icon squircle, og-image background |
-| Ink | `0 0% 4%` | `#0a0a0a` | The mark, body text on cream, dark-mode canvas |
-| Canvas (app, dark) | `240 4% 5%` | `#0c0c0e` | Browser app canvas in dark mode |
-| Canvas (app, light) | `40 10% 90%` | `#e8e6e1` | Browser app canvas in light mode (warm beige) |
-| Signal mint (UI, dark) | `135 55% 66%` | `#85d693` | AI button when active, loading bar, hover states — **inside the app only**, never the mark |
-| Signal mint (UI, light) | `135 48% 36%` | `#308a4a` | Same role, deeper for cream contrast |
-
-Two more token families (`chrome-surface*`, `chrome-text-{2,3}`) live in
+The in-app UI additionally uses `chrome-surface*` / `chrome-text-*` tokens in
 [`apps/browser/src/renderer/src/index.css`](../apps/browser/src/renderer/src/index.css)
-under `:root.dark` / `:root.light`. Use those tokens — never hex literals —
-when building UI.
+under `:root.dark` / `:root.light`. Use those tokens — never hex literals — when
+building UI.
 
 ## Typography
 
-| Family | Weights | Where |
-| --- | --- | --- |
-| **Instrument Serif** | 400, 400 italic | The "Delta" wordmark, hero titles, editorial accents in the sidebar |
-| **Geist Sans** | 400, 500, 600 | Default sans for everything: tabs, buttons, body copy |
-| **Geist Mono** | 400, 500 | Numbers, hashes, status labels, the date stamp on the new tab page |
+| Family | Where |
+| --- | --- |
+| **ui-monospace** (JetBrains Mono / SF Mono) | The "unhosted browser" wordmark — weight 700, letter-spacing −2 |
+| **Geist Sans** | Default sans: tabs, buttons, body copy |
+| **Geist Mono** | Numbers, hashes, status labels, the new-tab date stamp |
+| **Instrument Serif** (italic) | Editorial accents / taglines only |
 
-All three are loaded via `@fontsource/*` packages — they're shipped with the
-app, so the rendered UI doesn't depend on remote font fetches.
+App fonts load via `@fontsource/*` (shipped with the app — no remote fetches).
 
 ## Naming
 
-- The product is **Delta** (capital D, no accent on the "e").
-- Don't write it as ∆, △, or DELTA in long-form copy. Use the Δ glyph only
-  as a logomark, not inline in sentences.
-- The repository is currently `Browser` under the `unhosted-ai` org —
-  this is not the canonical brand name. Renaming the repo to `delta` is a
-  one-line change on github.com that the user can do whenever they want.
+- The product is **Unhosted Browser**. In prose, "Unhosted Browser" on first
+  use; "the browser" thereafter is fine within Unhosted contexts.
+- The repository is [`unhosted-ai/browser`](https://github.com/unhosted-ai/browser).
+- It's part of Unhosted — reference the parent when it adds context (e.g. "the
+  browser front-end for your Unhosted cluster").
 
 ## Building the icon
 
 The macOS `.icns` lives at [`apps/browser/build/icon.icns`](../apps/browser/build/icon.icns)
-and is bundled by electron-builder for packaged releases. To regenerate from
-[`icon.svg`](icon.svg), run:
+and is bundled by electron-builder. To regenerate from [`icon.svg`](icon.svg):
 
 ```bash
 brand/scripts/build-icons.sh
 ```
 
-This renders the SVG through `rsvg-convert` (preferred, alpha-preserving)
-or `qlmanage` as a fallback, resamples the iconset with `sips`, and packs
-the `.icns` with `iconutil`. The script is idempotent — rerun it any time
-`icon.svg` changes.
+Renders through `rsvg-convert` (preferred, alpha-preserving) or `qlmanage`
+fallback, resamples with `sips`, packs the `.icns` with `iconutil`. Idempotent —
+rerun any time `icon.svg` changes.
 
 ## Public-repo etiquette
 
-The repo is public for feedback. A couple of asks for anyone re-using the
-brand:
+The repo is public for feedback. Two asks for anyone re-using the brand:
 
-1. Don't ship a fork that's also called "Delta" with the same Δ + spark
-   mark — that mark is the project's identifier. If you fork to experiment,
-   give your fork its own name and mark.
-2. The guidelines and SVGs in this folder are MIT-spirited: free to use for
-   discussion, screenshots, talks, write-ups, and "see this thing I'm
-   building on top of Delta" demos. They are *not* a commercial license to
-   ship a product called Delta.
+1. Don't ship a fork that's also called "Unhosted" (or "Unhosted Browser") with
+   the same three-ring mark — that mark is Unhosted's identifier. Give your fork
+   its own name and mark.
+2. These SVGs are free to use for discussion, screenshots, talks, write-ups, and
+   "here's a thing I built on Unhosted" demos — but not as a commercial license
+   to ship a product called Unhosted.
 
 If in doubt, open an issue.

@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta — application icon. 1024×1024 master.
+  Unhosted Browser — application icon. 1024×1024 master.
 
-  Composition: pure line-art Δ with a small spark dot above the apex, set
-  on a cream squircle. The squircle fills the canvas edge-to-edge (no
-  Apple-style 100px padding) so the icon reads at full dock-cell size
-  alongside third-party icons like Slack and VS Code. Corner radius
-  186/1024 (18.2%) matches the tighter, third-party-app convention.
-  The triangle + spark composition takes ~84% of the canvas height so
-  the icon feels filled at every size from 16 up.
+  Composition: the three concentric Unhosted rings (dashed swarm · solid
+  trusted · filled you) centred on a warm off-white squircle. The mark is
+  the unmodified Unhosted mark, scaled ×8 from the canonical unhosted-core
+  geometry (44/28/12 on a 100 grid) so app, dock, and web share one
+  identity; the browser product is carried by the wordmark, not the mark.
+  Corner radius 186/1024 (18.2%) matches the tighter, third-party-app
+  convention.
 
-  No SVG filters — only paths/rects — so every iconset size from 16 to
-  1024 rasterises edge-clean. Transparency outside the squircle relies
-  on a renderer that respects SVG alpha (rsvg-convert; brand/scripts/
+  No SVG filters — only circles/paths/rects — so every iconset size from 16
+  to 1024 rasterises edge-clean. Transparency outside the squircle relies on
+  a renderer that respects SVG alpha (rsvg-convert; brand/scripts/
   build-icons.sh prefers it over qlmanage for that reason).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <title>Delta — application icon</title>
+  <title>Unhosted Browser — application icon</title>
 
   <defs>
     <clipPath id="squircle-clip">
@@ -25,33 +25,20 @@
   </defs>
 
   <g clip-path="url(#squircle-clip)">
-    <!-- Cream squircle canvas. Matches the paper background used on the
-         GitHub Pages site so app, dock, and web all share one ground. -->
+    <!-- Cream squircle ground — matches the Unhosted paper background so
+         app, dock, and web all share one ground. -->
     <rect width="1024" height="1024" fill="#f5f5f0"/>
 
     <!--
-      Spark — small filled black dot above the apex of the Δ. Same
-      proportional placement as brand/icon-mark.svg so the mark family
-      stays visually coherent across registers. Bumped 20% larger here
-      so the dot reads at 16px and 32px favicon sizes too.
+      Three-ring Unhosted mark, scaled ×8 from the 100-grid canonical
+      (cx/cy 512, radii 352/224/96, stroke 26). Dashed outer = public
+      swarm, solid middle = trusted circle, filled inner = you. Near-black
+      on cream. The mark is unmodified; "browser" lives in the wordmark.
     -->
-    <circle cx="512" cy="148" r="56" fill="#0a0a0a"/>
-
-    <!--
-      Δ — line-art triangle, single stroke weight. Scaled to occupy
-      roughly the lower 2/3 of the squircle: apex at y=276, base at
-      y=896 (876 wide), centred. Linejoin/cap round keeps the apex
-      from punching through the safe area visually. Stroke 36px so
-      the lines read clean at small sizes without overpowering the
-      dot.
-    -->
-    <path
-      d="M 512 276 L 896 896 L 128 896 Z"
-      fill="none"
-      stroke="#0a0a0a"
-      stroke-width="36"
-      stroke-linejoin="round"
-      stroke-linecap="round"
-    />
+    <g fill="none" stroke="#0a0a0a" stroke-width="26">
+      <circle cx="512" cy="512" r="352" stroke-dasharray="16 48"/>
+      <circle cx="512" cy="512" r="224"/>
+      <circle cx="512" cy="512" r="96" fill="#0a0a0a" stroke="none"/>
+    </g>
   </g>
 </svg>

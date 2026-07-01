@@ -1,33 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta — minimal line-art mark.
+  Unhosted Browser — minimal line-art mark (inline register).
 
-  Companion to brand/icon.svg (the app icon with gradient + dark canvas).
-  This variant strips everything to a single stroke-weight Δ + spark,
-  uses `currentColor` so it tints to the surrounding page, and matches
-  the visual register used by unhosted-ai / Kernel for header logos:
-  line-only, no fills, calm, geometric.
+  The canonical three-ring Unhosted mark, unmodified, on a 200×200 grid,
+  using `currentColor` so it tints to the surrounding page. Companion to
+  brand/icon.svg (the app icon on a cream squircle) and brand/logo.svg (the
+  100-grid mark). Ring radii scaled ×2 from the canonical 100-grid geometry
+  (88/56/24, stroke 6).
 
   Use it for:
     • GitHub Pages footer / header marks
-    • README hero (smaller usage where the gradient icon would feel busy)
-    • Slack / Discord avatars where the surrounding chrome already provides background
+    • README hero
+    • Slack / Discord avatars where chrome already provides a background
 
-  200×200 viewBox so it's drop-in-compatible with other minimal marks.
+  Per unhosted-core BRAND.md the mark is the architecture and is not altered;
+  the browser product is carried by the wordmark, not this mark.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
-     fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"
-     aria-label="Delta">
-  <title>Delta — line-art mark</title>
-
-  <!-- Spark — small filled circle above the apex of the triangle.
-       Sits at ~12% of the height; same proportional placement as in
-       brand/icon.svg + brand/wordmark.svg so the mark family stays
-       visually coherent at a glance. -->
-  <circle cx="100" cy="32" r="9" fill="currentColor" stroke="none"/>
-
-  <!-- Δ — equilateral triangle. Same proportions as the app icon's
-       glyph, just stripped to a single stroke. The fill stays empty
-       so it reads as a glyph, not a button. -->
-  <path d="M 100 60 L 168 168 L 32 168 Z"/>
+     fill="none" stroke="currentColor" stroke-width="6" aria-label="Unhosted">
+  <title>Unhosted — line-art mark</title>
+  <circle cx="100" cy="100" r="88" stroke-dasharray="4 12"/>
+  <circle cx="100" cy="100" r="56"/>
+  <circle cx="100" cy="100" r="24" fill="currentColor" stroke="none"/>
 </svg>

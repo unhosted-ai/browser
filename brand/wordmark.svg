@@ -1,35 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Delta wordmark — line-art Δ + spark glyph + "Delta" set in Instrument
-  Serif italic, both in cream. Use on backgrounds darker than the type,
-  with at least 1× the cap-height of clear-space on every side.
-
-  Companion: wordmark-cream.svg (same composition, black type on cream).
--->
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
-  <title>Delta wordmark</title>
-
-  <!-- Spark — small dot above the apex of the Δ. -->
-  <circle cx="80" cy="22" r="6.2" fill="hsl(0 0% 95%)"/>
-
-  <!-- Δ mark — pure line-art, single stroke, no fill. -->
-  <path
-    d="M 80 38 L 138 130 L 22 130 Z"
-    fill="none"
-    stroke="hsl(0 0% 95%)"
-    stroke-width="6"
-    stroke-linejoin="round"
-    stroke-linecap="round"
-  />
-
-  <!-- Wordmark in Instrument Serif italic, with system-serif fallback. -->
-  <text
-    x="170"
-    y="118"
-    font-family="'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif"
-    font-style="italic"
-    font-weight="400"
-    font-size="120"
-    fill="hsl(0 0% 95%)"
-  >Delta</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 100">
+  <title>unhosted browser</title>
+  <!--
+    Unhosted Browser wordmark. Family-consistent with unhosted-core:
+    ui-monospace, size 96, weight 700, letter-spacing -2. The product is
+    distinguished the way brand families do it — same "unhosted" wordmark,
+    with "browser" in the muted tone (#737373) at the same size. Uses
+    currentColor for "unhosted" so it inverts cleanly on light/dark grounds.
+  -->
+  <text font-family="ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace"
+        font-size="96" font-weight="700" letter-spacing="-2">
+    <tspan x="0" y="80" fill="currentColor">unhosted</tspan><tspan fill="#737373"> browser</tspan>
+  </text>
 </svg>

@@ -1,39 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Delta wordmark, cream-background variant.
+  Unhosted Browser wordmark, cream-background variant.
 
-  Mirrors brand/wordmark.svg but inverts the colour register: the
-  "Delta" type sits in near-black on cream, and the Δ glyph is also
-  near-black so it reads on the lighter ground. Use this on the GitHub
-  Pages landing page and any cream-register marketing.
+  Mirrors brand/wordmark.svg but on the warm off-white ground with near-black
+  type: "unhosted" in #0a0a0a, "browser" in the mute #737373. Use on the
+  GitHub Pages landing page and any cream-register marketing.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160">
-  <title>Delta wordmark — cream</title>
-
-  <!-- Cream background fill (so JPG export composites cleanly). -->
-  <rect width="640" height="160" fill="#f5f5f0"/>
-
-  <!-- Spark — small black dot above the apex of the Δ. -->
-  <circle cx="80" cy="22" r="6.2" fill="#0a0a0a"/>
-
-  <!-- Δ mark — pure line-art, single stroke, no fill. -->
-  <path
-    d="M 80 38 L 138 130 L 22 130 Z"
-    fill="none"
-    stroke="#0a0a0a"
-    stroke-width="6"
-    stroke-linejoin="round"
-    stroke-linecap="round"
-  />
-
-  <!-- Wordmark — near-black on cream. -->
-  <text
-    x="170"
-    y="118"
-    font-family="'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif"
-    font-style="italic"
-    font-weight="400"
-    font-size="120"
-    fill="#0a0a0a"
-  >Delta</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 100">
+  <title>unhosted browser — cream</title>
+  <rect x="-20" y="-10" width="800" height="120" fill="#f5f5f0"/>
+  <text font-family="ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace"
+        font-size="96" font-weight="700" letter-spacing="-2">
+    <tspan x="0" y="80" fill="#0a0a0a">unhosted</tspan><tspan fill="#737373"> browser</tspan>
+  </text>
 </svg>

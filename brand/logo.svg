@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3">
+  <title>unhosted browser</title>
+  <!--
+    Unhosted Browser mark = the canonical Unhosted mark, UNCHANGED (r=44
+    dashed swarm · r=28 trusted · r=12 filled you). Per unhosted-core
+    BRAND.md the mark is the architecture and must not be altered, so the
+    browser product is distinguished by the wordmark ("browser"), not by
+    modifying the rings.
+  -->
+  <circle cx="50" cy="50" r="44" stroke-dasharray="2 6"/>
+  <circle cx="50" cy="50" r="28"/>
+  <circle cx="50" cy="50" r="12" fill="currentColor" stroke="none"/>
+</svg>
