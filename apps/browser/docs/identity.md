@@ -1,4 +1,4 @@
-# Delta — Identity & Profiles
+# Unhosted Browser — Identity & Profiles
 
 Status: **draft**, pre-implementation. Captures the design before we build it
 so we don't bake a cloud account into the architecture by accident.
@@ -7,7 +7,7 @@ so we don't bake a cloud account into the architecture by accident.
 
 > "Login is for personalisation. Nothing goes anywhere except this device."
 
-Delta has no server. There is no "Delta account" to sign into. What the user
+Unhosted Browser has no server. There is no "Unhosted Browser account" to sign into. What the user
 calls a "login" is a **local profile** — a personalised state container
 that lives on the user's machine, gated by the OS's existing authentication
 (macOS login → optional Touch ID, Windows login → optional Hello, etc.).
@@ -21,7 +21,7 @@ ever leaves the device unless the user explicitly turns on encrypted sync
 A profile is a directory under `userData/profiles/<profileId>/`:
 
 ```
-~/Library/Application Support/Delta/
+~/Library/Application Support/Unhosted Browser/
   profiles/
     default/
       settings.json          # theme, default provider, sensitive-site list
@@ -60,7 +60,7 @@ Three states at app boot:
    manage/rename/delete.
 
 Profiles can optionally be **gated by Touch ID / Windows Hello / Linux
-PAM** — the OS prompts; Delta never asks for a master password. (We
+PAM** — the OS prompts; Unhosted Browser never asks for a master password. (We
 piggyback on the same biometric/auth path the password vault uses.)
 
 ## 3. Process model
@@ -114,16 +114,16 @@ None of this needs a server.
 ## 5. Auto-update — the one legitimate outbound call
 
 The app itself needs to know when there's a new version. This is the only
-remote call Delta makes by default that isn't user-initiated, and it has
+remote call Unhosted Browser makes by default that isn't user-initiated, and it has
 to be done transparently:
 
 | Property | Choice |
 | --- | --- |
 | Where | `https://updates.delta-browser.app/` (placeholder) — a static manifest, not a server |
 | How often | Once on launch, then every 24h while running |
-| What gets sent | `User-Agent: Delta/<version> (<platform>)` — nothing else. No telemetry, no machine ID, no profile ID |
+| What gets sent | `User-Agent: Unhosted Browser/<version> (<platform>)` — nothing else. No telemetry, no machine ID, no profile ID |
 | What gets returned | A signed JSON manifest: latest version, release notes URL, signed installer URL |
-| Verification | All updates are code-signed; Delta verifies the signature before applying |
+| Verification | All updates are code-signed; Unhosted Browser verifies the signature before applying |
 | Off switch | Settings → Updates → "Check for updates automatically" toggle. Disabling stops both the check and the install. |
 
 The opt-out has to be visible. If a privacy-first browser checks home for
@@ -142,14 +142,14 @@ don't ship it in v1, but the design above doesn't preclude it:
   blind store (or a peer-to-peer link), and pulled by the other device.
 - The server (if any) only sees opaque ciphertext. It cannot enumerate
   users, profiles, or content.
-- Sync is a **per-profile toggle**, not a global Delta setting.
+- Sync is a **per-profile toggle**, not a global Unhosted Browser setting.
 
 Bitwarden, Signal, and Standard Notes all ship variants of this
 architecture. We don't have to invent it.
 
 ## 7. What this is *not*
 
-- **Not** a Delta account. There is no email/password to recover, because
+- **Not** a Unhosted Browser account. There is no email/password to recover, because
   there is nothing on a server to recover.
 - **Not** SSO. We don't sign you into Gmail or GitHub on your behalf —
   those signins live in their own cookies, scoped to the active profile.

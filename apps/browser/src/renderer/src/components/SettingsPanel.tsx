@@ -1333,7 +1333,7 @@ function PrivacyNote() {
 // in the app rather than punting them to their default browser.
 function LegalPrivacySection() {
   const open = (url: string) => { void window.api.tabs.create(url); }
-  const base = "https://github.com/Delta-Practice/Browser/blob/main"
+  const base = "https://github.com/unhosted-ai/browser/blob/main"
   const items: Array<{ label: string; href: string; hint: string }> = [
     {
       label: "Privacy notice",
@@ -1548,7 +1548,7 @@ function PersonalSlmSection({ settings }: { settings: UserSettings }) {
         </div>
         <button
           type="button"
-          onClick={() => void window.api.tabs.create("https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/slm-design.md")}
+          onClick={() => void window.api.tabs.create("https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/slm-design.md")}
           className="font-mono text-[10px] tracking-[0.12em] uppercase text-chrome-text-3 hover:text-signal transition-colors"
         >
           Read the design doc →

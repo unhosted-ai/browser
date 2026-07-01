@@ -1,18 +1,18 @@
-# About Delta Practice
+# About Unhosted Browser Practice
 
 > *A privacy-first AI browser, built in the open.*
 
 This document is the why. The other design docs in this folder cover the how
 ([agent-design.md](agent-design.md), [identity.md](identity.md),
 [distribution.md](distribution.md)). Read this first if you're trying to
-decide whether Delta is the right project to spend your evening with —
+decide whether Unhosted Browser is the right project to spend your evening with —
 either using it, or contributing to it.
 
 ---
 
 ## The name
 
-**Delta** carries three meanings, all intentional:
+**Unhosted Browser** carries three meanings, all intentional:
 
 1. **Δ — the Greek letter.** The mathematical symbol for *change* or
    *difference*. The agent in this browser exists to manage the *delta*
@@ -47,11 +47,11 @@ either using it, or contributing to it.
 
 3. **Practice as in *we're still figuring it out*.** The honest reading.
    Nobody knows what an AI browser is supposed to be yet — Comet, Arc,
-   Brave, and a dozen others are running their own experiments. Delta is
+   Brave, and a dozen others are running their own experiments. Unhosted Browser is
    ours. The repo is public on day one because the practice happens in
    the open, not behind a release.
 
-Together: **Delta Practice** — the discipline of building change at the
+Together: **Unhosted Browser Practice** — the discipline of building change at the
 edge between you and the web.
 
 ---
@@ -66,7 +66,7 @@ That sentence sounds simple. The four clauses are each load-bearing.
 
 **Runs the model on your machine.** Every other AI browser on the market
 ships your queries — and frequently the contents of the page you're on —
-to a cloud LLM. Delta defaults to a local LLM (Ollama, LM Studio,
+to a cloud LLM. Unhosted Browser defaults to a local LLM (Ollama, LM Studio,
 llama.cpp, MLX) so the model sees the page on the device that already
 sees the page. Cloud providers (OpenAI, Anthropic) work too, but only
 when you explicitly enable them. Off by default. The privacy promise is
@@ -88,7 +88,7 @@ Sensitive sites — banking, government, payment, wallet — auto-block
 tabs.
 
 **Forgets when you tell it to.** Conversations persist locally by
-default — quit Delta and reopen, your chats are still there. Click ×
+default — quit Unhosted Browser and reopen, your chats are still there. Click ×
 on a thread to delete it from disk. There is no remote conversation
 log because there is no remote.
 
@@ -125,7 +125,7 @@ shippable improvements that each leave the app working end-to-end.
 
 Stating these is half the design. They keep us honest.
 
-- **A Delta account.** There is no email/password, ever. The device is
+- **A Unhosted Browser account.** There is no email/password, ever. The device is
   the identity. (See [identity.md](identity.md).)
 - **Telemetry.** None. Not even crash reporting until we figure out a
   privacy-respecting way to do it.
@@ -135,7 +135,7 @@ Stating these is half the design. They keep us honest.
   / Standard Notes ship variants of this; it's a separate problem.
 - **A hardened-security browser.** Tor Browser, Brave with Shields-
   strict, and Firefox-with-arkenfox cover that ground better than we
-  could. Delta is a *default-good* browser — fewer tracking surfaces
+  could. Unhosted Browser is a *default-good* browser — fewer tracking surfaces
   enabled, fewer assumptions about what the user agreed to.
 - **A Chrome extension store integration.** Manifest V3 is a moving
   target and Electron's MV2 support is partial. We'd rather ship the
@@ -150,8 +150,8 @@ Stating these is half the design. They keep us honest.
 
 ## Open source — and why
 
-Delta is MIT-spirited (license file pending; the practical posture is
-"do whatever you want, don't ship a fork named Delta"). The repo is
+Unhosted Browser is MIT-spirited (license file pending; the practical posture is
+"do whatever you want, don't ship a fork named Unhosted Browser"). The repo is
 public from day one. Three reasons:
 
 1. **Privacy claims need verification.** "Local-first, no telemetry,
@@ -176,14 +176,14 @@ public from day one. Three reasons:
 
 What we ask in return — see [`brand/guidelines.md`](../../../brand/guidelines.md):
 
-- Don't ship a fork called "Delta" with the same Δ-with-spark mark.
+- Don't ship a fork called "Unhosted Browser" with the same Δ-with-spark mark.
   Pick your own name and your own brand.
 - Don't pretend a fork is the original. Always link upstream.
 - The brand assets are free for discussion, screenshots, talks, and
-  "see this thing I'm building on top of Delta" demos. They are not
+  "see this thing I'm building on top of Unhosted Browser" demos. They are not
   a commercial license.
 
-If in doubt, [open an issue](https://github.com/Delta-Practice/Browser/issues).
+If in doubt, [open an issue](https://github.com/unhosted-ai/browser/issues).
 
 ---
 
@@ -226,7 +226,7 @@ Things that aren't bugs, they're choices:
 
 ## What success looks like
 
-I don't think Delta needs to be the most popular browser to be a
+I don't think Unhosted Browser needs to be the most popular browser to be a
 successful project. Success looks like:
 
 - A few hundred people running it daily because they value the privacy
@@ -236,7 +236,7 @@ successful project. Success looks like:
 - The architecture in [agent-design.md](agent-design.md) survives
   contact with reality — the IPC boundary, the permission gate, the
   tool registry don't get rewritten in a panic when Phase 4 lands.
-- "Use Delta" being a reasonable answer when somebody asks "is there
+- "Use Unhosted Browser" being a reasonable answer when somebody asks "is there
   an open browser that doesn't ship my data?"
 
 That's the bar. Anything more is a bonus.

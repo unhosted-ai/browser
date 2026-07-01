@@ -38,8 +38,8 @@
       <a href="../">home</a>
       <a href="../#modes">how it works</a>
       <a href="../brand/">brand</a>
-      <a href="https://github.com/Delta-Practice/Browser">github</a>
-      <a href="https://github.com/Delta-Practice/Browser/blob/main/STATUS.md">status</a>
+      <a href="https://github.com/unhosted-ai/browser">github</a>
+      <a href="https://github.com/unhosted-ai/browser/blob/main/STATUS.md">status</a>
       <button class="theme-toggle" type="button" aria-label="toggle theme" data-theme-toggle>
         <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" fill="currentColor"/>
@@ -85,7 +85,7 @@
       <p>"the agent can navigate" is too coarse — you might want it to follow links inside <a href="https://wikipedia.org">wikipedia</a> while refusing to navigate at all on your bank's website. so grants are scoped to the host of the active tab at the moment of the call. allowing <code>navigate</code> on <code>news.ycombinator.com</code> doesn't grant it on <code>chase.com</code>.</p>
 
       <h3>sensitive-site auto-block</h3>
-      <p>some hosts auto-fail the permission check no matter what you've previously granted: banking, government, identity providers, payment processors. the agent simply <em>can't</em> act on <code>*.gov</code>, <code>chase.com</code>, <code>login.live.com</code>, etc. the rule lives in <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a> and is auditable.</p>
+      <p>some hosts auto-fail the permission check no matter what you've previously granted: banking, government, identity providers, payment processors. the agent simply <em>can't</em> act on <code>*.gov</code>, <code>chase.com</code>, <code>login.live.com</code>, etc. the rule lives in <a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a> and is auditable.</p>
 
       <h3>this is the second wall</h3>
       <p>the <a href="../untrusted/">untrusted-content frame</a> stops the model from <em>thinking</em> a malicious page's "navigate to evil.com" is an instruction. the permission gate stops the model from <em>doing</em> it even if it does. defence in depth: a single failure doesn't lose the game.</p>
@@ -97,14 +97,14 @@
     <aside class="ex-aside">
       <h4>look at the source</h4>
       <ul>
-        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a></li>
-        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts">tools.ts</a></li>
-        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/settings.ts">settings.ts</a></li>
+        <li><a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/agent.ts">agent.ts</a></li>
+        <li><a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/tools.ts">tools.ts</a></li>
+        <li><a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/settings.ts">settings.ts</a></li>
       </ul>
       <h4>related reading</h4>
       <ul>
         <li><a href="../untrusted/">untrusted-content</a></li>
-        <li><a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design + threat model</a></li>
+        <li><a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/agent-design.md">agent design + threat model</a></li>
       </ul>
     </aside>
   </div>
@@ -140,18 +140,18 @@
       </div>
       <div class="col">
         <h4>articles</h4>
-        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md">manifesto</a>
-        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
-        <a href="https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/identity.md">identity model</a>
+        <a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/about.md">manifesto</a>
+        <a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/agent-design.md">agent design</a>
+        <a href="https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/identity.md">identity model</a>
         <a href="../brand/">brand</a>
       </div>
       <div class="col">
         <h4>follow</h4>
-        <p>built in public on <a href="https://github.com/Delta-Practice/Browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
+        <p>built in public on <a href="https://github.com/unhosted-ai/browser">github</a>. prompt + tool schemas mirrored to <a href="https://huggingface.co/sinhaankur/delta-agent-prompt">huggingface</a>.</p>
       </div>
       <div class="col">
         <h4>legal</h4>
-        <p><a href="https://github.com/Delta-Practice/Browser">mit-spirited</a>. <a href="https://github.com/Delta-Practice/Browser/blob/main/SECURITY.md">security</a>.</p>
+        <p><a href="https://github.com/unhosted-ai/browser">mit-spirited</a>. <a href="https://github.com/unhosted-ai/browser/blob/main/SECURITY.md">security</a>.</p>
       </div>
     </div>
     <div class="copy">© 2026 delta practice</div>

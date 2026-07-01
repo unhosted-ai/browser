@@ -1,12 +1,12 @@
 <div align="center">
 
-# Delta
+# Unhosted Browser
 
-**A privacy-first AI browser.**
+**A privacy-first AI browser — part of [Unhosted](https://github.com/unhosted-ai).**
 
 _Local LLM by default. The agent reads and acts on the active page. Nothing leaves your machine._
 
-[Website](https://delta-practice.github.io/Browser/) ·
+[Website](https://unhosted-ai.github.io/browser/) ·
 [About](apps/browser/docs/about.md) ·
 [Agent design](apps/browser/docs/agent-design.md) ·
 [Identity model](apps/browser/docs/identity.md) ·
@@ -19,23 +19,22 @@ _Local LLM by default. The agent reads and acts on the active page. Nothing leav
 
 ---
 
-Delta is an Electron browser with a built-in agent. It speaks to local LLMs
-(Ollama, LM Studio, llama.cpp, MLX) over the OpenAI-compatible HTTP API, so
-your conversations and the pages they reference stay on your machine. Cloud
-providers exist as opt-in only — keys live encrypted in your OS keychain via
-Electron `safeStorage`, and the renderer never sees them.
+Unhosted Browser is an Electron browser with a built-in agent. It speaks to
+local LLMs (Ollama, LM Studio, llama.cpp, MLX) over the OpenAI-compatible HTTP
+API, so your conversations and the pages they reference stay on your machine.
+Cloud providers exist as opt-in only — keys live encrypted in your OS keychain
+via Electron `safeStorage`, and the renderer never sees them.
 
-There is no Delta account. There is no Delta server. The device is the
-identity.
+There is no account. There is no server. The device is the identity.
 
-> **Why "Delta Practice"?** Δ is the Greek letter for *change* — and the
-> shape a river makes where it meets the sea. The agent in this browser
-> exists to manage the delta between what you already know and what's on
-> the page. *Practice* is the discipline of getting the mundane things
-> right (the keyboard shortcuts, the address bar, the way windows manage
-> focus) plus the honest read that we're still figuring it out — which is
-> why the repo is public from day one. Full reasoning in
-> [`apps/browser/docs/about.md`](apps/browser/docs/about.md).
+> **Part of the Unhosted family.** [Unhosted](https://github.com/unhosted-ai) is
+> AI that lives where you do — frontier-class inference pooled across hardware
+> you own (and, opt-in, your friends' and a public GPU swarm). This browser is
+> the front door to that: when an [Unhosted cluster](https://github.com/unhosted-ai/unhosted-core)
+> is running, the browser's agent uses it automatically; otherwise it falls back
+> to any local OpenAI-compatible endpoint (Ollama, LM Studio, llama.cpp, MLX).
+> Same principle, at the browser: **your AI runs on your machines, not someone
+> else's.**
 
 ## Quickstart
 
@@ -44,13 +43,13 @@ Requirements:
 - Node 20+ (recommended; Node 18 LTS works)
 - pnpm 10 (the workspace pins this in `packageManager`)
 - macOS, Windows 10+, or a Linux desktop with libsecret installed (Keychain / DPAPI / libsecret backs `safeStorage`)
-- Optional: [Ollama](https://ollama.com/) (or LM Studio / llama.cpp / MLX) for a local model
+- Optional: an [Unhosted cluster](https://github.com/unhosted-ai/unhosted-core), or [Ollama](https://ollama.com/) / LM Studio / llama.cpp / MLX for a local model
 
 ```bash
-git clone https://github.com/Delta-Practice/Browser.git
-cd Browser
+git clone https://github.com/unhosted-ai/browser.git
+cd browser
 pnpm install
-pnpm delta:dev
+pnpm dev
 ```
 
 Bring up a local model — fastest path is Ollama:
@@ -59,11 +58,11 @@ Bring up a local model — fastest path is Ollama:
 brew install ollama        # or: curl -fsSL https://ollama.com/install.sh | sh
 ollama serve &
 ollama pull llama3.2
-# Delta auto-detects it within a few seconds.
+# Unhosted Browser auto-detects it within a few seconds.
 # The Onboarding card on first launch shows a live "Local model online" pip.
 ```
 
-Open the AI sidebar (the Δ button in the address bar, or `⌘J`), type a
+Open the AI sidebar (the mark in the address bar, or `⌘J`), type a
 question, hit Enter. The active tab's text is attached as untrusted
 context, wrapped in `<page_content>` tags that the system prompt tells the
 model to treat as data — not instructions.
@@ -71,7 +70,7 @@ model to treat as data — not instructions.
 **Build a standalone app** (instead of running the dev server):
 
 ```bash
-pnpm --filter delta make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux: AppImage + .deb.
+pnpm --filter browser make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux: AppImage + .deb.
 # Output lands in apps/browser/release/.
 ```
 
@@ -86,8 +85,8 @@ pnpm --filter delta make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux
   starting the dev server → your shell has `ELECTRON_RUN_AS_NODE=1`
   set. Run `unset ELECTRON_RUN_AS_NODE` and retry.
 - **Linux: `safeStorage` warnings + API keys won't save** → install
-  `libsecret-1-0` (Debian/Ubuntu) or `libsecret` (Arch/Fedora). Delta
-  refuses to persist keys without OS-keychain encryption rather than
+  `libsecret-1-0` (Debian/Ubuntu) or `libsecret` (Arch/Fedora). Unhosted
+  Browser refuses to persist keys without OS-keychain encryption rather than
   fall back to plaintext on disk.
 - **Lockfile mismatch on `pnpm install`** → `pnpm install --frozen-lockfile=false`
   once, then commit the result.
@@ -100,7 +99,7 @@ pnpm --filter delta make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux
 - **Account lock** — set a PIN or password (Settings → Account lock). PBKDF2-SHA256 200k iters, hash + salt only in `settings.json`. No remote recovery.
 - **Scheduled tasks** — local cron-of-one: reminders (native notifications), opening a URL at a set time, or kicking off an agent prompt. Settings → Scheduled tasks.
 - **Per-site password import** — bring a CSV from Chrome / Brave / Edge / Firefox / Safari. Preview-with-per-row keep, encrypted via OS keychain. Settings → Passwords.
-- **Set as default browser** — registers Delta for http+https system-wide.
+- **Set as default browser** — registers Unhosted Browser for http+https system-wide.
 - **Connection-layer hardening** — HTTPS-only, strict referrer policy, optional DNS-over-HTTPS (Cloudflare / Quad9 / Google).
 
 ## Roadmap
@@ -112,14 +111,15 @@ pnpm --filter delta make   # macOS: .dmg + .zip (arm64 + x64). Win: .nsis. Linux
 | 3 | Act tools: `click`, `type`, `navigate`, `open_tab` — gated per `(origin, tool)` | after Phase 2 |
 | 4 | Address-bar AI (`⌘L ?` switches to Ask mode) | |
 | 5 | Task threads in sidebar (multiple concurrent agents) | |
+| 6 | Native [Unhosted cluster](https://github.com/unhosted-ai/unhosted-core) discovery — use pooled GPUs across your own devices | |
 
 Full plan: [`apps/browser/docs/agent-design.md`](apps/browser/docs/agent-design.md).
 
 ## Privacy posture
 
 - **Local by default.** The agent only auto-discovers and calls
-  `127.0.0.1` endpoints. Cloud (OpenAI &amp; OpenAI-compatible) is off
-  until you explicitly enable it.
+  `127.0.0.1` endpoints (and your Unhosted cluster). Cloud (OpenAI &amp;
+  OpenAI-compatible) is off until you explicitly enable it.
 - **No telemetry, no analytics, no profile.**
 - **API keys** live in your OS keychain via `safeStorage`. The
   renderer only ever learns whether a key is *configured*; it cannot
@@ -166,7 +166,7 @@ permission gate enforces it.
 
 ```
 apps/
-  browser/                     # the Delta Electron app
+  browser/                     # the Unhosted Browser Electron app
     docs/
       agent-design.md          # multi-phase plan + threat model
       identity.md              # local profiles + auto-update + sync
@@ -177,8 +177,8 @@ apps/
       shared/                  # types crossing the IPC boundary
     build/                     # icons (.icns, .png) for electron-builder
 brand/
-  icon.svg                     # 1024 master — Δ + spark on a cream squircle
-  wordmark.svg                 # Δ + Delta lockup
+  icon.svg                     # 1024 master — mark on a cream squircle
+  wordmark.svg                 # wordmark lockup
   guidelines.md                # do/don't, colors, typography
   scripts/build-icons.sh       # rasterise the iconset (rsvg-convert + sips + iconutil)
 docs/                          # GitHub Pages source — public landing page
@@ -197,13 +197,13 @@ docs/                          # GitHub Pages source — public landing page
   open-source Python framework for AI browser automation. The agent
   loop, accessibility-tree state representation, and CLI sub-command
   surface (`open / state / click / type / screenshot`) are reference
-  shapes for Delta's Phase 2/3 act-tools — though Delta's runtime is
+  shapes for the Phase 2/3 act-tools — though this runtime is
   Electron + main-process tools, not Playwright + Python.
 - **[onkernel/kernel-images](https://github.com/onkernel/kernel-images)** —
   sandboxed browser-as-a-service. Different product (server-side
   browsers for agents) but a fellow-traveller in the "agent +
   browser" design space; the dev-tool register of their site informs
-  Delta's public face under [`docs/`](docs/).
+  the public face under [`docs/`](docs/).
 
 ## Legal
 
@@ -212,7 +212,7 @@ docs/                          # GitHub Pages source — public landing page
 - [`PRIVACY.md`](PRIVACY.md) — full data-flow notice with jurisdiction
   addenda (GDPR / UK GDPR / CCPA + US state CDPAs / PIPEDA / Quebec
   Law 25 / LGPD / PIPL / DPDP / APPI / PIPA / PDPA / POPIA / revFADP).
-  Delta runs no IP-geolocation; the notice is universal.
+  Unhosted Browser runs no IP-geolocation; the notice is universal.
 - [`TERMS.md`](TERMS.md) — terms of use, AI Act disclosure, acceptable
   use, governing law.
 - [`SECURITY.md`](SECURITY.md) — threat model + how to report a vuln.

@@ -1,18 +1,18 @@
 {
-  "name": "delta",
-  "productName": "Delta",
+  "name": "browser",
+  "productName": "Unhosted Browser",
   "version": "0.0.3",
   "private": true,
   "license": "MIT",
-  "description": "Delta — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
+  "description": "Unhosted Browser — a privacy-first AI browser. Local LLM by default, agent reads & acts on the active page, nothing leaves your machine.",
   "author": {
     "name": "Ankur Sinha",
-    "url": "https://github.com/Delta-Practice/Browser"
+    "url": "https://github.com/unhosted-ai/browser"
   },
-  "homepage": "https://github.com/Delta-Practice/Browser",
+  "homepage": "https://github.com/unhosted-ai/browser",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Delta-Practice/Browser.git"
+    "url": "https://github.com/unhosted-ai/browser.git"
   },
   "main": "out/main/index.js",
   "scripts": {
@@ -50,8 +50,8 @@
     "vite": "^5.4.11"
   },
   "build": {
-    "appId": "com.delta.browser",
-    "productName": "Delta",
+    "appId": "ai.unhosted.browser",
+    "productName": "Unhosted Browser",
     "directories": {
       "buildResources": "build",
       "output": "release"
@@ -144,8 +144,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "Delta-Practice",
-      "repo": "Browser"
+      "owner": "unhosted-ai",
+      "repo": "browser"
     }
   }
 }

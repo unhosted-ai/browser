@@ -1,14 +1,14 @@
-# Contributing to Delta
+# Contributing to Unhosted Browser
 
 The repo style prefers a real conversation over strict CONTRIBUTING
 ceremony. This file is short on purpose. Read it once.
 
 ## How to file something useful
 
-- **Bug** → use the [Bug report](https://github.com/Delta-Practice/Browser/issues/new?template=bug.yml) template.
-- **Feature idea** → use the [Feature request](https://github.com/Delta-Practice/Browser/issues/new?template=feature.yml) template. Read [`apps/browser/docs/about.md`](apps/browser/docs/about.md) first — there are explicit non-goals (no account, no telemetry, no extension store, no v1 sync) and a feature that conflicts with one of them needs a thoughtful argument for why we'd change the non-goal.
-- **Site doesn't work** → use the [Site](https://github.com/Delta-Practice/Browser/issues/new?template=site_didnt_work.yml) template. These reports drive tracker-blocklist, reader-mode, and OAuth-popup fixes.
-- **Security vulnerability** → do *not* open a public issue. Use [GitHub's private vulnerability reporting](https://github.com/Delta-Practice/Browser/security/advisories/new). See [SECURITY.md](SECURITY.md).
+- **Bug** → use the [Bug report](https://github.com/unhosted-ai/browser/issues/new?template=bug.yml) template.
+- **Feature idea** → use the [Feature request](https://github.com/unhosted-ai/browser/issues/new?template=feature.yml) template. Read [`apps/browser/docs/about.md`](apps/browser/docs/about.md) first — there are explicit non-goals (no account, no telemetry, no extension store, no v1 sync) and a feature that conflicts with one of them needs a thoughtful argument for why we'd change the non-goal.
+- **Site doesn't work** → use the [Site](https://github.com/unhosted-ai/browser/issues/new?template=site_didnt_work.yml) template. These reports drive tracker-blocklist, reader-mode, and OAuth-popup fixes.
+- **Security vulnerability** → do *not* open a public issue. Use [GitHub's private vulnerability reporting](https://github.com/unhosted-ai/browser/security/advisories/new). See [SECURITY.md](SECURITY.md).
 
 ## Sending a PR
 
@@ -23,7 +23,7 @@ Small PRs land fast. Big PRs land slow because they need conversation.
 ## Local development
 
 ```bash
-git clone https://github.com/Delta-Practice/Browser.git
+git clone https://github.com/unhosted-ai/browser.git
 cd Browser
 pnpm install
 unset ELECTRON_RUN_AS_NODE     # if your shell sets this
@@ -67,7 +67,7 @@ There isn't a strict style guide. The conventions in the existing code are:
 
 - Anything that conflicts with a non-goal in `about.md` without an argument for changing the non-goal.
 - New optional dependencies. The dep tree is intentionally tiny. Ask first.
-- New cloud providers without a clear *why* — Delta speaks any OpenAI-compatible endpoint, so adding a hardcoded provider entry needs to add user-facing value beyond "I use this one."
+- New cloud providers without a clear *why* — Unhosted Browser speaks any OpenAI-compatible endpoint, so adding a hardcoded provider entry needs to add user-facing value beyond "I use this one."
 - Large refactors of the IPC boundary. The shape is load-bearing; the audit doc is the place to argue for changes.
 
 ## Thanks

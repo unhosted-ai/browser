@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before opening: please check [`apps/browser/docs/about.md`](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md)
+        Before opening: please check [`apps/browser/docs/about.md`](https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/about.md)
         for the explicit non-goals (no account, no telemetry, no extension
         store, no cross-device sync in v1). If your idea conflicts with one
         of those, the answer is probably no — but a thoughtful argument for

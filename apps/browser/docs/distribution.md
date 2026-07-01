@@ -1,6 +1,6 @@
-# Delta — Distribution & Signing Runbook
+# Unhosted Browser — Distribution & Signing Runbook
 
-How to ship a packaged build of Delta. Covers the local-only path (unsigned
+How to ship a packaged build of Unhosted Browser. Covers the local-only path (unsigned
 `.dmg` for testing) and the public-release path (notarized `.dmg` you can
 hand to anyone).
 
@@ -20,9 +20,9 @@ Outputs land in `apps/browser/release/`:
 
 | Platform | Files |
 | --- | --- |
-| macOS | `Delta-<ver>-arm64.dmg`, `Delta-<ver>-x64.dmg`, plus matching `.zip`s used by future auto-update |
-| Windows | `Delta Setup <ver>.exe` (NSIS, both x64 and arm64) |
-| Linux | `Delta-<ver>.AppImage`, `delta_<ver>_amd64.deb` |
+| macOS | `Unhosted Browser-<ver>-arm64.dmg`, `Unhosted Browser-<ver>-x64.dmg`, plus matching `.zip`s used by future auto-update |
+| Windows | `Unhosted Browser Setup <ver>.exe` (NSIS, both x64 and arm64) |
+| Linux | `Unhosted Browser-<ver>.AppImage`, `delta_<ver>_amd64.deb` |
 
 `release/` is gitignored — built artifacts never go into the repo.
 
@@ -110,8 +110,8 @@ Notarization typically takes 1–10 minutes. The CLI streams progress.
 After the build, sanity check:
 
 ```bash
-codesign -dv --verbose=4 release/mac-arm64/Delta.app
-spctl -a -vvv release/mac-arm64/Delta.app
+codesign -dv --verbose=4 release/mac-arm64/Unhosted Browser.app
+spctl -a -vvv release/mac-arm64/Unhosted Browser.app
 ```
 
 You want to see `accepted` and `source=Notarized Developer ID`.
@@ -140,7 +140,7 @@ Sectigo / DigiCert). Skip that until there's a real reason.
 The `build.publish` field is set to `null` for now (no auto-update). When
 you're ready:
 
-1. Switch publish to `{ "provider": "github", "owner": "Delta-Practice",
+1. Switch publish to `{ "provider": "github", "owner": "unhosted-ai",
    "repo": "Browser" }`.
 2. Use `electron-updater` from main; it pulls from GitHub Releases.
 3. Tag a release: `git tag v0.1.0 && git push --tags` triggers the

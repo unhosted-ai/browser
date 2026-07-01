@@ -25,7 +25,7 @@ table when the two disagree.
 - **Account lock** — opt-in PIN or password gate at app launch; PBKDF2-SHA256 200k iters, hash + salt only on disk, `timingSafeEqual` in main, 3-failure 4s cooldown on the lock screen
 - **Scheduled tasks** — local cron-of-one (`reminder` / `openUrl` / `agent` actions; `oneShot` ISO or `every N min`). Native `Notification` API for reminders; agent prompts spawn a fresh conversation
 - **Per-site password import** — CSV preview (Chrome / Brave / Edge / Firefox / Safari export format) with per-row keep, OR **direct from the macOS Keychain** via `security` (lists metadata without prompts; OS prompts per-item on import). Passwords encrypted via OS keychain (`safeStorage`); plaintext never crosses IPC; fill-into-active-tab IPC ready. Windows + Linux system-keychain readers land next.
-- **Set as default browser** — registers Delta for http+https via `app.setAsDefaultProtocolClient`; Windows deeplinks to the Settings → Default apps pane
+- **Set as default browser** — registers Unhosted Browser for http+https via `app.setAsDefaultProtocolClient`; Windows deeplinks to the Settings → Default apps pane
 - **Conversation compression** — `userData/conversations/<id>.json.gz` (gzip via `node:zlib`), 4-6× smaller; legacy `.json` reads transparently, migrate on next save
 
 ### The agent
@@ -78,16 +78,16 @@ table when the two disagree.
 These are explicit non-goals — listing them as honestly as the goals.
 Full reasoning in [`apps/browser/docs/about.md`](apps/browser/docs/about.md).
 
-- **A Delta account / login.** The device is the identity. There is no email/password, ever.
+- **A Unhosted Browser account / login.** The device is the identity. There is no email/password, ever.
 - **Cross-device sync as a built-in feature.** A future opt-in, end-to-end-encrypted sync where the key never reaches a server is plausible (v2). Built-in cloud sync is not.
 - **Telemetry / analytics.** None. Not even crash reporting until we figure out a privacy-respecting way to do it.
 - **A Chrome extension store integration.** We'd rather ship the three or four functions extensions provide as built-ins than reinvent the extension layer.
 - **A mobile app.** Electron is desktop-only. iOS/Android is a separate product, separate codebase.
-- **A hardened-security browser.** Tor, Brave with Shields-strict, and arkenfox-Firefox cover that better than we could. Delta is *default-good*, not maximally hardened.
+- **A hardened-security browser.** Tor, Brave with Shields-strict, and arkenfox-Firefox cover that better than we could. Unhosted Browser is *default-good*, not maximally hardened.
 
 ## How to help
 
-- **Bug, feature idea, site that didn't work** → use the [issue templates](https://github.com/Delta-Practice/Browser/issues/new/choose).
-- **Security vulnerability** → [private vulnerability reporting](https://github.com/Delta-Practice/Browser/security/advisories/new).
+- **Bug, feature idea, site that didn't work** → use the [issue templates](https://github.com/unhosted-ai/browser/issues/new/choose).
+- **Security vulnerability** → [private vulnerability reporting](https://github.com/unhosted-ai/browser/security/advisories/new).
 - **Pull request** → see [`CONTRIBUTING.md`](CONTRIBUTING.md). Small ones land fast; big ones want an issue first.
 - **Just want to talk about it?** → open an issue with the *feature* template; the conversation register is fine.

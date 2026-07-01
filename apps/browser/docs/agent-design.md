@@ -547,7 +547,7 @@ Each step ends in a state where the app still works end-to-end. No
 
 These projects solve overlapping problems with different products. We
 read their code so we don't reinvent the parts they got right; we
-don't pull them as dependencies because Delta's architecture
+don't pull them as dependencies because Unhosted Browser's architecture
 (Electron main-process runtime, no Playwright, no remote browser)
 is different.
 
@@ -565,7 +565,7 @@ enough that its API shape is informative. What we lift, conceptually:
   and gives the permission card something to render a thumbnail of.
 - **CLI sub-command shape** (`open / state / click / type /
   screenshot / close`). Maps almost 1:1 to our Phase 3 act-tool
-  surface. We won't ship a Delta CLI in v1, but the CLI verbs are a
+  surface. We won't ship a Unhosted Browser CLI in v1, but the CLI verbs are a
   good starting point for tool names.
 - **Task-graph API** (`Agent(task=..., llm=..., browser=...).run()`).
   Useful as a renderer-side ergonomics goal — the React surface for
@@ -586,7 +586,7 @@ product entirely, but design-aligned:
   re-opens cleanly.
 - **Dev-tool register on the public site.** Their site's aesthetic
   (dark, monospace-accented, code-first, generous spacing) is the
-  reference for `docs/` (Delta's GitHub Pages source).
+  reference for `docs/` (Unhosted Browser's GitHub Pages source).
 
 ## 13. Security posture & threat model
 

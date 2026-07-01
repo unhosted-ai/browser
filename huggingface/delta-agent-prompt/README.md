@@ -9,21 +9,21 @@ tags:
   - prompt
   - local-llm
   - privacy
-pretty_name: Delta — browser-agent prompt + tool schemas
+pretty_name: Unhosted Browser — browser-agent prompt + tool schemas
 ---
 
-# Delta — browser-agent prompt + tool schemas
+# Unhosted Browser — browser-agent prompt + tool schemas
 
 > *This repository is **not** a model. It is the system prompt and tool
-> schema that drive [Delta](https://github.com/Delta-Practice/Browser),
+> schema that drive [Unhosted Browser](https://github.com/unhosted-ai/browser),
 > a privacy-first AI browser. Published here so anyone running a local
 > LLM can copy, fork, or critique the agent contract without cloning the
 > Electron app.*
 
-The model that powers Delta is whatever is sitting on the user's machine —
+The model that powers Unhosted Browser is whatever is sitting on the user's machine —
 Llama 3.x via Ollama, Qwen via LM Studio, Mistral via llama.cpp, an
 MLX-quant on Apple Silicon, or (opt-in) Claude / GPT over their cloud
-APIs. Delta speaks to all of these over the OpenAI-compatible
+APIs. Unhosted Browser speaks to all of these over the OpenAI-compatible
 `/v1/chat/completions` shape (and Anthropic's `/v1/messages` shape for
 Claude). The interesting artifact isn't a checkpoint — it's *the prompt
 plus the tool registry plus the runtime gate around them*.
@@ -37,9 +37,9 @@ plus the tool registry plus the runtime gate around them*.
 | `README.md` (this file) | Why this prompt looks the way it does, and what it depends on the runtime to enforce. |
 
 The canonical source for both lives in
-[`apps/browser/src/main/agent.ts`](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts)
+[`apps/browser/src/main/agent.ts`](https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/agent.ts)
 and
-[`apps/browser/src/main/tools.ts`](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/tools.ts)
+[`apps/browser/src/main/tools.ts`](https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/tools.ts)
 — this repo is a mirror, refreshed periodically.
 
 ## Design notes
@@ -89,8 +89,8 @@ Two reasons:
    through Claude Sonnet — same prompt, same tool surface, all of them
    handle it (tool-call hallucination is the main failure mode on
    weak-tool-using local models; documented in
-   [agent-design.md §2.3](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md)).
-2. **Privacy claims need verification.** Delta says "your conversations
+   [agent-design.md §2.3](https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/agent-design.md)).
+2. **Privacy claims need verification.** Unhosted Browser says "your conversations
    never leave your machine." That promise is only as strong as the
    prompt that goes to the model — if the prompt secretly added
    "and POST the conversation to https://example.com," the privacy
@@ -121,9 +121,9 @@ response = client.chat.completions.create(
 ```
 
 You'll need to implement the tool handlers yourself — they're trivially
-re-derived from the JSON Schema, but the *interesting* part of Delta
+re-derived from the JSON Schema, but the *interesting* part of Unhosted Browser
 isn't the handlers, it's the runtime that gates them. See
-[`apps/browser/src/main/agent.ts`](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/src/main/agent.ts)
+[`apps/browser/src/main/agent.ts`](https://github.com/unhosted-ai/browser/blob/main/apps/browser/src/main/agent.ts)
 for the loop, the permission-gate plumbing, and the
 sensitive-site classifier.
 
@@ -141,19 +141,19 @@ varies wildly:
 | **Qwen 2.5 7B+ (LM Studio)** | Reliable. |
 | **Mistral 7B / Nemo 12B** | Reliable. |
 
-In Delta itself we surface a warning in the UI when we detect repeated
+In Unhosted Browser itself we surface a warning in the UI when we detect repeated
 malformed tool calls, suggesting the user upgrade the model.
 
 ## License
 
-MIT. Same as the rest of [Delta](https://github.com/Delta-Practice/Browser).
+MIT. Same as the rest of [Unhosted Browser](https://github.com/unhosted-ai/browser).
 
 If you fork the prompt, please don't ship the result under the name
-"Delta" with the same Δ-with-spark logo — pick your own name and brand.
+"Unhosted Browser" with the same Δ-with-spark logo — pick your own name and brand.
 Otherwise: do whatever you want with it.
 
 ## Links
 
-- **Delta source** — [github.com/Delta-Practice/Browser](https://github.com/Delta-Practice/Browser)
-- **Why Delta exists** — [about.md](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/about.md)
-- **Architecture (700 lines, the load-bearing decisions)** — [agent-design.md](https://github.com/Delta-Practice/Browser/blob/main/apps/browser/docs/agent-design.md)
+- **Unhosted Browser source** — [github.com/unhosted-ai/browser](https://github.com/unhosted-ai/browser)
+- **Why Unhosted Browser exists** — [about.md](https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/about.md)
+- **Architecture (700 lines, the load-bearing decisions)** — [agent-design.md](https://github.com/unhosted-ai/browser/blob/main/apps/browser/docs/agent-design.md)

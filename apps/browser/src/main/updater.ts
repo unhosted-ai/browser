@@ -40,7 +40,7 @@ export function setupAutoUpdater(opts: {
   autoUpdater.autoInstallOnAppQuit = false
 
   autoUpdater.on("update-available", (info) => {
-    const releaseUrl = `https://github.com/Delta-Practice/Browser/releases/tag/v${info.version}`
+    const releaseUrl = `https://github.com/unhosted-ai/browser/releases/tag/v${info.version}`
     opts.win?.webContents.send("updater:available", {
       version: info.version,
       releaseDate: info.releaseDate,

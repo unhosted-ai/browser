@@ -19,14 +19,14 @@ hf auth login   # paste a write-scope token from huggingface.co/settings/tokens
 
 ## Refreshing the card
 
-When the prompt or tools change in the Delta source:
+When the prompt or tools change in the Unhosted Browser source:
 
 1. Re-copy from the source files into the mirror:
    - `apps/browser/src/main/agent.ts` → `huggingface/delta-agent-prompt/system_prompt.md`
    - `apps/browser/src/main/tools.ts` → `huggingface/delta-agent-prompt/tools.json`
-2. Commit the change in the Delta repo (so the source-of-truth + the
+2. Commit the change in the Unhosted Browser repo (so the source-of-truth + the
    mirror move together).
-3. Push the mirror to HF. Run from the Delta repo root:
+3. Push the mirror to HF. Run from the Unhosted Browser repo root:
 
    ```bash
    hf upload sinhaankur/delta-agent-prompt huggingface/delta-agent-prompt . \

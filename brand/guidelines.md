@@ -79,7 +79,7 @@ app, so the rendered UI doesn't depend on remote font fetches.
 - The product is **Delta** (capital D, no accent on the "e").
 - Don't write it as ∆, △, or DELTA in long-form copy. Use the Δ glyph only
   as a logomark, not inline in sentences.
-- The repository is currently `Browser` under the `Delta-Practice` org —
+- The repository is currently `Browser` under the `unhosted-ai` org —
   this is not the canonical brand name. Renaming the repo to `delta` is a
   one-line change on github.com that the user can do whenever they want.
 

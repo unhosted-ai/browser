@@ -1,4 +1,4 @@
-# Delta — next-step roadmap
+# Unhosted Browser — next-step roadmap
 
 _Generated 2026-05-20. Captures every ask from the conversation that
 spun this doc up, so nothing falls off the floor. Each item lists the
@@ -62,7 +62,7 @@ useful now:
 
 ### 3. Perplexity-Comet parity — "blocks ads AND tracking, something better"
 
-Delta already blocks ~42k trackers (EasyPrivacy). Comet's headline
+Unhosted Browser already blocks ~42k trackers (EasyPrivacy). Comet's headline
 moves we *don't* yet match:
 
 - **First PR — ad blocking on top of trackers.** Wire EasyList alongside
@@ -91,7 +91,7 @@ This is what unlocks "book my OpenTable reservation."
 
 ### 5. Closer to Chromium — extensions work seamlessly
 
-Delta already *is* Chromium (Electron 33 → Chromium 130) for rendering
+Unhosted Browser already *is* Chromium (Electron 33 → Chromium 130) for rendering
 and the web platform. The gap is the `chrome.*` extension runtime,
 which Electron doesn't ship. Three increasing-cost paths:
 
@@ -122,7 +122,7 @@ etc.). When you confirm which, the integration shape is the same:
 
 ### 7. Intuitive (Framer Motion / Liquid Glass) polish — adaptive
 
-Delta already uses `motion/react`. The asked-for direction is "Liquid
+Unhosted Browser already uses `motion/react`. The asked-for direction is "Liquid
 Glass / Framer Motion adaptive" — Apple's visionOS / Apple-Intelligence
 look (translucent layers, depth, content-aware materials) animated
 with Framer Motion spring physics. Concretely:
@@ -187,7 +187,7 @@ Today's [docs/index.html](../../../docs/index.html) is solid but text-heavy.
   reading a page + the permission card decision flow + the lock screen.
   Replaces the current static brand swatch.
 - Second PR: a single "Try it" CTA that's actually a `delta://` deep
-  link if Delta is installed, falls back to the GitHub Releases page if
+  link if Unhosted Browser is installed, falls back to the GitHub Releases page if
   not.
 - Third PR: a Comet/Arc-style scrollytelling sequence below the fold:
   "what makes this different" → three sections, each anchored on one

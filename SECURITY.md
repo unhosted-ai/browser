@@ -1,6 +1,6 @@
 # Security policy
 
-Delta is a browser, and browsers have a real attack surface — pages
+Unhosted Browser is a browser, and browsers have a real attack surface — pages
 that try to escape the sandbox, prompt-injection text aimed at the
 agent, fake update prompts, supply-chain trickery in dependencies. We
 take that seriously.
@@ -10,7 +10,7 @@ take that seriously.
 **Do not open a public issue for security bugs.** Use GitHub's private
 vulnerability reporting:
 
-1. Go to https://github.com/Delta-Practice/Browser/security/advisories/new
+1. Go to https://github.com/unhosted-ai/browser/security/advisories/new
 2. Describe what you found, with as much detail as you can share
    (proof-of-concept, affected commits, attack scenario).
 
@@ -44,7 +44,7 @@ Out of scope:
 - Issues that require a compromised local machine to exploit (if an
   attacker is already running code as you, the threat model is
   different).
-- Bugs in pages Delta loads, unless Delta could plausibly defend against
+- Bugs in pages Unhosted Browser loads, unless Unhosted Browser could plausibly defend against
   them.
 
 ## Disclosure

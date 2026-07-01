@@ -179,7 +179,7 @@ export function buildMenu({ win, tabs }: MenuDeps): Menu {
         {
           label: "Delta on GitHub",
           click: () => {
-            void import("electron").then(({ shell }) => shell.openExternal("https://github.com/Delta-Practice/Browser"))
+            void import("electron").then(({ shell }) => shell.openExternal("https://github.com/unhosted-ai/browser"))
           },
         },
       ],

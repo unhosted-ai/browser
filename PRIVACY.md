@@ -2,18 +2,18 @@
 
 _Last updated: 2026-05-19. Plain-language summary first; the jurisdiction-specific addenda at the bottom satisfy GDPR Art. 13/14, UK GDPR, CCPA/CPRA + the US state CDPAs, PIPEDA, Quebec Law 25, LGPD, PIPL, DPDP Act 2023, APPI, PIPA, PDPA, POPIA and revFADP. If the body of this notice and an addendum disagree, the addendum wins for users in that jurisdiction._
 
-Delta is a desktop browser. It runs on your machine. Treat this notice as the complete account of every byte of personal data Delta itself causes to leave your device.
+Unhosted Browser is a desktop browser. It runs on your machine. Treat this notice as the complete account of every byte of personal data Unhosted Browser itself causes to leave your device.
 
 ## TL;DR
 
-- **No account.** There is no Delta server, no Delta login, no Delta-controlled identifier for you.
+- **No account.** There is no Unhosted Browser server, no Unhosted Browser login, no Unhosted Browser-controlled identifier for you.
 - **No telemetry, no analytics, no crash reporting, no advertising.** Zero third-party SDKs of those kinds are bundled.
-- **All browsing data — history, bookmarks, downloads, conversations, tracker-block statistics, settings — stays on your machine** under `~/Library/Application Support/Delta` (macOS), `%APPDATA%\Delta` (Windows), or `~/.config/Delta` (Linux).
+- **All browsing data — history, bookmarks, downloads, conversations, tracker-block statistics, settings — stays on your machine** under `~/Library/Application Support/Unhosted Browser` (macOS), `%APPDATA%\Unhosted Browser` (Windows), or `~/.config/Unhosted Browser` (Linux).
 - **API keys** for opt-in cloud providers are encrypted at rest using your operating system's keychain (macOS Keychain / Windows DPAPI / libsecret on Linux) via Electron `safeStorage`. The browser's renderer process never sees the key value.
 - **The agent runs against a local LLM by default** (Ollama, LM Studio, llama.cpp, MLX, anything OpenAI-compatible on `127.0.0.1`). Cloud LLM providers (OpenAI, Anthropic, custom endpoints) are **off until you turn them on**.
-- **We do not collect or process your IP address.** Delta makes no IP-geolocation request and runs no region-detection. Your IP is visible to whichever destination *you* navigate to or *you* enable — see the endpoint table below.
+- **We do not collect or process your IP address.** Unhosted Browser makes no IP-geolocation request and runs no region-detection. Your IP is visible to whichever destination *you* navigate to or *you* enable — see the endpoint table below.
 
-## Data Delta itself processes
+## Data Unhosted Browser itself processes
 
 | Category | What | Where it lives | Retention | Who can see it |
 |---|---|---|---|---|
@@ -26,34 +26,34 @@ Delta is a desktop browser. It runs on your machine. Treat this notice as the co
 | API keys (if you added any) | OpenAI / Anthropic / custom-endpoint keys | OS keychain via `safeStorage` (ciphertext only in `settings.json`) | until you delete | only the main process at decrypt time; never the renderer, never disk in plaintext |
 | Local identity (if you opted in) | provider (`github` or `google`), public handle, display name, avatar URL | local `identity.json` (plain JSON — nothing sensitive) | until you sign out / delete | you |
 
-There is no aggregation, no upload, no derived profile. Files are owned by the OS user account that runs Delta.
+There is no aggregation, no upload, no derived profile. Files are owned by the OS user account that runs Unhosted Browser.
 
-## Network destinations Delta is responsible for
+## Network destinations Unhosted Browser is responsible for
 
-Delta only originates network traffic to the destinations listed below. Each row is **off** by default unless marked otherwise; each is described as it appears in `apps/browser/src/main/`.
+Unhosted Browser only originates network traffic to the destinations listed below. Each row is **off** by default unless marked otherwise; each is described as it appears in `apps/browser/src/main/`.
 
 | Destination | Purpose | When | Default | What the destination sees |
 |---|---|---|---|---|
 | `http://127.0.0.1:11434`, `:1234`, `:8080`, etc. | Local LLM auto-discovery and chat (Ollama, LM Studio, llama.cpp, MLX) | App start + on every chat turn | **on** (local only) | the prompt, the active page text the agent attached, the model name. Loopback — does not leave your machine. |
 | `https://api.openai.com` | OpenAI chat completions, model probe | You enable OpenAI in Settings, then chat | off | your IP, your prompt, your page-text context, your API key |
 | `https://api.anthropic.com` | Anthropic messages, model probe | You enable Anthropic in Settings, then chat | off | your IP, your prompt, your page-text context, your API key |
-| Your custom OpenAI-compatible endpoint | Same as above | You added it in Settings → Custom endpoints | off | whatever you sent — Delta does not inspect it |
+| Your custom OpenAI-compatible endpoint | Same as above | You added it in Settings → Custom endpoints | off | whatever you sent — Unhosted Browser does not inspect it |
 | `https://api.github.com/users/<handle>` | Public-profile lookup to populate name + avatar at sign-in | You picked "Sign in with GitHub" on the onboarding screen | off until you sign in | your IP, the handle you typed |
 | `https://www.gravatar.com/avatar/<md5>` | Avatar fetch keyed by md5(email) | You picked "Sign in with Gmail" on the onboarding screen | off until you sign in | your IP, an md5 hash of the email you typed |
 | `https://cloudflare-dns.com` / `dns.quad9.net` / `dns.google` | DNS-over-HTTPS resolver | You enabled DoH in Settings → Security | off | your IP + every hostname you visit |
-| `https://github.com/Delta-Practice/Browser/releases/...` | Update check via electron-updater | You enabled `autoUpdateCheck` in Settings | off | your IP, your installed version |
+| `https://github.com/unhosted-ai/browser/releases/...` | Update check via electron-updater | You enabled `autoUpdateCheck` in Settings | off | your IP, your installed version |
 
-Page loads in your tabs and any sub-resources those pages fetch are **your direct browsing**, the same way they would be in Chrome or Firefox. Delta's tracker blocker drops requests that match the bundled lists (curated short list + EasyPrivacy, ~42k domains, refreshable). Delta does not see, log, or upload the contents of your browsing.
+Page loads in your tabs and any sub-resources those pages fetch are **your direct browsing**, the same way they would be in Chrome or Firefox. Unhosted Browser's tracker blocker drops requests that match the bundled lists (curated short list + EasyPrivacy, ~42k domains, refreshable). Unhosted Browser does not see, log, or upload the contents of your browsing.
 
 ## The agent and your data
 
-When you send a chat message, Delta sends the model:
+When you send a chat message, Unhosted Browser sends the model:
 
 1. The system prompt (public — mirrored at <https://huggingface.co/sinhaankur/delta-agent-prompt>).
 2. The conversation so far.
 3. If the active tab opted in, the page's plain text wrapped in `<page_content>…</page_content>` tags. The system prompt instructs the model to treat anything inside those tags as untrusted data, not instructions.
 
-If the model is local (default), nothing leaves your machine. If the model is cloud (OpenAI / Anthropic / custom), that provider sees the above payload and is the data controller for it. Their privacy policies apply to that data. Delta does not retain a separate copy beyond the conversation file already on your disk.
+If the model is local (default), nothing leaves your machine. If the model is cloud (OpenAI / Anthropic / custom), that provider sees the above payload and is the data controller for it. Their privacy policies apply to that data. Unhosted Browser does not retain a separate copy beyond the conversation file already on your disk.
 
 The agent's *act* tools (`navigate`, `open_tab`, and any future `click` / `type`) require explicit per-`(origin, tool)` approval before they run. Sensitive sites (banking, government, payment, wallet, healthcare) auto-block all act tools.
 
@@ -61,11 +61,11 @@ The agent's *act* tools (`navigate`, `open_tab`, and any future `click` / `type`
 
 ## Cookies, fingerprinting, advertising
 
-Delta does not set first-party cookies for its own purposes. Cookies set by pages you visit live in Chromium's per-origin cookie store, scoped exactly as Chromium scopes them, and you can clear them from Settings → Clear Browsing Data. Delta does no fingerprinting. Delta serves no ads.
+Unhosted Browser does not set first-party cookies for its own purposes. Cookies set by pages you visit live in Chromium's per-origin cookie store, scoped exactly as Chromium scopes them, and you can clear them from Settings → Clear Browsing Data. Unhosted Browser does no fingerprinting. Unhosted Browser serves no ads.
 
 ## Children
 
-Delta is a general-purpose browser intended for adults. It is not directed at children under 13 (US COPPA) and not designed for users under 16 without parental consent (GDPR Art. 8). We do not knowingly collect data from children — and because we collect no data from anyone, there is nothing to collect.
+Unhosted Browser is a general-purpose browser intended for adults. It is not directed at children under 13 (US COPPA) and not designed for users under 16 without parental consent (GDPR Art. 8). We do not knowingly collect data from children — and because we collect no data from anyone, there is nothing to collect.
 
 ## Security
 
@@ -77,38 +77,38 @@ Material changes will be announced in the GitHub repo's Releases. The "Last upda
 
 ## Contact
 
-Maintainer: **Ankur Sinha** — `h99311@gmail.com` — <https://github.com/Delta-Practice/Browser/issues>. For security disclosures use [private vulnerability reporting](https://github.com/Delta-Practice/Browser/security/advisories/new).
+Maintainer: **Ankur Sinha** — `h99311@gmail.com` — <https://github.com/unhosted-ai/browser/issues>. For security disclosures use [private vulnerability reporting](https://github.com/unhosted-ai/browser/security/advisories/new).
 
 ---
 
 ## Jurisdiction-specific addenda
 
-Delta does not detect your region (that would be telemetry). The single notice above is written to satisfy the strictest applicable regime. The addenda below clarify how that notice maps to your local law.
+Unhosted Browser does not detect your region (that would be telemetry). The single notice above is written to satisfy the strictest applicable regime. The addenda below clarify how that notice maps to your local law.
 
 ### European Economic Area & Switzerland — GDPR / revFADP
 
-- **Controller:** Ankur Sinha (sole maintainer), `h99311@gmail.com`. Delta is desktop software that processes data on your device. For local-only operation, you are the sole controller of your data; the maintainer is not a processor because nothing is sent. If you opt in to cloud LLMs, the cloud provider becomes the controller for the prompt/response payload sent to it.
+- **Controller:** Ankur Sinha (sole maintainer), `h99311@gmail.com`. Unhosted Browser is desktop software that processes data on your device. For local-only operation, you are the sole controller of your data; the maintainer is not a processor because nothing is sent. If you opt in to cloud LLMs, the cloud provider becomes the controller for the prompt/response payload sent to it.
 - **Legal bases (Art. 6):** local processing is *necessary for the performance of a contract* (use of the software you installed). Opt-in cloud calls are *consent* — toggled per-provider in Settings.
 - **Rights (Arts. 15–22):** because we hold no copy of your data, requests for access / rectification / erasure / restriction / portability / objection are satisfied by you operating on your local data directory and the relevant cloud provider's tooling.
 - **Right to lodge a complaint** with your national supervisory authority — see <https://edpb.europa.eu/about-edpb/about-edpb/members_en>.
-- **No automated decision-making with legal or similarly significant effects** is performed by Delta on you (Art. 22). The agent may suggest actions and may execute approved act tools on your instruction; it does not make decisions *about* you.
+- **No automated decision-making with legal or similarly significant effects** is performed by Unhosted Browser on you (Art. 22). The agent may suggest actions and may execute approved act tools on your instruction; it does not make decisions *about* you.
 - **AI Act Art. 50** transparency disclosure is in the body above.
 - **EU representative:** none required because we do not target the EU market in a commercial sense and process no personal data (Art. 27(2)(a)). If usage characteristics change we will appoint one.
 
 ### United Kingdom — UK GDPR + DPA 2018
 
-As EEA above, substituting the ICO as supervisory authority — <https://ico.org.uk/make-a-complaint/>. The Online Safety Act 2023 does not apply: Delta is not a user-to-user service or search service.
+As EEA above, substituting the ICO as supervisory authority — <https://ico.org.uk/make-a-complaint/>. The Online Safety Act 2023 does not apply: Unhosted Browser is not a user-to-user service or search service.
 
 ### United States — California (CCPA / CPRA) and other state CDPAs (VA, CO, CT, UT, OR, TX, FL, MT, DE, NJ, NH, MN, RI, IN, IA, TN, MD, KY, and others as enacted)
 
-- **Notice at Collection:** Delta collects **no** categories of personal information on its servers because it has no servers. Local processing on your own machine is not "collection" by the developer.
-- **Sale / share / cross-context behavioral advertising:** none. Delta does not sell or share personal information. A "Do Not Sell or Share My Personal Information" link is therefore not required, and we say so here in lieu of one.
-- **Sensitive personal information:** Delta does not collect or process SPI for inferred-characteristics purposes.
+- **Notice at Collection:** Unhosted Browser collects **no** categories of personal information on its servers because it has no servers. Local processing on your own machine is not "collection" by the developer.
+- **Sale / share / cross-context behavioral advertising:** none. Unhosted Browser does not sell or share personal information. A "Do Not Sell or Share My Personal Information" link is therefore not required, and we say so here in lieu of one.
+- **Sensitive personal information:** Unhosted Browser does not collect or process SPI for inferred-characteristics purposes.
 - **Rights:** know, delete, correct, opt out of sale/share, limit use of SPI, non-discrimination. Because we hold no copy of your data, exercising these rights consists of you operating on your local data directory.
 
 ### Federal — children (COPPA)
 
-Delta is not directed at children under 13. We do not knowingly collect personal information from children. If you believe a child is using Delta, you can delete the installation and its data directory at any time.
+Unhosted Browser is not directed at children under 13. We do not knowingly collect personal information from children. If you believe a child is using Unhosted Browser, you can delete the installation and its data directory at any time.
 
 ### Canada — PIPEDA + Quebec Law 25
 
@@ -125,7 +125,7 @@ Delta is not directed at children under 13. We do not knowingly collect personal
 
 ### China (mainland) — PIPL + CSL + DSL
 
-If you are in mainland China, opting in to OpenAI, Anthropic or another non-China cloud endpoint constitutes a **cross-border transfer of personal information** under PIPL Arts. 38–43, which generally requires a separate consent, a Standard Contract, security assessment or certification depending on volume and category. Delta does not provide that compliance scaffolding. **Keep cloud providers off** unless you have independently arranged compliance, or use only a local LLM.
+If you are in mainland China, opting in to OpenAI, Anthropic or another non-China cloud endpoint constitutes a **cross-border transfer of personal information** under PIPL Arts. 38–43, which generally requires a separate consent, a Standard Contract, security assessment or certification depending on volume and category. Unhosted Browser does not provide that compliance scaffolding. **Keep cloud providers off** unless you have independently arranged compliance, or use only a local LLM.
 
 ### India — DPDP Act 2023
 
@@ -165,4 +165,4 @@ Veri Sorumlusu: Ankur Sinha, `h99311@gmail.com`. KVKK Kurumu: <https://www.kvkk.
 
 ---
 
-If your jurisdiction is not listed and you believe the body of this notice fails to satisfy a local requirement, open an issue at <https://github.com/Delta-Practice/Browser/issues/new/choose> and we will add the addendum.
+If your jurisdiction is not listed and you believe the body of this notice fails to satisfy a local requirement, open an issue at <https://github.com/unhosted-ai/browser/issues/new/choose> and we will add the addendum.

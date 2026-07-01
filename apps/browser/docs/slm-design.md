@@ -15,7 +15,7 @@ running for a year. To "personalise" they fall back on profile fields,
 opaque RAG over uploaded files, or per-session memory snippets — none of
 which is ownable, portable, or auditable.
 
-Delta is a desktop app that already holds the right ground truth: every
+Unhosted Browser is a desktop app that already holds the right ground truth: every
 conversation you've had with the agent, every page you've read with the
 agent attached, the bookmarks you keep, the queries you actually run.
 That data already stays on your machine

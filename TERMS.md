@@ -2,7 +2,7 @@
 
 _Last updated: 2026-05-19._
 
-Delta ("the Software") is open-source desktop software distributed under the MIT License (see [`LICENSE`](LICENSE)). These Terms govern your use of pre-built binaries and source code obtained from the Delta-Practice/Browser repository.
+Unhosted Browser ("the Software") is open-source desktop software distributed under the MIT License (see [`LICENSE`](LICENSE)). These Terms govern your use of pre-built binaries and source code obtained from the unhosted-ai/browser repository.
 
 ## 1. License grant
 
@@ -18,17 +18,17 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMA
 
 ## 4. The agent
 
-Delta includes an autonomous assistant ("the agent") that can read the active page and, with your per-site approval, take actions on your behalf (navigate, open tabs, and any future act tools). You are responsible for:
+Unhosted Browser includes an autonomous assistant ("the agent") that can read the active page and, with your per-site approval, take actions on your behalf (navigate, open tabs, and any future act tools). You are responsible for:
 
 - Reviewing each permission card before granting it.
-- Verifying any action the agent suggests, especially in safety-, legal-, medical-, or finance-critical contexts. **The agent can be wrong, and a malicious page can attempt prompt injection.** Delta's defenses (untrusted-input framing, permission gating, sensitive-site auto-block) reduce but do not eliminate this risk.
+- Verifying any action the agent suggests, especially in safety-, legal-, medical-, or finance-critical contexts. **The agent can be wrong, and a malicious page can attempt prompt injection.** Unhosted Browser's defenses (untrusted-input framing, permission gating, sensitive-site auto-block) reduce but do not eliminate this risk.
 - Anything that happens when you opt in to a cloud LLM provider (OpenAI, Anthropic, custom endpoint). Their terms apply to the data you send them.
 
 The agent is an AI system under the EU AI Act Art. 50; you are hereby informed you are interacting with one.
 
 ## 5. Acceptable use
 
-You agree not to use Delta to:
+You agree not to use Unhosted Browser to:
 
 - Violate applicable law where you are.
 - Probe, scan, or attempt to breach systems you are not authorized to access.
@@ -40,11 +40,11 @@ The cloud LLM providers you connect have their own Acceptable Use Policies that 
 
 ## 6. Your data
 
-Delta does not collect your data. See [`PRIVACY.md`](PRIVACY.md) for the full account. Operating on your local data directory is your responsibility (back it up; encrypt your disk; revoke API keys you no longer use).
+Unhosted Browser does not collect your data. See [`PRIVACY.md`](PRIVACY.md) for the full account. Operating on your local data directory is your responsibility (back it up; encrypt your disk; revoke API keys you no longer use).
 
 ## 7. Updates
 
-Delta currently performs **check-only** update notifications (off by default, opt-in in Settings). Auto-installing updates may be enabled in a future release after the macOS Developer ID and Windows code-signing certificates are in place; you will be informed at that time and may disable it.
+Unhosted Browser currently performs **check-only** update notifications (off by default, opt-in in Settings). Auto-installing updates may be enabled in a future release after the macOS Developer ID and Windows code-signing certificates are in place; you will be informed at that time and may disable it.
 
 ## 8. Third-party services
 
@@ -52,11 +52,11 @@ Connecting to OpenAI, Anthropic, a custom OpenAI-compatible endpoint, Ollama, LM
 
 ## 9. Brand
 
-The Delta name, the Δ + spark mark, and the wordmark in [`brand/`](brand/) follow the rules in [`brand/guidelines.md`](brand/guidelines.md). The MIT License grants you broad rights to the *code*; the brand marks are separate and not licensed for use that suggests endorsement of, or affiliation with, a forked or modified build.
+The Unhosted Browser name, the Δ + spark mark, and the wordmark in [`brand/`](brand/) follow the rules in [`brand/guidelines.md`](brand/guidelines.md). The MIT License grants you broad rights to the *code*; the brand marks are separate and not licensed for use that suggests endorsement of, or affiliation with, a forked or modified build.
 
 ## 10. Termination
 
-You may stop using Delta and delete the application and its data directory at any time. The maintainer may discontinue the Software, decline contributions, or restrict access to repository resources at any time.
+You may stop using Unhosted Browser and delete the application and its data directory at any time. The maintainer may discontinue the Software, decline contributions, or restrict access to repository resources at any time.
 
 ## 11. Governing law and disputes
 
@@ -68,4 +68,4 @@ Material changes will be announced in the GitHub repo's Releases. The "Last upda
 
 ## Contact
 
-Ankur Sinha — `h99311@gmail.com` — <https://github.com/Delta-Practice/Browser/issues>.
+Ankur Sinha — `h99311@gmail.com` — <https://github.com/unhosted-ai/browser/issues>.

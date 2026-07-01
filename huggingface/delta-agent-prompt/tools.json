@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "description": "Tool registry for the Delta browser agent. Two tiers: 'read' tools auto-run; 'act' tools route through a per-(origin, tool) permission gate that the runtime enforces — the model cannot bypass it. Source of truth: apps/browser/src/main/tools.ts in github.com/Delta-Practice/Browser.",
+  "description": "Tool registry for the Delta browser agent. Two tiers: 'read' tools auto-run; 'act' tools route through a per-(origin, tool) permission gate that the runtime enforces — the model cannot bypass it. Source of truth: apps/browser/src/main/tools.ts in github.com/unhosted-ai/browser.",
   "tools": [
     {
       "name": "list_tabs",
